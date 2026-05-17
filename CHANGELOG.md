@@ -7,8 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-The repo scaffold is in place — README, LICENSE, .gitignore, CONTRIBUTING.
-Skills, hook scaffolding, install scripts, and templates land in **v1.0.0**.
+### Added
+- `clayworks-lite-nudge` skill — SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Includes `add_alert.py`, `ack_alert.py`, `check_alerts.py`, and a SKILL.md with hook-wiring instructions.
+
+### Pending for v1.0.0
+- CLAUDE.md starter template (anonymized).
+- Multi-memory routing decision-tree skill.
+- Hook scaffolding examples (one `.sh` per CC hook event).
+- Heartbeat framework concept doc.
+- `install.sh` / `install.ps1` installers.
 
 ## [0.1.0] — 2026-05-17
 
@@ -23,7 +30,6 @@ Skills, hook scaffolding, install scripts, and templates land in **v1.0.0**.
 ### Pending for v1.0.0
 - CLAUDE.md starter template (anonymized).
 - Multi-memory routing decision-tree skill.
-- Nudge install pattern (3 Python scripts + skill).
 - Hook scaffolding examples (one `.sh` per CC hook event).
 - Heartbeat framework concept doc.
 - `install.sh` / `install.ps1` installers.
