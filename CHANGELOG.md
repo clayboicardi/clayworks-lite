@@ -13,9 +13,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `hooks/examples/` — minimal annotated examples for 8 Claude Code hook events: UserPromptSubmit, PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStart, SubagentStop. Each example shows the JSON payload shape, common use cases, exit-code behavior, and registration syntax for `settings.json`. README in the dir explains the broader hook contract conventions.
 - `install.sh` and `install.ps1` — cross-platform installers (bash for macOS/Linux/Git Bash, PowerShell 7+ for Windows). Backup-then-install model: anything that would be overwritten is first copied to `~/.claude/.clayworks-lite-backup/<timestamp>/`. SHA-256 hash-diff on each item makes re-runs idempotent — unchanged files skip, modified files back up then reinstall fresh source. Supports `--dry-run` / `-DryRun` and a `--claude-dir` / `-ClaudeDir` override for testing. Tolerant of missing optional pieces (memory-routing and heartbeat-concept skills install only when present in the repo).
 - `.gitattributes` — locks `*.sh` to LF and `*.ps1` to CRLF so cross-platform clones don't break the bash shebang on macOS/Linux when cloned from Windows.
+- `clayworks-lite-memory-routing` skill — routing decision tree across Engram (cross-model structured/procedural), native Claude Code `MEMORY.md` (project-scoped), and Honcho (user modeling). Frontmatter description covers the common trigger phrasings ("remember this", "save this", preference statements, project conventions) so the skill auto-triggers when a destination decision is in play. Body explains each layer's strengths, walks a four-question decision tree, includes 11 concrete fact-to-layer examples, and explains how to operate degraded (one-layer-only) installations. Skill is documentation only — no executable component; the underlying memory systems handle storage.
 
 ### Pending for v1.0.0
-- Multi-memory routing decision-tree skill.
 - Heartbeat framework concept doc.
 
 ## [0.1.0] — 2026-05-17
