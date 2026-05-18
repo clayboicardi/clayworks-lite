@@ -104,7 +104,9 @@ reject_symlinks_in_source() {
     found="$(find "$src" -type l -print 2>/dev/null)"
     if [[ -n "$found" ]]; then
         echo "ERROR: source tree contains symlinks (potential supply-chain risk):" >&2
-        printf '  %s\n' $found >&2
+        while IFS= read -r line; do
+            printf '  %s\n' "$line" >&2
+        done <<< "$found"
         echo "" >&2
         echo "The LITE source tree should contain no symlinks. If you cloned from" >&2
         echo "github.com/clayboicardi/clayworks-lite and see this error, your" >&2
@@ -363,37 +365,14 @@ run_verify() {
 }
 
 # --- Dispatch ---------------------------------------------------------------
+# Output helpers (section/info/added/upd/skip) are defined above in the
+# "Output helpers" section and remain in scope here.
 
 if [[ $VERIFY -eq 1 ]]; then
-    # Verify uses output helpers + colors; init them inline (they're defined
-    # below in the install path's "Output helpers" section, but we need them
-    # earlier here).
-    if [[ -t 1 ]]; then
-        C_CYAN=$'\033[36m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'
-        C_DIM=$'\033[2m';   C_RESET=$'\033[0m'
-    else
-        C_CYAN=""; C_GREEN=""; C_YELLOW=""; C_DIM=""; C_RESET=""
-    fi
-    section() { echo; echo "${C_CYAN}==> $1${C_RESET}"; }
-    info()    { echo "    $1"; }
-    added()   { echo "  ${C_GREEN}+ $1${C_RESET}"; }
-    upd()     { echo "  ${C_YELLOW}~ $1${C_RESET}"; }
-    skip()    { echo "  ${C_DIM}- $1${C_RESET}"; }
     run_verify
 fi
 
 if [[ $UNINSTALL -eq 1 ]]; then
-    if [[ -t 1 ]]; then
-        C_CYAN=$'\033[36m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'
-        C_DIM=$'\033[2m';   C_RESET=$'\033[0m'
-    else
-        C_CYAN=""; C_GREEN=""; C_YELLOW=""; C_DIM=""; C_RESET=""
-    fi
-    section() { echo; echo "${C_CYAN}==> $1${C_RESET}"; }
-    info()    { echo "    $1"; }
-    added()   { echo "  ${C_GREEN}+ $1${C_RESET}"; }
-    upd()     { echo "  ${C_YELLOW}~ $1${C_RESET}"; }
-    skip()    { echo "  ${C_DIM}- $1${C_RESET}"; }
     run_uninstall
     exit 0
 fi

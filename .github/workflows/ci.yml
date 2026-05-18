@@ -60,7 +60,13 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          $issues = Invoke-ScriptAnalyzer -Path install.ps1 -Severity Error,Warning
+          # PSAvoidUsingWriteHost: Write-Host is the correct choice for a
+          # user-facing CLI installer that needs colored output.
+          # Write-Output writes to the success stream (pollutes pipelines);
+          # Write-Information doesn't natively support -ForegroundColor.
+          $issues = Invoke-ScriptAnalyzer -Path install.ps1 `
+            -Severity Error,Warning `
+            -ExcludeRule PSAvoidUsingWriteHost
           if ($issues) {
             $issues | Format-List
             throw "PSScriptAnalyzer found $($issues.Count) issue(s)"

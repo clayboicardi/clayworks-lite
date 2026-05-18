@@ -36,7 +36,7 @@ assignees: clayboicardi
 
 <!-- Paste relevant error output here, in code fences. Redact anything sensitive. -->
 
-```
+```text
 (paste here)
 ```
 
