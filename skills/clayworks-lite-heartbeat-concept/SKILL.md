@@ -125,7 +125,7 @@ What NOT to make a heartbeat do:
 
 - **Observation without reflection.** A heartbeat that just appends raw logs and never synthesizes is telemetry, not heartbeat. Useful, but a different artifact.
 - **Reflection without update.** If the reflection only lives in the conversation, it dies with the session. The "update" step is what makes it survive.
-- **Heartbeat racing the work.** A daily beat that takes 40 minutes defeats the purpose. Bound the beat: 20 minutes for thinking + 5 minutes for writing, hard cap. If you can't say it in 5 minutes of writing, your reflection is the wrong shape.
+- **Heartbeat racing the work.** A daily beat that takes 40 minutes defeats the purpose. Bound the beat — pick a thinking-time and writing-time budget that fits your work (mine is 20 minutes thinking + 5 minutes writing, hard cap) and hold to it. If you can't say it within your writing budget, your reflection is the wrong shape.
 - **Heartbeat without thresholds.** "Score: 7/10" means nothing without a baseline. Track means + standard deviations so you can distinguish normal variance from real drift.
 - **Heartbeat replacing actual work.** If you spend more time observing the agent than working with it, you've built a self-watching machine, not an operator. The beat exists to *enable* the work, not to *replace* it.
 - **Beating on the wrong axis.** A daily beat for something that changes weekly produces noise. A weekly beat for something that changes hourly produces stale signal. Match cadence to the rate-of-change of the thing being observed.

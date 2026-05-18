@@ -16,7 +16,7 @@ The production version of Claude Code — the one that remembers across sessions
 
 I did that work for my own operator system. This LITE kit is the minimum competent baseline distilled out of it: enough to feel the difference, free under MIT, no commitment.
 
-The full production stack lives in **Clayworks** — the paid bundle, launching alongside this kit. See the "Upgrade path" section below. LITE is the appetizer; the bundle is the meal.
+The full production stack lives in **Clayworks** — the paid bundle, launching alongside this kit. See the "Upgrade path" section below.
 
 ---
 
@@ -36,7 +36,7 @@ LITE addresses the first three directly and gives you the structural scaffolding
 
 ## Who it's for
 
-**Yes, for you:** You're using Claude Code for real work. You've already hit the friction above. You're the kind of operator who tweaks dotfiles, writes shell aliases, and has opinions about hooks. You want a sharper edge, not a wizard.
+**Yes, for you:** You're using Claude Code for real work. You've already hit the friction above. You're comfortable in a shell and have opinions about your tooling. You want a sharper edge, not a wizard.
 
 **Probably not for you:** You're just starting with Claude Code and want the simplest possible experience. Use CC stock for a few weeks first; come back when you feel the gaps.
 
@@ -102,7 +102,7 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 - **Morning briefing / evening consolidation / weekly review / reflection beat templates** — structured daily-cycle prompts that turn CC into something between a journal and an operations runner
 - **Telegram integration** — proactive notifications + remote control over your CC instance from your phone
 - **Settings.example.json + per-key rationale** — the env vars, hooks, permissions, plugin set, and marketplaces I run in production
-- **Plugin baseline doc (full, 17 paid plugins with rationale)** — LITE includes a 6-plugin baseline; the paid doc covers the full 23-plugin operator stack
+- **Plugin baseline doc (full 23-plugin operator stack, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho, Octo); the paid doc covers all 23 with the why for each addition
 - **Operating Claude Code at production quality** — a 15-30 page written guide covering the operator discipline that holds the system together
 - **Install guide + troubleshooting field guide**
 
