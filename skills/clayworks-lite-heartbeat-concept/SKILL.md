@@ -115,6 +115,8 @@ You don't need three tiers, a trust ledger, or telemetry to start. Begin with:
 
 That's it. Three lines, one file, no plugins. The pattern works.
 
+**Starter template** ships in this repo at [`templates/STATE.md.example`](../../templates/STATE.md.example) — copy to `~/agent/STATE.md` (or wherever you want it) and customize. Five sections: What's current / Open threads / Decisions made recently / Pending decisions / Stale items pruned this session. Each section's HTML comment explains what belongs there.
+
 When the discipline holds: add a morning beat (read STATE.md → set focus for the day) before opening any project. Then a weekly beat (review past 7 days of STATE.md history → prune + promote rules). Each addition compounds.
 
 ---

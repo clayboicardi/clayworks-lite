@@ -1,0 +1,56 @@
+# STATE.md — last updated: <YYYY-MM-DD>
+
+> The minimum-viable heartbeat artifact. One file, three sections, kept current.
+> See `skills/clayworks-lite-heartbeat-concept/SKILL.md` for the pattern this fits into.
+
+## What's current
+
+<!-- One or two sentences. The thing you'd say if a colleague asked "what are you
+     working on right now?" — not the project list, the *active* slice of it. -->
+
+-
+
+## Open threads (priority order)
+
+<!-- Threads that aren't done and aren't dead. Highest priority first. -->
+
+1.
+2.
+3.
+
+## Decisions made recently (with the why)
+
+<!-- Decisions you'd lose context on in 30 days without a note here. Capture the
+     constraint or rejected-alternative, not just the choice. -->
+
+-
+
+## Pending decisions (waiting on what?)
+
+<!-- Decisions you can't make yet. Each entry: the question + what info you need
+     to resolve it. -->
+
+-
+
+## Stale items pruned this session
+
+<!-- What dropped off the list. Useful for spotting drift later. -->
+
+-
+
+---
+
+<!--
+Maintenance discipline (per heartbeat-concept SKILL.md):
+
+1. END OF SESSION: open this file, describe what changed since the last entry,
+   rewrite it with today's date and the new state. Bound to ~5 minutes of
+   writing. If you can't say it in 5 minutes, your reflection is the wrong shape.
+
+2. START OF SESSION (optional, higher-leverage if added): re-read this file
+   before opening any project. Use it to set the day's focus.
+
+3. WEEKLY (optional): review the past 7 days of edits to this file. Promote
+   recurring patterns to CLAUDE.md rules. Prune stale entries from this file
+   itself.
+-->
