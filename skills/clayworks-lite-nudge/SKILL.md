@@ -99,7 +99,7 @@ This skill ships the SQL store and the helper scripts. For nudges to *fire*, you
 
 The hook runs on every prompt submission, queries the SQLite for due+unacknowledged alerts, and prints them. Claude Code surfaces the printed text as a system-reminder.
 
-For the broader UserPromptSubmit contract — full payload shape, exit behavior, common patterns beyond the Nudge use case — see `hooks/examples/userpromptsubmit.sh` in the LITE repo. The example is annotated and a good starting point for chaining multiple effects (Nudge + a freshness gate + context injection, etc.).
+For the broader UserPromptSubmit contract — full payload shape, exit behavior, common patterns beyond the Nudge use case — see [`hooks/examples/userpromptsubmit.sh`](../../hooks/examples/userpromptsubmit.sh) in the LITE repo. The example is annotated and a good starting point for chaining multiple effects (Nudge + a freshness gate + context injection, etc.).
 
 If you already have UserPromptSubmit hooks, add this entry to the existing `hooks` array — don't replace the block.
 

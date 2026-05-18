@@ -161,7 +161,7 @@ Trigger conditions:
 
 ## Related
 
-- **`clayworks-lite-nudge`** — provides the cadence-trigger mechanism (time-based pings via UserPromptSubmit hook). A morning beat scheduled via Nudge fires reliably without depending on the user remembering.
-- **`clayworks-lite-memory-routing`** — the heartbeat's "update" step has to write *somewhere*. Routing decides which memory layer absorbs each piece of consolidated state.
+- **[`clayworks-lite-nudge`](../clayworks-lite-nudge/SKILL.md)** — provides the cadence-trigger mechanism (time-based pings via UserPromptSubmit hook). A morning beat scheduled via Nudge fires reliably without depending on the user remembering.
+- **[`clayworks-lite-memory-routing`](../clayworks-lite-memory-routing/SKILL.md)** — the heartbeat's "update" step has to write *somewhere*. Routing decides which memory layer absorbs each piece of consolidated state.
 
 The three LITE skills compose: routing answers *where state goes*, Nudge answers *when the beat fires*, heartbeat-concept answers *what the beat does*.

@@ -50,13 +50,13 @@ Six components. Each is opinionated and minimal.
 
 ### 1. CLAUDE.md starter template
 
-An anonymized version of the `CLAUDE.md` I run in production, with structure preserved and contents replaced by example rules. Drop it in, customize per-section, ship.
+[`templates/CLAUDE.md.clayworks-template`](templates/CLAUDE.md.clayworks-template) — an anonymized version of the `CLAUDE.md` I run in production, with structure preserved and contents replaced by example rules. Drop it in, customize per-section, ship.
 
 The structure encodes a specific philosophy: identity rules first, behavioral rules second, tool routing third, project-specific context last. Section ordering matters — the model reads top-to-bottom and weights early rules more heavily. The template's section ordering is the lesson.
 
 ### 2. Multi-memory routing decision tree
 
-A standalone skill that helps you decide which memory layer to use for a given fact:
+[`skills/clayworks-lite-memory-routing/SKILL.md`](skills/clayworks-lite-memory-routing/SKILL.md) — a standalone skill that helps you decide which memory layer to use for a given fact:
 
 - **Engram** for procedural decisions, conventions, cross-model retrievability
 - **Honcho** (or your user-modeling layer of choice) for *who you are* — preferences, style, role
@@ -66,7 +66,7 @@ If you don't have all three, the skill still works — it'll route everything to
 
 ### 3. Nudge install pattern
 
-A SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Use cases:
+[`skills/clayworks-lite-nudge/`](skills/clayworks-lite-nudge/SKILL.md) — a SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Use cases:
 
 - "Stop me at 5pm" — model gets the nudge when due
 - "Remind me about the standup at 9:55" — surfaces at submit time
@@ -76,11 +76,11 @@ Three small Python scripts (`add_alert.py`, `ack_alert.py`, `check_alerts.py`) p
 
 ### 4. Hook scaffolding examples
 
-A minimal `.sh` example for each Claude Code hook event (UserPromptSubmit, Stop, PreToolUse, SessionStart, SessionEnd, etc.). Each one is annotated with the event's contract, the JSON payload shape, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
+[`hooks/examples/`](hooks/examples/README.md) — a minimal `.sh` example for each Claude Code hook event (UserPromptSubmit, Stop, PreToolUse, SessionStart, SessionEnd, etc.). Each one is annotated with the event's contract, the JSON payload shape, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
 
 ### 5. Heartbeat framework concept doc
 
-A written explanation of the heartbeat pattern I use to keep my agent reflecting on its own state and surfacing decisions on a regular cadence. **Concept only, not implementation** — the full heartbeat system ships in the paid bundle because the generic refactoring is real work I haven't finished. The concept doc is enough to roll your own if you want.
+[`skills/clayworks-lite-heartbeat-concept/SKILL.md`](skills/clayworks-lite-heartbeat-concept/SKILL.md) — a written explanation of the heartbeat pattern I use to keep my agent reflecting on its own state and surfacing decisions on a regular cadence. **Concept only, not implementation** — the full heartbeat system ships in the paid bundle because the generic refactoring is real work I haven't finished. The concept doc is enough to roll your own if you want.
 
 ### 6. This README + install scripts
 
@@ -233,7 +233,7 @@ Issues: [github.com/clayboicardi/clayworks-lite/issues](https://github.com/clayb
 
 The pattern of organizing CC operations around persistent memory, structured hooks, and multi-AI orchestration didn't emerge in isolation. Tools and people whose work informed mine:
 
-- **[Anthropic](https://anthropic.com)** — Claude Code itself, plus the superpowers skill collection that anchors a lot of LITE's structural assumptions
+- **[Anthropic](https://anthropic.com)** — Claude Code itself, plus the [superpowers](https://github.com/anthropics/claude-plugins-official) skill collection (in `claude-plugins-official`) that anchors a lot of LITE's structural assumptions
 - **[Plastic Labs](https://plasticlabs.ai)** — Honcho, the user-modeling layer that taught me to separate "facts about the project" from "facts about the user"
 - **[nyldn / claude-octopus](https://github.com/nyldn/claude-octopus)** — Octo multi-AI orchestration plugin; the bundle's multi-AI routing pattern compounds with it nicely
 - **[Gentleman-Programming / engram](https://github.com/Gentleman-Programming/engram)** — Engram persistent memory plugin
