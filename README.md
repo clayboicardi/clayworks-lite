@@ -178,13 +178,35 @@ cp ~/.claude/CLAUDE.md.clayworks-template ~/.claude/CLAUDE.md
 # Then edit ~/.claude/CLAUDE.md and replace <YOUR ...> placeholders
 ```
 
-In your next CC session, try:
+In your next CC session, try the Nudge skill in plain English — it auto-triggers on time references; no slash command needed:
 
-```
-/clayworks-lite-nudge Stop me at 5pm to wrap up
+> stop me at 5pm to wrap up
+
+Claude picks up the trigger, runs the Nudge skill, and stores the alert in a local SQLite store. That confirms the skill is loaded.
+
+### Make the Nudge skill actually fire (one extra step)
+
+The skill *registers* alerts; for them to actually *fire* at the due time, the included `check_alerts.py` needs to run on each prompt submission. Wire it once in `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
-If you see a confirmation that the nudge was registered, you're good.
+If you already have `UserPromptSubmit` hooks, append this command to the existing `hooks` array — don't replace the block. See [`skills/clayworks-lite-nudge/SKILL.md`](skills/clayworks-lite-nudge/SKILL.md) for the full Nudge surface (time formats, message format, dismissal, schema).
 
 ---
 
