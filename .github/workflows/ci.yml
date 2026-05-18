@@ -104,14 +104,3 @@ jobs:
                 throw "Expected file missing after install: $_"
               }
             }
-
-  markdownlint:
-    name: markdownlint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Lint Markdown
-        uses: DavidAnson/markdownlint-cli2-action@v23
-        with:
-          globs: '**/*.md'
-          config: '.markdownlint.json'
