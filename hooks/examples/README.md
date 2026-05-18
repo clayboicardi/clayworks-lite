@@ -50,6 +50,12 @@ The `hooks` array per event allows multiple hooks; they all run on each fire. `t
 | `subagentstart.sh` | SubagentStart | Fires when a subagent (Agent tool) is dispatched. Common: track parallel work. |
 | `subagentstop.sh` | SubagentStop | Fires when a subagent completes. Common: collect results, log timing. |
 
+## How these pair with the LITE skills
+
+- **`userpromptsubmit.sh` ↔ `clayworks-lite-nudge`** — the Nudge skill ships a working consumer of UserPromptSubmit. Its `scripts/check_alerts.py` is exactly the kind of command this hook event was designed to run. The example here is the broader contract; the skill is the concrete implementation.
+- **`stop.sh`, `sessionend.sh`, `sessionstart.sh` ↔ `clayworks-lite-heartbeat-concept`** — the heartbeat-concept skill describes the cadence pattern (observe + reflect + update on a schedule). These three hook examples are the starting points for implementing the per-turn, end-of-session, and session-open beats respectively. The skill explains the *pattern*; the examples are the *primitives*.
+- **`pretooluse.sh`, `posttooluse.sh`, `subagentstart.sh`, `subagentstop.sh`** — no LITE skill currently consumes these directly. They're observability and audit primitives you can wire into your own beats (e.g., a stop.sh-driven heartbeat could read the PostToolUse log to grade per-turn behavior) or use standalone for sandboxing and telemetry.
+
 ## Pattern conventions used
 
 - All examples start with `#!/usr/bin/env bash` + `set -u` for safety

@@ -50,6 +50,8 @@ Different problems need different beats. Use what fits the work:
 - Freshness gates that detect stale recall and re-fetch
 - Triggered hooks that surface time-due reminders (the `clayworks-lite-nudge` skill is one example)
 
+**LITE scaffolding:** `hooks/examples/userpromptsubmit.sh` is the contract reference for this cadence — payload shape, common patterns, exit behavior. The Nudge skill ships a working consumer of that contract.
+
 **Good for:** keeping context fresh without per-prompt overhead the user feels.
 
 ### Per-turn (Stop hook)
@@ -57,6 +59,8 @@ Different problems need different beats. Use what fits the work:
 - Observability grading: did this turn meet expectations? What scored low?
 - Drift checks: did the agent honor explicit rules from CLAUDE.md / memory?
 - Structural integrity checks: do referenced files still exist? Have hooks been parsing cleanly?
+
+**LITE scaffolding:** `hooks/examples/stop.sh` is the contract reference — payload shape, the gated 24h trigger pattern, and how to spawn background work without blocking CC's exit.
 
 **Good for:** catching regressions and silent failures before they accumulate.
 
@@ -66,12 +70,16 @@ Different problems need different beats. Use what fits the work:
 - Persist the summary to memory so the next session inherits context cleanly
 - Optional: write a hand-off doc if context-window saturation is approaching
 
+**LITE scaffolding:** `hooks/examples/sessionend.sh` is the contract reference for the evening tail. Pair with `hooks/examples/sessionstart.sh` for the session-open counterpart that surfaces unfinished threads at the next session's open — the closest CC-native approximation of a morning beat.
+
 **Good for:** clean session boundaries. Single highest-impact cadence if you only have time for one.
 
 ### Daily
 
 - **Morning beat:** read recent state, surface unfinished threads, set the day's focus
 - **Evening beat:** consolidate the day, prune stale items, write back updated state, surface anything that needs human decision before tomorrow
+
+**LITE scaffolding:** Daily beats run outside CC's hook lifecycle — schedule via cron (macOS/Linux) or Task Scheduler (Windows). For session-coupled approximations (fire on session open/close instead of fixed clock time), see `hooks/examples/sessionstart.sh` and `hooks/examples/sessionend.sh`. Weekly and monthly beats are also out-of-CC; same scheduler options apply.
 
 **Good for:** turning the agent into something between a journal and an operations runner. The daily pair is where most users feel the biggest leverage.
 

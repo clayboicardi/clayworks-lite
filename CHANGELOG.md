@@ -20,6 +20,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `hooks/examples/sessionstart.sh` (primer-file freshness check) and `hooks/examples/stop.sh` (24h-gated trigger example, commented) used `date -r "$FILE" +%s` to read file mtime. This works on GNU `date` (Linux) but silently fails on BSD `date` (macOS) — BSD's `-r` treats the argument as epoch seconds, not a file path. Replaced with `python3 -c "import os,sys; print(int(os.path.getmtime(sys.argv[1])))" "$FILE"` for portability. Existing users who copied the examples should update their local copies; the installer doesn't touch user-customized hook files.
 - README: replaced internal-phase-naming reference ("Phase V observability stack") with a generic description ("three-tier observability stack") that doesn't leak private terminology.
 
+### Changed
+- Cross-reference web added between LITE skills and hook examples. The three LITE skills + the 8 hook examples are designed to compose, but the SKILL.md files didn't point at the specific hook examples they pair with (and vice versa). Resolved:
+  - `clayworks-lite-heartbeat-concept` SKILL.md: each cadence section (per-prompt, per-turn, end-of-session, daily) now names the specific LITE hook example that serves as its starting-point contract.
+  - `clayworks-lite-nudge` SKILL.md: hook-wiring section now points at `hooks/examples/userpromptsubmit.sh` as the broader contract reference for chaining multiple effects.
+  - `hooks/examples/README.md`: added a "How these pair with the LITE skills" section explicitly mapping each hook event to the LITE skill that consumes (or could consume) it.
+  - `clayworks-lite-memory-routing` SKILL.md: unchanged — no hook relationship by design (user-action-triggered, not hook-triggered).
+
 ### Pending for v1.0.0
 *(none — ready to tag)*
 
