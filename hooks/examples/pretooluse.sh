@@ -58,7 +58,11 @@ try:
 except Exception:
     print('<unknown>', end='')
 ")
-        printf '[%s] %s %s\n' "$TIMESTAMP" "$TOOL_NAME" "$FILE_PATH" >> "$LOG_FILE" 2>/dev/null
+        # Sanitize: strip control chars + cap length. A maliciously-crafted
+        # tool_input.file_path could carry newlines/ANSI escapes that forge
+        # log entries or attack a `cat`-the-log terminal session.
+        FILE_PATH_SAFE=$(printf '%s' "$FILE_PATH" | tr -d '\000-\037\177' | cut -c1-500)
+        printf '[%s] %s %s\n' "$TIMESTAMP" "$TOOL_NAME" "$FILE_PATH_SAFE" >> "$LOG_FILE" 2>/dev/null
         ;;
 esac
 

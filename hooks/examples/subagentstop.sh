@@ -57,7 +57,12 @@ LOG_DIR="$HOME/agent/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null
 LOG_FILE="$LOG_DIR/subagents.log"
 
+# Sanitize: strip control chars + cap length. Payload string fields can
+# carry newlines/ANSI escapes that forge log entries.
+SUBAGENT_TYPE_SAFE=$(printf '%s' "$SUBAGENT_TYPE" | tr -d '\000-\037\177' | cut -c1-100)
+EXIT_STATUS_SAFE=$(printf '%s' "$EXIT_STATUS" | tr -d '\000-\037\177' | cut -c1-50)
+
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-printf '[%s] END   %s status=%s duration=%ds\n' "$TIMESTAMP" "$SUBAGENT_TYPE" "$EXIT_STATUS" "$DURATION" >> "$LOG_FILE" 2>/dev/null
+printf '[%s] END   %s status=%s duration=%ds\n' "$TIMESTAMP" "$SUBAGENT_TYPE_SAFE" "$EXIT_STATUS_SAFE" "$DURATION" >> "$LOG_FILE" 2>/dev/null
 
 exit 0
