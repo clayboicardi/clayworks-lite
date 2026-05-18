@@ -28,4 +28,6 @@ See [SECURITY.md](SECURITY.md) — do not file security bugs as public issues.
 
 ## Code of conduct
 
-Be a person. Engage in good faith. That's it.
+Short version: be a person. Engage in good faith. That's it.
+
+Formal version: this project adopts the [Contributor Covenant 2.1](CODE_OF_CONDUCT.md). Report Code of Conduct issues to **clayhaworth1@gmail.com** with subject `[clayworks-lite CoC]`.
