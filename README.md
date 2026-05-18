@@ -51,13 +51,13 @@ Seven components. Each is opinionated and minimal.
 
 ### 1. CLAUDE.md starter template
 
-[`templates/CLAUDE.md.clayworks-template`](templates/CLAUDE.md.clayworks-template) — an anonymized version of the `CLAUDE.md` I run in production, with structure preserved and contents replaced by example rules. Drop it in, customize per-section, ship.
+[`plugin/templates/CLAUDE.md.clayworks-template`](plugin/templates/CLAUDE.md.clayworks-template) — an anonymized version of the `CLAUDE.md` I run in production, with structure preserved and contents replaced by example rules. Drop it in, customize per-section, ship.
 
 The structure encodes a specific philosophy: identity rules first, behavioral rules second, tool routing third, project-specific context last. Section ordering matters — the model reads top-to-bottom and weights early rules more heavily. The template's section ordering is the lesson.
 
 ### 2. Multi-memory routing decision tree
 
-[`skills/clayworks-lite-memory-routing/SKILL.md`](skills/clayworks-lite-memory-routing/SKILL.md) — a standalone skill that helps you decide which memory layer to use for a given fact:
+[`plugin/skills/clayworks-lite-memory-routing/SKILL.md`](plugin/skills/clayworks-lite-memory-routing/SKILL.md) — a standalone skill that helps you decide which memory layer to use for a given fact:
 
 - **Engram** for procedural decisions, conventions, cross-model retrievability
 - **Honcho** (or your user-modeling layer of choice) for *who you are* — preferences, style, role
@@ -67,7 +67,7 @@ If you don't have all three, the skill still works — it'll route everything to
 
 ### 3. Nudge install pattern
 
-[`skills/clayworks-lite-nudge/`](skills/clayworks-lite-nudge/SKILL.md) — a SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Use cases:
+[`plugin/skills/clayworks-lite-nudge/`](plugin/skills/clayworks-lite-nudge/SKILL.md) — a SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Use cases:
 
 - "Stop me at 5pm" — model gets the nudge when due
 - "Remind me about the standup at 9:55" — surfaces at submit time
@@ -77,15 +77,15 @@ Three small Python scripts (`add_alert.py`, `ack_alert.py`, `check_alerts.py`) p
 
 ### 4. Hook scaffolding examples
 
-[`hooks/examples/`](hooks/examples/README.md) — a minimal `.sh` example for each Claude Code hook event (UserPromptSubmit, Stop, PreToolUse, SessionStart, SessionEnd, etc.). Each one is annotated with the event's contract, the JSON payload shape, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
+[`plugin/hooks/examples/`](plugin/hooks/examples/README.md) — a minimal `.sh` example for each Claude Code hook event (UserPromptSubmit, Stop, PreToolUse, SessionStart, SessionEnd, etc.). Each one is annotated with the event's contract, the JSON payload shape, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
 
 ### 5. Heartbeat framework concept doc
 
-[`skills/clayworks-lite-heartbeat-concept/SKILL.md`](skills/clayworks-lite-heartbeat-concept/SKILL.md) — a written explanation of the heartbeat pattern I use to keep my agent reflecting on its own state and surfacing decisions on a regular cadence. **Concept only, not implementation** — the full heartbeat system ships in the paid bundle because the generic refactoring is real work I haven't finished. The concept doc is enough to roll your own if you want.
+[`plugin/skills/clayworks-lite-heartbeat-concept/SKILL.md`](plugin/skills/clayworks-lite-heartbeat-concept/SKILL.md) — a written explanation of the heartbeat pattern I use to keep my agent reflecting on its own state and surfacing decisions on a regular cadence. **Concept only, not implementation** — the full heartbeat system ships in the paid bundle because the generic refactoring is real work I haven't finished. The concept doc is enough to roll your own if you want.
 
 ### 6. Worked examples
 
-[`examples/`](examples/) — two complete LITE configurations (minimal + full) ready to adapt. Shows what the kit looks like assembled instead of as parts: `settings.json` for two adoption levels, customized hook scripts, and a sample CLAUDE.md based on the template. See [`examples/README.md`](examples/README.md) for the adoption pattern.
+[`plugin/examples/`](plugin/examples/) — two complete LITE configurations (minimal + full) ready to adapt. Shows what the kit looks like assembled instead of as parts: `settings.json` for two adoption levels, customized hook scripts, and a sample CLAUDE.md based on the template. See [`plugin/examples/README.md`](plugin/examples/README.md) for the adoption pattern.
 
 ### 7. This README + install scripts
 
@@ -270,7 +270,7 @@ The skill *registers* alerts; for them to actually *fire* at the due time, the i
 }
 ```
 
-If you already have `UserPromptSubmit` hooks, append this command to the existing `hooks` array — don't replace the block. See [`skills/clayworks-lite-nudge/SKILL.md`](skills/clayworks-lite-nudge/SKILL.md) for the full Nudge surface (time formats, message format, dismissal, schema).
+If you already have `UserPromptSubmit` hooks, append this command to the existing `hooks` array — don't replace the block. See [`plugin/skills/clayworks-lite-nudge/SKILL.md`](plugin/skills/clayworks-lite-nudge/SKILL.md) for the full Nudge surface (time formats, message format, dismissal, schema).
 
 ---
 
@@ -321,13 +321,13 @@ For service inquiries (sprint installs, custom setups, team retainers), open a G
 
 ## Design rationale
 
-[`docs/`](docs/) carries the **why** behind LITE's design choices. The SKILL.md files and main README cover what the kit does; `docs/` covers why specific decisions were made and what was rejected:
+[`plugin/docs/`](plugin/docs/) carries the **why** behind LITE's design choices. The SKILL.md files and main README cover what the kit does; `plugin/docs/` covers why specific decisions were made and what was rejected:
 
-- [`docs/why-claude-md-structure-matters.md`](docs/why-claude-md-structure-matters.md) — section ordering as load-bearing design
-- [`docs/memory-routing-rationale.md`](docs/memory-routing-rationale.md) — why three layers, why a routing skill
-- [`docs/heartbeat-design.md`](docs/heartbeat-design.md) — pattern vs. implementation, why bounded time budgets, why these cadences
-- [`docs/installer-design.md`](docs/installer-design.md) — backup-then-install, hash-diff, symlink rejection, no-auto-edit-of-settings.json
-- [`docs/upgrade-philosophy.md`](docs/upgrade-philosophy.md) — the principles separating LITE from the paid bundle
+- [`plugin/docs/why-claude-md-structure-matters.md`](plugin/docs/why-claude-md-structure-matters.md) — section ordering as load-bearing design
+- [`plugin/docs/memory-routing-rationale.md`](plugin/docs/memory-routing-rationale.md) — why three layers, why a routing skill
+- [`plugin/docs/heartbeat-design.md`](plugin/docs/heartbeat-design.md) — pattern vs. implementation, why bounded time budgets, why these cadences
+- [`plugin/docs/installer-design.md`](plugin/docs/installer-design.md) — backup-then-install, hash-diff, symlink rejection, no-auto-edit-of-settings.json
+- [`plugin/docs/upgrade-philosophy.md`](plugin/docs/upgrade-philosophy.md) — the principles separating LITE from the paid bundle
 
 Skim if you're evaluating LITE against alternatives, customizing a component and want to know if your change crosses the design grain, or considering contributing a change to the design rather than just an addition.
 

@@ -208,7 +208,7 @@ function Invoke-Uninstall {
     else         { Write-Info "Mode         : LIVE" }
 
     Write-Section "Removing LITE skills"
-    $skillsSrc = Join-Path $RepoRoot "skills"
+    $skillsSrc = Join-Path $RepoRoot "plugin/skills"
     $skillsDest = Join-Path $ClaudeDir "skills"
     if (Test-Path -LiteralPath $skillsSrc) {
         $skillDirs = Get-ChildItem -LiteralPath $skillsSrc -Directory |
@@ -225,19 +225,19 @@ function Invoke-Uninstall {
     Write-Section "Removing hook examples"
     Uninstall-LiteItem `
         -DestPath   (Join-Path $ClaudeDir "hooks/examples") `
-        -SourcePath (Join-Path $RepoRoot "hooks/examples") `
+        -SourcePath (Join-Path $RepoRoot "plugin/hooks/examples") `
         -Label      "hooks/examples"
 
     Write-Section "Removing CLAUDE.md starter template"
     Uninstall-LiteItem `
         -DestPath   (Join-Path $ClaudeDir "CLAUDE.md.clayworks-template") `
-        -SourcePath (Join-Path $RepoRoot "templates/CLAUDE.md.clayworks-template") `
+        -SourcePath (Join-Path $RepoRoot "plugin/templates/CLAUDE.md.clayworks-template") `
         -Label      "CLAUDE.md.clayworks-template"
 
     Write-Section "Removing settings.example.json"
     Uninstall-LiteItem `
         -DestPath   (Join-Path $ClaudeDir "settings.example.json") `
-        -SourcePath (Join-Path $RepoRoot "templates/settings.example.json") `
+        -SourcePath (Join-Path $RepoRoot "plugin/templates/settings.example.json") `
         -Label      "settings.example.json"
 
     Write-Section "Did NOT touch"
@@ -394,7 +394,7 @@ Test-NoSymlinksInSource -Path $RepoRoot
 # --- Install items -----------------------------------------------------------
 
 Write-Section "Installing skills"
-$skillsSrc  = Join-Path $RepoRoot "skills"
+$skillsSrc  = Join-Path $RepoRoot "plugin/skills"
 $skillsDest = Join-Path $ClaudeDir "skills"
 if (Test-Path -LiteralPath $skillsSrc) {
     $skillDirs = Get-ChildItem -LiteralPath $skillsSrc -Directory |
@@ -417,21 +417,21 @@ if (Test-Path -LiteralPath $skillsSrc) {
 
 Write-Section "Installing hook examples"
 Install-LiteItem `
-    -SourcePath (Join-Path $RepoRoot "hooks/examples") `
+    -SourcePath (Join-Path $RepoRoot "plugin/hooks/examples") `
     -DestPath   (Join-Path $ClaudeDir "hooks/examples") `
     -Label      "hooks/examples" `
     -BackupRel  "hooks/examples"
 
 Write-Section "Installing CLAUDE.md starter template"
 Install-LiteItem `
-    -SourcePath (Join-Path $RepoRoot "templates/CLAUDE.md.clayworks-template") `
+    -SourcePath (Join-Path $RepoRoot "plugin/templates/CLAUDE.md.clayworks-template") `
     -DestPath   (Join-Path $ClaudeDir "CLAUDE.md.clayworks-template") `
     -Label      "CLAUDE.md.clayworks-template" `
     -BackupRel  "CLAUDE.md.clayworks-template"
 
 Write-Section "Installing settings.example.json"
 Install-LiteItem `
-    -SourcePath (Join-Path $RepoRoot "templates/settings.example.json") `
+    -SourcePath (Join-Path $RepoRoot "plugin/templates/settings.example.json") `
     -DestPath   (Join-Path $ClaudeDir "settings.example.json") `
     -Label      "settings.example.json" `
     -BackupRel  "settings.example.json"

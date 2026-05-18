@@ -12,7 +12,7 @@
   "plugins": [
     {
       "name": "clayworks-lite",
-      "source": ".",
+      "source": "./plugin",
       "description": "Operator scaffolding for Claude Code: three skills (Nudge SQLite reminders, multi-memory routing decision tree, heartbeat-pattern concept) auto-load on install. Hook scaffolding examples for all 8 CC hook events, CLAUDE.md starter template, composed settings.example.json, worked configuration examples, and design-rationale docs ship to disk for users to reference, copy, and customize when they decide to.",
       "version": "1.0.0",
       "author": {

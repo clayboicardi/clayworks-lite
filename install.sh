@@ -232,7 +232,7 @@ run_uninstall() {
     fi
 
     section "Removing LITE skills"
-    local skills_src="${REPO_ROOT}/skills"
+    local skills_src="${REPO_ROOT}/plugin/skills"
     local skills_dest="${CLAUDE_DIR}/skills"
     if [[ -d "$skills_src" ]]; then
         while IFS= read -r d; do
@@ -243,13 +243,13 @@ run_uninstall() {
     fi
 
     section "Removing hook examples"
-    uninstall_item "${CLAUDE_DIR}/hooks/examples" "${REPO_ROOT}/hooks/examples" "hooks/examples"
+    uninstall_item "${CLAUDE_DIR}/hooks/examples" "${REPO_ROOT}/plugin/hooks/examples" "hooks/examples"
 
     section "Removing CLAUDE.md starter template"
-    uninstall_item "${CLAUDE_DIR}/CLAUDE.md.clayworks-template" "${REPO_ROOT}/templates/CLAUDE.md.clayworks-template" "CLAUDE.md.clayworks-template"
+    uninstall_item "${CLAUDE_DIR}/CLAUDE.md.clayworks-template" "${REPO_ROOT}/plugin/templates/CLAUDE.md.clayworks-template" "CLAUDE.md.clayworks-template"
 
     section "Removing settings.example.json"
-    uninstall_item "${CLAUDE_DIR}/settings.example.json" "${REPO_ROOT}/templates/settings.example.json" "settings.example.json"
+    uninstall_item "${CLAUDE_DIR}/settings.example.json" "${REPO_ROOT}/plugin/templates/settings.example.json" "settings.example.json"
 
     section "Did NOT touch"
     info "  ${CLAUDE_DIR}/CLAUDE.md (your live config)"
@@ -407,7 +407,7 @@ reject_symlinks_in_source "$REPO_ROOT"
 # --- Install items -----------------------------------------------------------
 
 section "Installing skills"
-skills_src="${REPO_ROOT}/skills"
+skills_src="${REPO_ROOT}/plugin/skills"
 skills_dest="${CLAUDE_DIR}/skills"
 if [[ -d "$skills_src" ]]; then
     found=0
@@ -426,21 +426,21 @@ fi
 
 section "Installing hook examples"
 install_item \
-    "${REPO_ROOT}/hooks/examples" \
+    "${REPO_ROOT}/plugin/hooks/examples" \
     "${CLAUDE_DIR}/hooks/examples" \
     "hooks/examples" \
     "hooks/examples"
 
 section "Installing CLAUDE.md starter template"
 install_item \
-    "${REPO_ROOT}/templates/CLAUDE.md.clayworks-template" \
+    "${REPO_ROOT}/plugin/templates/CLAUDE.md.clayworks-template" \
     "${CLAUDE_DIR}/CLAUDE.md.clayworks-template" \
     "CLAUDE.md.clayworks-template" \
     "CLAUDE.md.clayworks-template"
 
 section "Installing settings.example.json"
 install_item \
-    "${REPO_ROOT}/templates/settings.example.json" \
+    "${REPO_ROOT}/plugin/templates/settings.example.json" \
     "${CLAUDE_DIR}/settings.example.json" \
     "settings.example.json" \
     "settings.example.json"
