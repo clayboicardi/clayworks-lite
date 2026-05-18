@@ -14,9 +14,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `install.sh` and `install.ps1` — cross-platform installers (bash for macOS/Linux/Git Bash, PowerShell 7+ for Windows). Backup-then-install model: anything that would be overwritten is first copied to `~/.claude/.clayworks-lite-backup/<timestamp>/`. SHA-256 hash-diff on each item makes re-runs idempotent — unchanged files skip, modified files back up then reinstall fresh source. Supports `--dry-run` / `-DryRun` and a `--claude-dir` / `-ClaudeDir` override for testing. Tolerant of missing optional pieces (memory-routing and heartbeat-concept skills install only when present in the repo).
 - `.gitattributes` — locks `*.sh` to LF and `*.ps1` to CRLF so cross-platform clones don't break the bash shebang on macOS/Linux when cloned from Windows.
 - `clayworks-lite-memory-routing` skill — routing decision tree across Engram (cross-model structured/procedural), native Claude Code `MEMORY.md` (project-scoped), and Honcho (user modeling). Frontmatter description covers the common trigger phrasings ("remember this", "save this", preference statements, project conventions) so the skill auto-triggers when a destination decision is in play. Body explains each layer's strengths, walks a four-question decision tree, includes 11 concrete fact-to-layer examples, and explains how to operate degraded (one-layer-only) installations. Skill is documentation only — no executable component; the underlying memory systems handle storage.
+- `clayworks-lite-heartbeat-concept` skill — reference for the heartbeat pattern (cadenced observe + reflect + update loop that keeps an agent's state coherent over time). Anonymized to describe the pattern abstractly; production implementation lives in the paid bundle. Covers six cadences (per-prompt, per-turn, end-of-session, daily, weekly, monthly), six anti-patterns, a minimum-viable single-file heartbeat anyone can start today, and explicit composition notes with the other LITE skills (Nudge fires the cadence; memory-routing decides where consolidated state goes; heartbeat-concept defines what each beat actually does).
 
 ### Pending for v1.0.0
-- Heartbeat framework concept doc.
+*(none — ready to tag)*
 
 ## [0.1.0] — 2026-05-17
 
