@@ -1,0 +1,59 @@
+{
+  "_comment": "Clayworks LITE — settings.example.json. NOT a drop-in replacement for ~/.claude/settings.json. Pick the blocks you want and merge them into your existing settings.json. The _comment fields are not part of any CC schema; CC ignores unknown keys, but you can strip them once you're done customizing.",
+  "_comment_general": "Three example hook blocks are shown below. Each maps to a LITE artifact: UserPromptSubmit feeds the Nudge skill, SessionStart and Stop are the starting points for the heartbeat-concept pattern. See hooks/examples/ for the full per-event contracts.",
+
+  "hooks": {
+    "_comment_chaining": "The 'hooks' array under each event runs in registration order. If you already have hooks here, append new entries — do not replace the array. CC merges per-event arrays at load time.",
+
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 5,
+            "_comment": "Nudge skill consumer — surfaces due alerts to Claude on each prompt. Required for the Nudge skill to actually fire stored alerts. See skills/clayworks-lite-nudge/SKILL.md for the schema."
+          },
+          {
+            "_comment_extension": "Chain a second UserPromptSubmit hook here — e.g. a freshness gate that injects current Claude Code docs when CC features come up in the prompt. See hooks/examples/userpromptsubmit.sh for the contract.",
+            "type": "command",
+            "command": "bash ~/.claude/hooks/your-second-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "_comment": "Optional. Copy hooks/examples/sessionstart.sh into ~/.claude/hooks/ first and customize. The starter example surfaces a primer file at ~/agent/session-primer.md and warns about uncommitted git state in cwd.",
+            "type": "command",
+            "command": "bash ~/.claude/hooks/sessionstart.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "_comment": "Optional. Per-turn cleanup or observability grading. Copy hooks/examples/stop.sh first and customize. The starter example shows the gated 24h-trigger pattern for background work (e.g. dream-style memory consolidation). Heartbeat-concept skill describes the broader cadence pattern.",
+            "type": "command",
+            "command": "bash ~/.claude/hooks/stop.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+
+  "_comment_permissions": "Add a top-level 'permissions' block to allowlist common commands and reduce permission prompts. See https://docs.claude.com/en/docs/claude-code/settings for the schema. The 'fewer-permission-prompts' skill (built into Claude Code) can scan recent transcripts and suggest a starter allowlist.",
+
+  "_comment_env": "Add a top-level 'env' block for environment variables that should be set when CC runs (project-relevant paths, API keys via your shell's secret store, debug flags, etc.). Strict JSON — string values only.",
+
+  "_comment_plugins": "If you install LITE-recommended plugins (Engram for memory, Honcho for user modeling, Octo for multi-AI orchestration), they manage their own settings.json entries when added via /plugin install. See the LITE README's Acknowledgments for the upstream repos and skills/clayworks-lite-memory-routing/SKILL.md for the marketplace-add commands."
+}

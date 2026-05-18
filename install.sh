@@ -210,6 +210,13 @@ install_item \
     "CLAUDE.md.clayworks-template" \
     "CLAUDE.md.clayworks-template"
 
+section "Installing settings.example.json"
+install_item \
+    "${REPO_ROOT}/templates/settings.example.json" \
+    "${CLAUDE_DIR}/settings.example.json" \
+    "settings.example.json" \
+    "settings.example.json"
+
 # --- Summary -----------------------------------------------------------------
 
 section "Summary"

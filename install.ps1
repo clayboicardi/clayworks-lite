@@ -203,6 +203,13 @@ Install-LiteItem `
     -Label      "CLAUDE.md.clayworks-template" `
     -BackupRel  "CLAUDE.md.clayworks-template"
 
+Write-Section "Installing settings.example.json"
+Install-LiteItem `
+    -SourcePath (Join-Path $RepoRoot "templates/settings.example.json") `
+    -DestPath   (Join-Path $ClaudeDir "settings.example.json") `
+    -Label      "settings.example.json" `
+    -BackupRel  "settings.example.json"
+
 # --- Summary -----------------------------------------------------------------
 
 Write-Section "Summary"

@@ -146,7 +146,8 @@ The installer:
 2. Copies the LITE skills into `~/.claude/skills/`
 3. Copies the hook scaffolding examples into `~/.claude/hooks/examples/` (NOT into the live hooks dir — you opt-in by referencing them in `settings.json`)
 4. Copies the CLAUDE.md template to `~/.claude/CLAUDE.md.clayworks-template` (NOT `CLAUDE.md` — your existing file is sacred)
-5. Prints a summary of what changed and what to do next
+5. Copies a `settings.example.json` to `~/.claude/settings.example.json` (NOT `settings.json` — same reason) showing the LITE-recommended hook composition
+6. Prints a summary of what changed and what to do next
 
 The installer is idempotent. Re-running it picks up new versions without re-clobbering your edits, as long as you've moved files out of the `clayworks-lite/` source dir (e.g., your customized `CLAUDE.md` lives at `~/.claude/CLAUDE.md`, not in the source).
 
