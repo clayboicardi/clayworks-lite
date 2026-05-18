@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code 2.1.x](https://img.shields.io/badge/Claude%20Code-2.1.x-blue)](https://docs.claude.com/en/docs/claude-code)
 [![Status: v1](https://img.shields.io/badge/status-v1-green)](https://github.com/clayboicardi/clayworks-lite)
+[![No telemetry](https://img.shields.io/badge/telemetry-none-brightgreen)](#no-telemetry)
 
 ---
 

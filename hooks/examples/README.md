@@ -59,6 +59,7 @@ The `hooks` array per event allows multiple hooks; they all run on each fire. `t
 ## Pattern conventions used
 
 - All examples start with `#!/usr/bin/env bash` + `set -u` for safety
+- `set -u` (error on undefined variables) is used; `set -e` (exit on any error) is **NOT**. Hooks must keep running even when a single branch fails — `set -e` would turn a `mkdir -p` permission warning into a session-affecting hook failure. Errors go to stderr; the hook silently moves on.
 - All examples are **silent unless something fires** — no constant chatter to logs
 - JSON parsing uses `python3 -c "import json, sys; ..."` (no `jq` dependency)
 - Log files default to `~/agent/logs/` (override with env var if you prefer elsewhere)

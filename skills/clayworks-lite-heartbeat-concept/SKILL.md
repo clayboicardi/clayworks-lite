@@ -142,7 +142,7 @@ LITE ships this concept doc; the full production heartbeat system is in the paid
 - **Daily-cycle templates** — full prompts for morning briefing, evening consolidation, weekly review, monthly identity review. Each is a structured prompt with the right read-context + the right reflection questions + the right write-back format.
 - **Trust ledger schema** — append-only JSON with caps, per-tier summary aggregation, designed for SPC-style streak analysis if you want it.
 - **Drift signaling** — per-tier P0/P1/P2 findings routed to notification channels (Telegram, system tray) with frequency throttling so you only see real signal.
-- **Heartbeat-aware skills** — composes with the rest of the paid bundle (CC↔CC comms surfaces inter-session disagreements, inbox watcher catches dropped artifacts, freshness gate injects fresh CC docs when relevant).
+- **Heartbeat-aware skills** — the rest of the paid bundle composes with the heartbeat in concrete ways. CC↔CC comms surfaces inter-session disagreements *during* the beat (a parallel CC may have flagged something your beat needs to weigh before the "update" step). Inbox watcher catches dropped artifacts that should land in the beat's observation. Freshness gate injects current CC docs when the beat asks about CC features whose docs have evolved since training. Each composition is "skill A makes step N of the beat smarter," not just "ships alongside."
 
 You can build all of this yourself from the pattern above. The bundle ships *one* version of it that's been hardened over months of daily use.
 
