@@ -10,12 +10,14 @@ Human-facing reminder system for managing focus and pacing. Nudges are stored in
 ## When to use
 
 **Proactively set nudges when:**
+
 - User mentions a stopping time ("stop me at 11", "I need to wrap up by 5")
 - User mentions a deadline or meeting ("standup in 30 minutes")
 - A long focus session (2+ hours) is underway without breaks
 - User explicitly asks for a reminder
 
 **Do NOT use Nudge for:**
+
 - Tasks Claude will complete in the current turn
 - Information that should go in memory instead (use the engram plugin or `~/.claude/projects/<project>/memory/MEMORY.md` for facts)
 - **Process monitoring** — nudges fire on prompt submission, so they can't poll running processes. Use `sleep <seconds>` in Bash for inline blocking, or background tasks for non-blocking.
@@ -54,7 +56,7 @@ sqlite3 ~/.claude/skills/clayworks-lite-nudge/scripts/alerts.db \
 
 Messages are notes-to-self for Claude. The format that's worked best:
 
-```
+```text
 <reason> - <action to take>
 ```
 

@@ -105,7 +105,7 @@ function Test-NoSymlinksInSource {
     # Supply-chain hardening: refuse to install a source tree containing symlinks
     # or junctions. A tampered clone could include symlinks pointing at sensitive
     # files (e.g., %USERPROFILE%\.ssh\id_ed25519) and Copy-Item would follow them,
-    # writing the target's contents into ~/.claude/ as regular files — a
+    # writing the target's contents into ~/.claude/ as regular files - a
     # predictable exfil channel. An honest LITE source tree has no symlinks.
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $Path)) { return }
@@ -286,7 +286,7 @@ function Invoke-Verify {
     if ($py3) {
         $ver = & $py3.Source --version 2>&1
         Test-Check "python3" "pass" "$ver"
-        $sql = & $py3.Source -c "import sqlite3" 2>&1
+        & $py3.Source -c "import sqlite3" 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Test-Check "python3 sqlite3 import" "pass" "ok"
         } else {

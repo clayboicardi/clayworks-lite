@@ -67,6 +67,7 @@ The `hooks` array per event allows multiple hooks; they all run on each fire. `t
 ## How to evolve from these
 
 These are deliberately MINIMAL. The Clayworks paid bundle ships production-hardened versions with:
+
 - Prompt-injection defenses
 - Log rotation
 - Multi-platform path handling

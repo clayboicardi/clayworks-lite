@@ -15,7 +15,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 **Install** (free, runs locally):
 
-```
+```text
 /plugin marketplace add Gentleman-Programming/engram
 /plugin install engram@engram
 ```
@@ -50,7 +50,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 **Install** (cloud-hosted; $100 free credits then ~$2–3/mo at typical usage):
 
-```
+```text
 /plugin marketplace add plastic-labs/claude-honcho
 /plugin install honcho@honcho
 ```
