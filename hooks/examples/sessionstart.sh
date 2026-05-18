@@ -27,6 +27,14 @@ set -u
 # --- Example: surface a primer file if it exists -----------------------------
 # Convention: ~/agent/session-primer.md contains "what's most urgent right now"
 # Maintained by your evening consolidation, weekly review, or written ad-hoc.
+#
+# SECURITY: anything printed here is injected into the session as a trusted
+# system-reminder block. Treat $PRIMER as security-sensitive — any process that
+# can write to that path can inject instructions into your next CC session
+# (confused-deputy channel). Recommended hardening:
+#   - chmod 600 "$PRIMER" so only your user can write it
+#   - keep it on a filesystem only your account can access
+#   - if you sync your home dir across machines, audit who has write access
 
 PRIMER="$HOME/agent/session-primer.md"
 
@@ -58,8 +66,18 @@ except Exception:
     pass
 ")
 
+# SECURITY: invoking git in a user-controlled cwd is a foot-gun. A malicious
+# .git/config in cwd can trigger arbitrary-command execution via core.fsmonitor,
+# core.pager, alias.*, etc. (CVE-2022-39253 family). If your threat model
+# includes "user might open CC inside an untrusted repo", either delete this
+# block or guard further (cwd allowlist). The -c flags below neutralize the
+# obvious config-based vectors; hook-based vectors in .git/hooks/ are NOT
+# fully addressed by this guard and remain a residual risk.
 if [[ -d "$CWD/.git" ]]; then
-    UNCOMMITTED=$(cd "$CWD" && git status --porcelain 2>/dev/null | wc -l)
+    UNCOMMITTED=$(GIT_OPTIONAL_LOCKS=0 git -C "$CWD" \
+        -c core.fsmonitor=false \
+        -c core.hooksPath=/dev/null \
+        status --porcelain 2>/dev/null | wc -l)
     if [[ "$UNCOMMITTED" -gt 0 ]]; then
         printf '<git-warning>%s has %d uncommitted change(s) at session start.</git-warning>\n' "$CWD" "$UNCOMMITTED"
     fi

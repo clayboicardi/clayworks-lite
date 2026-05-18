@@ -49,6 +49,12 @@ printf '[%s] %s\n' "$TIMESTAMP" "$SESSION_ID" >> "$LOG_FILE" 2>/dev/null
 # Many "dream-style" consolidation flows want to run at most once per day.
 # Convention: track last-fired timestamp in a sentinel file.
 #
+# SECURITY: the background-job script path is security-sensitive — anything
+# that can write to ~/.claude/scripts/your-daily-job.sh gets `nohup bash`
+# execution on every Stop trigger after the 24h gate. Pin the path to a
+# directory only your account can write to (chmod 700 on the dir, chmod 700
+# on the script). Don't put it anywhere a shared service could touch.
+#
 # SENTINEL="$HOME/agent/.last-stop-trigger"
 # # File mtime via Python for cross-platform portability — `date -r` diverges
 # # between GNU (reads file mtime) and BSD/macOS (treats arg as epoch seconds).
