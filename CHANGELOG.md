@@ -7,6 +7,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-05-18
+
+The first tagged Clayworks LITE release. Seven components shipped: README + install scripts + CLAUDE.md template + three skills (Nudge, memory-routing, heartbeat-concept) + 8 hook examples + settings.example.json + worked examples + design rationale docs. Pre-launch audit (five facets: docs / tone / cross-platform / security / gaps) consolidated and shipped. Community-standards trio complete (SECURITY.md + CODE_OF_CONDUCT.md + PR template). CI green on shellcheck + PSScriptAnalyzer + installer-exercise across ubuntu/macos/windows. The paid Clayworks bundle launches alongside.
+
 ### Added
 
 - `clayworks-lite-nudge` skill — SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Includes `add_alert.py`, `ack_alert.py`, `check_alerts.py`, and a SKILL.md with hook-wiring instructions.
