@@ -33,6 +33,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   2. **`ps-analyze-and-installer-windows`** (windows-latest): PSScriptAnalyzer on `install.ps1` (Error+Warning severity, excluding PSAvoidUsingWriteHost which is wrong for CLI installers); dry-run + live + idempotency re-run against `%TEMP%\clayworks-test`; expected-layout verification.
   3. **`markdownlint`** (ubuntu-latest): markdownlint-cli2 across all `**/*.md` with a project-level `.markdownlint.json` config that disables line-length (MD013), siblings-only-duplicate-headings (MD024), inline-HTML (MD033 — used in `<!-- comments -->`), and "first-line-must-be-heading" (MD041, breaks for `---` frontmatter pages).
   Catches the kinds of regressions the audit found this round (CRLF leak on a template, install.sh syntax error on a contributor's Mac, false-PS-version claim) before they ship.
+- CI: bumped `actions/checkout@v4` → `@v6` and `DavidAnson/markdownlint-cli2-action@v18` → `@v23` so the workflow runs on Node.js 24 instead of the deprecated Node.js 20. GitHub was throwing deprecation warnings on every run; the new versions are drop-in compatible (same input names) and quiet the noise. Done now to avoid having to do it in June 2026 when GitHub forces the Node 24 switch.
 
 ### Fixed
 
