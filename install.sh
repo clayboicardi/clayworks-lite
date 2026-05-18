@@ -65,6 +65,8 @@ else
 fi
 
 # Hash a file (sha256) or a directory (sha256 over sorted "relpath:filehash" lines).
+# Excludes symlinks from the directory walk so the hash is deterministic against
+# an attacker that might swap a symlink's target between hash and copy (TOCTOU).
 path_hash() {
     local path="$1"
     if [[ ! -e "$path" ]]; then echo ""; return; fi
@@ -72,11 +74,33 @@ path_hash() {
     if [[ -d "$path" ]]; then
         (
             cd "$path"
-            find . -type f -print0 | LC_ALL=C sort -z | while IFS= read -r -d '' f; do
+            find . -type f -not -type l -print0 | LC_ALL=C sort -z | while IFS= read -r -d '' f; do
                 printf '%s:%s\n' "${f#./}" "$(sha_file "$f")"
             done
         ) | sha_stdin
         return
+    fi
+}
+
+# Refuse to install a source tree containing symlinks.
+# Supply-chain hardening: a tampered clone could include symlinks pointing at
+# arbitrary files (e.g., ~/.ssh/id_ed25519). `cp -R` would dereference them and
+# write their *contents* into ~/.claude/, creating a predictable exfil channel.
+# Rejecting symlinks at the source means an honest LITE source tree (which has
+# none) installs fine while a tampered tree aborts loudly.
+reject_symlinks_in_source() {
+    local src="$1"
+    [[ ! -d "$src" ]] && return 0
+    local found
+    found="$(find "$src" -type l -print 2>/dev/null)"
+    if [[ -n "$found" ]]; then
+        echo "ERROR: source tree contains symlinks (potential supply-chain risk):" >&2
+        printf '  %s\n' $found >&2
+        echo "" >&2
+        echo "The LITE source tree should contain no symlinks. If you cloned from" >&2
+        echo "github.com/clayboicardi/clayworks-lite and see this error, your" >&2
+        echo "working copy may have been tampered with. Re-clone before installing." >&2
+        exit 4
     fi
 }
 
@@ -128,7 +152,9 @@ install_item() {
 
     if [[ ! -e "$dest" ]]; then
         if [[ $DRY_RUN -eq 0 ]]; then
-            if [[ -d "$src" ]]; then cp -R "$src" "$dest"; else cp "$src" "$dest"; fi
+            # -P preserves symlinks as symlinks instead of following them.
+            # Belt-and-suspenders with reject_symlinks_in_source() above.
+            if [[ -d "$src" ]]; then cp -RP "$src" "$dest"; else cp -P "$src" "$dest"; fi
         fi
         added "${label} -> ${dest}"
         INSTALLED+=("$label")
@@ -148,7 +174,7 @@ install_item() {
     if [[ $DRY_RUN -eq 0 ]]; then
         backup_path "$dest" "$backup_rel"
         rm -rf "$dest"
-        if [[ -d "$src" ]]; then cp -R "$src" "$dest"; else cp "$src" "$dest"; fi
+        if [[ -d "$src" ]]; then cp -RP "$src" "$dest"; else cp -P "$src" "$dest"; fi
     fi
     upd "${label}: differed from source -> backed up + reinstalled"
     UPDATED+=("$label")
@@ -175,6 +201,9 @@ if [[ ! -d "$CLAUDE_DIR" ]]; then
         info "Created install root: ${CLAUDE_DIR}"
     fi
 fi
+
+# Supply-chain check: refuse to proceed if the source tree contains symlinks.
+reject_symlinks_in_source "$REPO_ROOT"
 
 # --- Install items -----------------------------------------------------------
 

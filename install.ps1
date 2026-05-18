@@ -99,6 +99,29 @@ function Backup-Path {
     $BackupRefs.Add($target)
 }
 
+function Test-NoSymlinksInSource {
+    # Supply-chain hardening: refuse to install a source tree containing symlinks
+    # or junctions. A tampered clone could include symlinks pointing at sensitive
+    # files (e.g., %USERPROFILE%\.ssh\id_ed25519) and Copy-Item would follow them,
+    # writing the target's contents into ~/.claude/ as regular files — a
+    # predictable exfil channel. An honest LITE source tree has no symlinks.
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $links = Get-ChildItem -LiteralPath $Path -Recurse -Force `
+        -ErrorAction SilentlyContinue |
+        Where-Object { $_.LinkType -in 'SymbolicLink', 'Junction' }
+    if ($links) {
+        Write-Host ""
+        Write-Host "ERROR: source tree contains symlinks/junctions (potential supply-chain risk):" -ForegroundColor Red
+        foreach ($l in $links) { Write-Host "  $($l.FullName)" -ForegroundColor Red }
+        Write-Host ""
+        Write-Host "The LITE source tree should contain no symlinks. If you cloned from"
+        Write-Host "github.com/clayboicardi/clayworks-lite and see this error, your"
+        Write-Host "working copy may have been tampered with. Re-clone before installing."
+        exit 4
+    }
+}
+
 function Install-LiteItem {
     param(
         [string]$SourcePath,
@@ -164,6 +187,9 @@ if (-not (Test-Path -LiteralPath $ClaudeDir)) {
         Write-Info "Created install root: $ClaudeDir"
     }
 }
+
+# Supply-chain check: refuse to proceed if the source tree contains symlinks.
+Test-NoSymlinksInSource -Path $RepoRoot
 
 # --- Install items -----------------------------------------------------------
 
