@@ -1,0 +1,30 @@
+# Normalize line endings for cross-platform consistency.
+# Without this, Windows clones get CRLF in shell scripts and break shebangs on
+# macOS / Linux ("/usr/bin/env bash\r: not found").
+
+* text=auto
+
+# Shell scripts MUST be LF — the shebang line is parsed as a literal path on
+# *nix, and CRLF turns "#!/usr/bin/env bash" into "#!/usr/bin/env bash\r".
+*.sh   text eol=lf
+
+# Python: LF (PEP 8 convention, most editors expect LF).
+*.py   text eol=lf
+
+# Markdown: LF for consistent diffs across platforms.
+*.md   text eol=lf
+
+# PowerShell + Windows batch: CRLF (the platform they target).
+*.ps1  text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+
+# Binary assets — explicit so they don't get mangled.
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.zip  binary
+*.gz   binary
+*.pdf  binary
