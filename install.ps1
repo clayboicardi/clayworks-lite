@@ -1,6 +1,8 @@
+#Requires -Version 5.1
+
 <#
 .SYNOPSIS
-    Clayworks LITE installer for Windows (PowerShell 7+).
+    Clayworks LITE installer for Windows (PowerShell 5.1+).
 
 .DESCRIPTION
     Installs the Clayworks LITE components into ~/.claude/ without clobbering
