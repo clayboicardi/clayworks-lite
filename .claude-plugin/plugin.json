@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "clayworks-lite",
+  "description": "Operator scaffolding for Claude Code. Three skills auto-load (Nudge, memory-routing, heartbeat-concept); hook scaffolding examples, CLAUDE.md template, settings.example.json, worked configurations, and design-rationale docs ship to disk for reference and adoption.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Clay Haworth",
+    "url": "https://github.com/clayboicardi"
+  },
+  "homepage": "https://github.com/clayboicardi/clayworks-lite",
+  "repository": "https://github.com/clayboicardi/clayworks-lite",
+  "license": "MIT",
+  "skills": "./skills/"
+}

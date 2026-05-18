@@ -7,6 +7,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `.claude-plugin/marketplace.json` + `.claude-plugin/plugin.json` — LITE is now installable as a Claude Code plugin via the CC plugin marketplace. Users in a CC session can run `/plugin marketplace add clayboicardi/clayworks-lite` then `/plugin install clayworks-lite@clayworks-lite`. Single plugin (named `clayworks-lite`) with `source: "."` — the whole repo ships to `~/.claude/plugins/marketplaces/clayworks-lite/` on install; only the three skills under `./skills/` are auto-activated (declared explicitly in plugin.json's `skills` field). Hook examples, templates, worked configurations (`examples/`), and design rationale (`docs/`) ship to disk at that plugin path for users to reference, copy, and customize — they're not auto-active, just present. This adds a second install path alongside `git clone + ./install.sh`; README's Install section now documents both with a "which option should I pick" decision matrix. The two paths produce slightly different deployment shapes (plugin install keeps everything under `plugins/marketplaces/`; the script deploys templates + hook examples to standard `~/.claude/` paths) — users should pick one, not both.
+
 ## [1.0.0] — 2026-05-18
 
 The first tagged Clayworks LITE release. Seven components shipped: README + install scripts + CLAUDE.md template + three skills (Nudge, memory-routing, heartbeat-concept) + 8 hook examples + settings.example.json + worked examples + design rationale docs. Pre-launch audit (five facets: docs / tone / cross-platform / security / gaps) consolidated and shipped. Community-standards trio complete (SECURITY.md + CODE_OF_CONDUCT.md + PR template). CI green on shellcheck + PSScriptAnalyzer + installer-exercise across ubuntu/macos/windows. The paid Clayworks bundle launches alongside.

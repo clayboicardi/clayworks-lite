@@ -135,6 +135,21 @@ LITE itself is shell scripts + markdown. No build, no compile, no Docker.
 
 ## Install
 
+LITE ships **two install paths**. Pick one based on preference — don't run both or the skills end up duplicated on disk.
+
+### Option A: Claude Code plugin marketplace (in-CC, no clone)
+
+Inside any Claude Code session:
+
+```text
+/plugin marketplace add clayboicardi/clayworks-lite
+/plugin install clayworks-lite@clayworks-lite
+```
+
+CC clones the kit to `~/.claude/plugins/marketplaces/clayworks-lite/`. The three LITE skills auto-activate. Hook scaffolding examples, the CLAUDE.md template, `settings.example.json`, worked configurations (`examples/`), and design rationale (`docs/`) all ship to disk at that path — present for you (and Claude in a session) to reference, copy, and customize when you decide to. Templates aren't auto-deployed to standard `~/.claude/` paths under this option; you copy them yourself when ready.
+
+### Option B: Git clone + install script (deployed to `~/.claude/`)
+
 Before running, glance at `install.sh` (or `install.ps1`) to satisfy yourself there's nothing surprising in it. The installer is ~600 lines and does what the comments say — `--dry-run` to see exactly what would change without writing anything.
 
 ```bash
@@ -158,6 +173,16 @@ The installer:
 6. Prints a summary of what changed and what to do next
 
 The installer is idempotent. Re-running it picks up new versions without re-clobbering your edits, as long as you've moved files out of the `clayworks-lite/` source dir (e.g., your customized `CLAUDE.md` lives at `~/.claude/CLAUDE.md`, not in the source).
+
+### Which option should I pick?
+
+| If you want... | Pick |
+|---|---|
+| Quickest start; let CC manage updates; skills auto-active immediately | **Option A** (plugin marketplace) |
+| Templates + hook examples deployed to standard `~/.claude/` paths (`~/.claude/CLAUDE.md.clayworks-template`, `~/.claude/hooks/examples/`, etc.) | **Option B** (clone + script) |
+| Full uninstall via `--uninstall` flag + automatic backup of any file LITE would overwrite | **Option B** |
+| Don't want any LITE files outside `~/.claude/plugins/` | **Option A** |
+| Auditing the install before running (read every script first) | **Option B** (the source is local; for **A**, audit at `~/.claude/plugins/marketplaces/clayworks-lite/` after install) |
 
 ### Updating LITE
 
