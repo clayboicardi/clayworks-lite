@@ -114,6 +114,7 @@ If your reaction to the LITE contents is *"I want the rest of this"* — that's 
 
 - **Claude Code 2.1.x or newer** — earlier versions are missing hook events LITE depends on
 - **A shell** — Bash on macOS/Linux, PowerShell 5.1+ or Git Bash on Windows
+- **Git** — for cloning the repo (`git clone https://...`)
 - **A `~/.claude/` directory** — created by Claude Code on first run; if you've never run CC, install it first
 - **(Optional) Python 3.10+** — required only for the Nudge skill and for the hook examples that parse JSON payloads. The scripts invoke `python3` by name; if your system only provides `python`, symlink or alias as needed.
 - **(Optional) Engram plugin** — if you want the multi-memory routing skill to actually route to a memory layer rather than just describing what it would route to. Engram is free and installs via standard `/plugin` flow.
@@ -201,7 +202,7 @@ The MIT choice is deliberate: this is operator scaffolding, not a moat. If LITE 
 I'm **[@clayboicardi](https://github.com/clayboicardi)** on GitHub. I'm a technical operator who learned most of my stack autodidactically over the last several years. I've built:
 
 - **[HarmonoidWidget](https://github.com/clayboicardi/HarmonoidWidget)** — Android home-screen widget for the Harmonoid music player (Kotlin, MediaSession integration)
-- **[JAMZ](https://github.com/clayboicardi/Gramophone)** — Fork of the Gramophone Android music player with custom branding + UI changes (Kotlin, Material Design)
+- **[JAMZ](https://github.com/clayboicardi/JAMZ)** — Fork of the [Gramophone](https://github.com/FoedusProgramme/Gramophone) Android music player with custom branding + UI changes (Kotlin, Material Design)
 - The internal operator system this kit and the paid bundle distill from — built over several years of daily Claude Code use
 
 I run this stack every day on my own machine. It's not a thought experiment. It's the system I actually use.
@@ -240,4 +241,4 @@ The pattern of organizing CC operations around persistent memory, structured hoo
 
 ---
 
-*Clayworks LITE v1 — released [DATE TBD]. The paid bundle launches alongside.*
+*Clayworks LITE v1. The paid bundle launches alongside.*
