@@ -26,9 +26,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `clayworks-lite-nudge` SKILL.md: hook-wiring section now points at `hooks/examples/userpromptsubmit.sh` as the broader contract reference for chaining multiple effects.
   - `hooks/examples/README.md`: added a "How these pair with the LITE skills" section explicitly mapping each hook event to the LITE skill that consumes (or could consume) it.
   - `clayworks-lite-memory-routing` SKILL.md: unchanged — no hook relationship by design (user-action-triggered, not hook-triggered).
-
-### Pending for v1.0.0
-*(none — ready to tag)*
+- `.gitignore`: removed `.last-dream` and `.dream-pending` entries. These are markers for a private off-session memory-consolidation system that doesn't ship in LITE; their presence in `.gitignore` was leakage of private-system terminology into the public repo.
 
 ## [0.1.0] — 2026-05-17
 

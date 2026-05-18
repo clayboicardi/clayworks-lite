@@ -29,8 +29,6 @@ alerts.db
 
 # CC artifacts
 .claude/
-.last-dream
-.dream-pending
 
 # Test outputs
 test-output/
