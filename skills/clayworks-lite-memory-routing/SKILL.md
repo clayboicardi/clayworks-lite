@@ -13,7 +13,12 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 ### Engram — cross-model structured memory
 
-**Install:** `/plugin install engram@engram` (free, runs locally)
+**Install** (free, runs locally):
+
+```
+/plugin marketplace add Gentleman-Programming/engram
+/plugin install engram@engram
+```
 
 **Use for:**
 
@@ -43,7 +48,12 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 ### Honcho — user modeling
 
-**Install:** `/plugin install honcho@honcho` (cloud-hosted; $100 free credits then ~$2–3/mo at typical usage)
+**Install** (cloud-hosted; $100 free credits then ~$2–3/mo at typical usage):
+
+```
+/plugin marketplace add plastic-labs/claude-honcho
+/plugin install honcho@honcho
+```
 
 **Use for:**
 

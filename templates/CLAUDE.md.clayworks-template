@@ -26,7 +26,11 @@ YOU MUST follow these routing rules for all memory operations:
 
 Use for: architecture decisions, project conventions, recurring procedures,
 tool configurations, anything that benefits from exact keyword search.
-- Install: `/plugin install engram@engram` (free, runs locally)
+- Install (free, runs locally):
+  ```
+  /plugin marketplace add Gentleman-Programming/engram
+  /plugin install engram@engram
+  ```
 - Save with `mem_save` proactively — don't wait to be asked
 - Search with `mem_search` before assuming you have to start fresh
 
@@ -40,7 +44,11 @@ Use for: project-specific knowledge that lives with the codebase.
 ### Honcho (user modeling — optional)
 
 Use for: persistent model of WHO you are (role, preferences, working style).
-- Install: `/plugin install honcho@honcho` ($100 free credits then ~$2-3/mo)
+- Install ($100 free credits then ~$2-3/mo):
+  ```
+  /plugin marketplace add plastic-labs/claude-honcho
+  /plugin install honcho@honcho
+  ```
 - Skip if you don't care about cross-session preference learning
 
 ### Routing rules
@@ -58,7 +66,11 @@ Use for: persistent model of WHO you are (role, preferences, working style).
 Available AI bridges:
 - **Gemini (Google OAuth CLI):** `~/.claude/scripts/ask-gemini.sh "prompt"` — research, second opinions, web-grounded queries
 - **Local LLMs (Ollama):** `localhost:11434` — privacy-sensitive work, no cloud dependency
-- **Multi-model orchestration:** `/octo:research`, `/octo:debate`, `/octo:review` (requires `octo@nyldn-plugins`)
+- **Multi-model orchestration:** `/octo:research`, `/octo:debate`, `/octo:review`. Install:
+  ```
+  /plugin marketplace add nyldn/claude-octopus
+  /plugin install octo@nyldn-plugins
+  ```
 
 Use these strategically — not every task needs multiple models.
 
