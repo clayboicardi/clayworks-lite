@@ -28,7 +28,7 @@ set -u
 
 # Parse the prompt from stdin payload.
 PAYLOAD=$(cat)
-PROMPT=$(printf '%s' "$PAYLOAD" | python -c "
+PROMPT=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)

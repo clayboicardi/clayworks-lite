@@ -24,7 +24,7 @@
 set -u
 
 PAYLOAD=$(cat)
-SUBAGENT_TYPE=$(printf '%s' "$PAYLOAD" | python -c "
+SUBAGENT_TYPE=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -32,7 +32,7 @@ try:
 except Exception:
     print('<unknown>', end='')
 ")
-DESCRIPTION=$(printf '%s' "$PAYLOAD" | python -c "
+DESCRIPTION=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)

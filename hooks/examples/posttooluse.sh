@@ -26,7 +26,7 @@
 set -u
 
 PAYLOAD=$(cat)
-TOOL_NAME=$(printf '%s' "$PAYLOAD" | python -c "
+TOOL_NAME=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -43,7 +43,7 @@ mkdir -p "$LOG_DIR" 2>/dev/null
 LOG_FILE="$LOG_DIR/bash-outcomes.log"
 
 if [[ "$TOOL_NAME" == "Bash" ]]; then
-    EXIT_CODE=$(printf '%s' "$PAYLOAD" | python -c "
+    EXIT_CODE=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)

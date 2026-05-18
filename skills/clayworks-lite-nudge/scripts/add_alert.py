@@ -2,7 +2,7 @@
 """Add a new alert to the alerts.db SQLite store.
 
 Usage:
-    python add_alert.py <time> <message>
+    python3 add_alert.py <time> <message>
 
 Time formats:
     HH:MM             -- Today at that time (24-hour)

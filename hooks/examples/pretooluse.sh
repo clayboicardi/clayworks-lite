@@ -31,7 +31,7 @@
 set -u
 
 PAYLOAD=$(cat)
-TOOL_NAME=$(printf '%s' "$PAYLOAD" | python -c "
+TOOL_NAME=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -50,7 +50,7 @@ LOG_FILE="$LOG_DIR/tool-audit.log"
 case "$TOOL_NAME" in
     Write|Edit|MultiEdit|NotebookEdit)
         TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        FILE_PATH=$(printf '%s' "$PAYLOAD" | python -c "
+        FILE_PATH=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -67,7 +67,7 @@ esac
 #
 # case "$TOOL_NAME" in
 #     Write|Edit|MultiEdit)
-#         FILE_PATH=$(printf '%s' "$PAYLOAD" | python -c "import json,sys; print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))")
+#         FILE_PATH=$(printf '%s' "$PAYLOAD" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))")
 #         case "$FILE_PATH" in
 #             "$HOME/Projects/"*)
 #                 ;;  # allowed

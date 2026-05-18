@@ -49,7 +49,7 @@ fi
 
 # --- Example: warn about uncommitted git state in cwd ------------------------
 PAYLOAD=$(cat)
-CWD=$(printf '%s' "$PAYLOAD" | python -c "
+CWD=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)

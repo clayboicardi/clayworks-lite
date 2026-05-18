@@ -26,7 +26,7 @@
 set -u
 
 PAYLOAD=$(cat)
-SESSION_ID=$(printf '%s' "$PAYLOAD" | python -c "
+SESSION_ID=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)

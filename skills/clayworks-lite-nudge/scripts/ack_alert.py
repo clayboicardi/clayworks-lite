@@ -2,7 +2,7 @@
 """Acknowledge (dismiss) an alert so it no longer fires.
 
 Usage:
-    python ack_alert.py <alert_id>
+    python3 ack_alert.py <alert_id>
 
 Exits 1 if the alert isn't found.
 """

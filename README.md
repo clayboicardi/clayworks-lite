@@ -115,7 +115,7 @@ If your reaction to the LITE contents is *"I want the rest of this"* — that's 
 - **Claude Code 2.1.x or newer** — earlier versions are missing hook events LITE depends on
 - **A shell** — Bash on macOS/Linux, PowerShell 7+ or Git Bash on Windows
 - **A `~/.claude/` directory** — created by Claude Code on first run; if you've never run CC, install it first
-- **(Optional) Python 3.10+** — required only for the Nudge skill (SQLite + script execution)
+- **(Optional) Python 3.10+** — required only for the Nudge skill and for the hook examples that parse JSON payloads. The scripts invoke `python3` by name; if your system only provides `python`, symlink or alias as needed.
 - **(Optional) Engram plugin** — if you want the multi-memory routing skill to actually route to a memory layer rather than just describing what it would route to. Engram is free and installs via standard `/plugin` flow.
 
 LITE itself is shell scripts + markdown. No build, no compile, no Docker.

@@ -23,7 +23,7 @@ Human-facing reminder system for managing focus and pacing. Nudges are stored in
 ## Adding a nudge
 
 ```bash
-python ~/.claude/skills/clayworks-lite-nudge/scripts/add_alert.py "<time>" "<message>"
+python3 ~/.claude/skills/clayworks-lite-nudge/scripts/add_alert.py "<time>" "<message>"
 ```
 
 **Time formats:**
@@ -40,7 +40,7 @@ python ~/.claude/skills/clayworks-lite-nudge/scripts/add_alert.py "<time>" "<mes
 When a nudge has fired and been addressed, dismiss it so it doesn't repeat:
 
 ```bash
-python ~/.claude/skills/clayworks-lite-nudge/scripts/ack_alert.py <id>
+python3 ~/.claude/skills/clayworks-lite-nudge/scripts/ack_alert.py <id>
 ```
 
 ## Viewing pending nudges
@@ -87,7 +87,7 @@ This skill ships the SQL store and the helper scripts. For nudges to *fire*, you
         "hooks": [
           {
             "type": "command",
-            "command": "python ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
             "timeout": 5
           }
         ]

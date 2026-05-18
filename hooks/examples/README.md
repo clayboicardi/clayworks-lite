@@ -60,7 +60,7 @@ The `hooks` array per event allows multiple hooks; they all run on each fire. `t
 
 - All examples start with `#!/usr/bin/env bash` + `set -u` for safety
 - All examples are **silent unless something fires** — no constant chatter to logs
-- JSON parsing uses `python -c "import json, sys; ..."` (no `jq` dependency)
+- JSON parsing uses `python3 -c "import json, sys; ..."` (no `jq` dependency)
 - Log files default to `~/agent/logs/` (override with env var if you prefer elsewhere)
 - Errors go to stderr; stdout is reserved for content Claude should see
 

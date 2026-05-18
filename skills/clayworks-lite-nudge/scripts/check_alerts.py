@@ -8,7 +8,7 @@ Intended to be invoked from a UserPromptSubmit hook in ~/.claude/settings.json:
         "UserPromptSubmit": [{
           "hooks": [{
             "type": "command",
-            "command": "python ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
             "timeout": 5
           }]
         }]
