@@ -29,6 +29,7 @@ alerts.db
 
 # CC artifacts
 .claude/
+.remember/
 
 # Test outputs
 test-output/
