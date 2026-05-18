@@ -22,6 +22,10 @@ Thanks for your interest. A few ground rules:
 3. PRs should have a clear "before/after" or "why this" in the description.
 4. License contributions under MIT (this repo's license). Implicit on submit.
 
+## Security issues
+
+See [SECURITY.md](SECURITY.md) — do not file security bugs as public issues.
+
 ## Code of conduct
 
 Be a person. Engage in good faith. That's it.
