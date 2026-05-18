@@ -22,8 +22,15 @@ assignees: clayboicardi
 
 - **OS:** <!-- macOS / Linux / Windows + version -->
 - **Shell:** <!-- bash / zsh / pwsh + version -->
+- **Python (if relevant):** <!-- output of `python3 --version` AND `python --version` (note if `python` is missing) -->
 - **Claude Code version:** <!-- output of `claude --version` -->
 - **Clayworks LITE version / commit:** <!-- output of `git log -1 --oneline` from your clone, or release tag -->
+
+## Quick diagnostics (please try first)
+
+- [ ] I ran `./install.sh --dry-run` (or `.\install.ps1 -DryRun`) and the output matches what I expected
+- [ ] I checked `~/.claude/.clayworks-lite-backup/<timestamp>/` to see what (if anything) the installer overwrote
+- [ ] I restarted Claude Code (closed all sessions, opened a fresh one) after install
 
 ## Logs / output
 
