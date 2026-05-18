@@ -1,9 +1,10 @@
 ---
 name: Bug report
 about: install.sh / install.ps1 failures, broken hooks, unexpected behavior
-title: '[bug] '
+title: "[bug] "
 labels: bug
 assignees: clayboicardi
+
 ---
 
 ## What happened

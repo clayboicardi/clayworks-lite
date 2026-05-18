@@ -1,9 +1,10 @@
 ---
 name: Enhancement
 about: Hook examples I missed, decision-tree refinements, documentation gaps
-title: '[enh] '
+title: "[enh] "
 labels: enhancement
 assignees: clayboicardi
+
 ---
 
 ## The problem
