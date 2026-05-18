@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  shellcheck-and-installer-bash:
+    name: shellcheck + installer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck (macOS)
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+
+      - name: ShellCheck install.sh + hook examples
+        run: |
+          shellcheck install.sh
+          shellcheck hooks/examples/*.sh
+
+      - name: Installer dry-run (clean target)
+        run: |
+          bash install.sh --dry-run --claude-dir /tmp/clayworks-test
+
+      - name: Installer live + idempotency re-run
+        run: |
+          bash install.sh --claude-dir /tmp/clayworks-test
+          # Re-run should report every item as skipped.
+          bash install.sh --claude-dir /tmp/clayworks-test | tee out.log
+          if ! grep -q "already installed and unchanged" out.log; then
+            echo "ERROR: idempotency check failed — re-run did not report any item as unchanged" >&2
+            exit 1
+          fi
+
+      - name: Verify expected install layout
+        run: |
+          ls /tmp/clayworks-test/skills/clayworks-lite-nudge/SKILL.md
+          ls /tmp/clayworks-test/skills/clayworks-lite-memory-routing/SKILL.md
+          ls /tmp/clayworks-test/skills/clayworks-lite-heartbeat-concept/SKILL.md
+          ls /tmp/clayworks-test/hooks/examples/userpromptsubmit.sh
+          ls /tmp/clayworks-test/CLAUDE.md.clayworks-template
+          ls /tmp/clayworks-test/settings.example.json
+
+  ps-analyze-and-installer-windows:
+    name: PSScriptAnalyzer + installer (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+          $issues = Invoke-ScriptAnalyzer -Path install.ps1 -Severity Error,Warning
+          if ($issues) {
+            $issues | Format-List
+            throw "PSScriptAnalyzer found $($issues.Count) issue(s)"
+          }
+
+      - name: Installer dry-run
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:TEMP "clayworks-test"
+          .\install.ps1 -DryRun -ClaudeDir $target
+
+      - name: Installer live + idempotency re-run
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:TEMP "clayworks-test"
+          .\install.ps1 -ClaudeDir $target
+          $out = .\install.ps1 -ClaudeDir $target *>&1 | Out-String
+          if ($out -notmatch "already installed and unchanged") {
+            throw "Idempotency check failed — re-run did not report any item as unchanged"
+          }
+
+      - name: Verify expected install layout
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:TEMP "clayworks-test"
+          @(
+            "$target\skills\clayworks-lite-nudge\SKILL.md",
+            "$target\skills\clayworks-lite-memory-routing\SKILL.md",
+            "$target\skills\clayworks-lite-heartbeat-concept\SKILL.md",
+            "$target\hooks\examples\userpromptsubmit.sh",
+            "$target\CLAUDE.md.clayworks-template",
+            "$target\settings.example.json"
+          ) | ForEach-Object {
+              if (-not (Test-Path -LiteralPath $_)) {
+                throw "Expected file missing after install: $_"
+              }
+            }
+
+  markdownlint:
+    name: markdownlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint Markdown
+        uses: DavidAnson/markdownlint-cli2-action@v18
+        with:
+          globs: '**/*.md'
+          config: '.markdownlint.json'
