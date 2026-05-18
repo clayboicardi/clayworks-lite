@@ -50,7 +50,10 @@ printf '[%s] %s\n' "$TIMESTAMP" "$SESSION_ID" >> "$LOG_FILE" 2>/dev/null
 # Convention: track last-fired timestamp in a sentinel file.
 #
 # SENTINEL="$HOME/agent/.last-stop-trigger"
-# if [[ ! -f "$SENTINEL" ]] || [[ $(( $(date +%s) - $(date -r "$SENTINEL" +%s) )) -gt 86400 ]]; then
+# # File mtime via Python for cross-platform portability — `date -r` diverges
+# # between GNU (reads file mtime) and BSD/macOS (treats arg as epoch seconds).
+# SENTINEL_MTIME=$(python3 -c "import os,sys; print(int(os.path.getmtime(sys.argv[1])))" "$SENTINEL" 2>/dev/null || echo 0)
+# if [[ ! -f "$SENTINEL" ]] || [[ $(( $(date +%s) - SENTINEL_MTIME )) -gt 86400 ]]; then
 #     date +%s > "$SENTINEL"
 #     # Fire the gated work in background so we don't block CC's exit.
 #     ( nohup bash ~/.claude/scripts/your-daily-job.sh >/dev/null 2>&1 & )

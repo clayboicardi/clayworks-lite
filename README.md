@@ -94,7 +94,7 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 
 - **Annotated production CLAUDE.md** — every rule with rationale, not just structure
 - **CC↔CC inter-session communication system** — when you run two CC sessions in parallel, they coordinate via filesystem messaging + Telegram routing
-- **Full Phase V observability stack** — three layers of self-evaluation (per-prompt outcomes, end-of-session structure check, end-of-session memory consolidation candidate)
+- **Full three-tier observability stack** — three layers of self-evaluation (per-prompt outcomes, end-of-session structure check, end-of-session memory consolidation candidate)
 - **Multi-AI bridges** — wired Gemini CLI + local Ollama integrations with logging, sandboxing, and fallback handling
 - **CC docs freshness gate** — a UserPromptSubmit hook that detects Claude Code-related questions and injects fresh local mirror context so the model doesn't fall back to stale training-data recall
 - **Inbox watcher pattern** — drop a markdown file in a folder, the agent picks it up on next session start

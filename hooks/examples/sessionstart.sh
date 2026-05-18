@@ -32,7 +32,10 @@ PRIMER="$HOME/agent/session-primer.md"
 
 if [[ -f "$PRIMER" ]]; then
     # Check the file is recent (< 7 days) before surfacing — otherwise it's stale.
-    AGE_DAYS=$(( ( $(date +%s) - $(date -r "$PRIMER" +%s) ) / 86400 ))
+    # NOTE: `date -r` diverges between GNU and BSD/macOS — GNU reads the file's
+    # mtime, BSD/macOS treats the arg as epoch seconds. Use Python for portability.
+    PRIMER_MTIME=$(python3 -c "import os,sys; print(int(os.path.getmtime(sys.argv[1])))" "$PRIMER" 2>/dev/null || echo 0)
+    AGE_DAYS=$(( ( $(date +%s) - PRIMER_MTIME ) / 86400 ))
     if [[ "$AGE_DAYS" -lt 7 ]]; then
         cat <<EOF
 <session-primer freshness="${AGE_DAYS}d-old">
