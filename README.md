@@ -161,6 +161,32 @@ cd ~/clayworks-lite && git pull && ./install.sh
 
 The hash-diff logic means unchanged files skip; only new or modified items get backed up + reinstalled. Your customized `~/.claude/CLAUDE.md` and live `~/.claude/hooks/` files are never touched.
 
+### Verifying the install
+
+Sanity-check that the install is healthy:
+
+```bash
+./install.sh --verify        # macOS / Linux / Git Bash
+# OR
+.\install.ps1 -Verify        # Windows PowerShell 5.1+
+```
+
+Checks: skills present + frontmatter parses, hook examples present + shebangs intact, `python3` + `sqlite3` available (required for the Nudge skill), CLAUDE.md template + `settings.example.json` present and well-formed, best-effort `claude` CLI version detection. Exits 0 on all-pass, 1 on any failure, with per-check detail.
+
+### Uninstalling LITE
+
+To remove what LITE installed:
+
+```bash
+./install.sh --uninstall     # macOS / Linux / Git Bash
+# OR
+.\install.ps1 -Uninstall     # Windows PowerShell 5.1+
+```
+
+The uninstaller removes only files that match what LITE shipped (compared by SHA-256 hash). Any file you've customized is left in place — your edits aren't silently lost. Your live `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, and `~/.claude/hooks/` directory are never touched. The backup folder (`~/.claude/.clayworks-lite-backup/`) is preserved; remove it manually if you want a clean slate.
+
+If you wired Nudge or other LITE hooks into `~/.claude/settings.json`, you'll need to remove those entries yourself — the uninstaller doesn't edit your settings file.
+
 ### No telemetry
 
 LITE is shell scripts + markdown + three Python scripts. No analytics, no phone-home, no usage tracking. The installer touches only paths under `~/.claude/` (configurable via `--claude-dir`). The Nudge SQLite database stays on your machine and is gitignored.

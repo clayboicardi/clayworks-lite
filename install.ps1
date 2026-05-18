@@ -32,6 +32,8 @@
 [CmdletBinding()]
 param(
     [switch]$DryRun,
+    [switch]$Uninstall,
+    [switch]$Verify,
     [string]$ClaudeDir = (Join-Path $HOME ".claude")
 )
 
@@ -168,6 +170,202 @@ function Install-LiteItem {
     Write-Updated "${Label}: differed from source -> backed up + reinstalled"
     $Updated.Add($Label)
 }
+
+# --- Uninstall + Verify -----------------------------------------------------
+
+function Uninstall-LiteItem {
+    param([string]$DestPath, [string]$SourcePath, [string]$Label)
+
+    if (-not (Test-Path -LiteralPath $DestPath)) {
+        Write-SkippedM "${Label}: not present (already uninstalled)"
+        return
+    }
+
+    if (Test-Path -LiteralPath $SourcePath) {
+        $srcHash  = Get-PathHash $SourcePath
+        $destHash = Get-PathHash $DestPath
+        if ($srcHash -ne $destHash) {
+            Write-Updated "${Label}: customized (hash differs from source) -- SKIPPING; remove manually if you want"
+            return
+        }
+    }
+
+    if (-not $DryRun) {
+        Remove-Item -LiteralPath $DestPath -Recurse -Force
+    }
+    Write-Added "${Label}: removed"
+}
+
+function Invoke-Uninstall {
+    Write-Host ""
+    Write-Host "Clayworks LITE uninstaller" -ForegroundColor Cyan
+    Write-Host ("=" * 60)
+    Write-Info "Source repo  : $RepoRoot"
+    Write-Info "Install root : $ClaudeDir"
+    if ($DryRun) { Write-Info "Mode         : DRY RUN (no changes written)" }
+    else         { Write-Info "Mode         : LIVE" }
+
+    Write-Section "Removing LITE skills"
+    $skillsSrc = Join-Path $RepoRoot "skills"
+    $skillsDest = Join-Path $ClaudeDir "skills"
+    if (Test-Path -LiteralPath $skillsSrc) {
+        $skillDirs = Get-ChildItem -LiteralPath $skillsSrc -Directory |
+            Where-Object { $_.Name -like "clayworks-lite-*" } |
+            Sort-Object Name
+        foreach ($d in $skillDirs) {
+            Uninstall-LiteItem `
+                -DestPath   (Join-Path $skillsDest $d.Name) `
+                -SourcePath $d.FullName `
+                -Label      "skill: $($d.Name)"
+        }
+    }
+
+    Write-Section "Removing hook examples"
+    Uninstall-LiteItem `
+        -DestPath   (Join-Path $ClaudeDir "hooks/examples") `
+        -SourcePath (Join-Path $RepoRoot "hooks/examples") `
+        -Label      "hooks/examples"
+
+    Write-Section "Removing CLAUDE.md starter template"
+    Uninstall-LiteItem `
+        -DestPath   (Join-Path $ClaudeDir "CLAUDE.md.clayworks-template") `
+        -SourcePath (Join-Path $RepoRoot "templates/CLAUDE.md.clayworks-template") `
+        -Label      "CLAUDE.md.clayworks-template"
+
+    Write-Section "Removing settings.example.json"
+    Uninstall-LiteItem `
+        -DestPath   (Join-Path $ClaudeDir "settings.example.json") `
+        -SourcePath (Join-Path $RepoRoot "templates/settings.example.json") `
+        -Label      "settings.example.json"
+
+    Write-Section "Did NOT touch"
+    Write-Info "  $(Join-Path $ClaudeDir 'CLAUDE.md') (your live config)"
+    Write-Info "  $(Join-Path $ClaudeDir 'settings.json') (your live config)"
+    Write-Info "  $(Join-Path $ClaudeDir 'hooks/')  (excluding examples/ subdir)"
+    Write-Info "  $(Join-Path $ClaudeDir '.clayworks-lite-backup/') (your backups -- remove manually)"
+
+    Write-Section "Next steps"
+    @"
+If you wired Nudge or other LITE hooks into ~/.claude/settings.json,
+remove those entries manually. The uninstaller can't safely edit
+your settings.json -- JSON parsing of an arbitrary user file would
+be too fragile.
+
+To purge the backup folder:
+  Remove-Item -Recurse -Force "$(Join-Path $ClaudeDir '.clayworks-lite-backup')"
+"@ | Write-Host
+
+    Write-Host ""
+    Write-Host "Uninstall complete." -ForegroundColor Green
+}
+
+$script:VerifyFails = 0
+
+function Test-Check {
+    param([string]$Label, [string]$Status, [string]$Detail)
+    switch ($Status) {
+        "pass" { Write-Added "${Label}: ${Detail}" }
+        "warn" { Write-Updated "${Label}: ${Detail}" }
+        "fail" {
+            Write-Host "  ? ${Label}: ${Detail}" -ForegroundColor Yellow
+            $script:VerifyFails++
+        }
+    }
+}
+
+function Invoke-Verify {
+    Write-Host ""
+    Write-Host "Clayworks LITE -- verify install" -ForegroundColor Cyan
+    Write-Host ("=" * 60)
+    Write-Info "Install root : $ClaudeDir"
+    $script:VerifyFails = 0
+
+    Write-Section "Runtime"
+    $py3 = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $py3) { $py3 = Get-Command python -ErrorAction SilentlyContinue }
+    if ($py3) {
+        $ver = & $py3.Source --version 2>&1
+        Test-Check "python3" "pass" "$ver"
+        $sql = & $py3.Source -c "import sqlite3" 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Test-Check "python3 sqlite3 import" "pass" "ok"
+        } else {
+            Test-Check "python3 sqlite3 import" "fail" "cannot import -- Nudge skill will not work"
+        }
+    } else {
+        Test-Check "python3" "fail" "not on PATH -- Nudge skill + hook examples will not work"
+    }
+    $cc = Get-Command claude -ErrorAction SilentlyContinue
+    if ($cc) {
+        $ccVer = & $cc.Source --version 2>&1 | Select-Object -First 1
+        Test-Check "claude" "pass" "$ccVer"
+    } else {
+        Test-Check "claude" "warn" "not on PATH (CC may be installed but invoked differently)"
+    }
+
+    Write-Section "Skills"
+    foreach ($s in @("clayworks-lite-nudge","clayworks-lite-memory-routing","clayworks-lite-heartbeat-concept")) {
+        $f = Join-Path $ClaudeDir "skills/$s/SKILL.md"
+        if (Test-Path -LiteralPath $f) {
+            $first = (Get-Content -LiteralPath $f -TotalCount 1)
+            if ($first -eq "---") {
+                Test-Check $s "pass" "SKILL.md present + frontmatter ok"
+            } else {
+                Test-Check $s "fail" "SKILL.md present but frontmatter missing/malformed"
+            }
+        } else {
+            Test-Check $s "fail" "SKILL.md missing at $f"
+        }
+    }
+
+    Write-Section "Hook examples"
+    foreach ($h in @("userpromptsubmit","pretooluse","posttooluse","sessionstart","sessionend","stop","subagentstart","subagentstop")) {
+        $f = Join-Path $ClaudeDir "hooks/examples/$h.sh"
+        if (Test-Path -LiteralPath $f) {
+            $first = (Get-Content -LiteralPath $f -TotalCount 1)
+            if ($first -eq "#!/usr/bin/env bash") {
+                Test-Check "hooks/examples/$h.sh" "pass" "present + shebang ok"
+            } else {
+                Test-Check "hooks/examples/$h.sh" "fail" "present but shebang missing/corrupt (LF vs CRLF?)"
+            }
+        } else {
+            Test-Check "hooks/examples/$h.sh" "fail" "missing"
+        }
+    }
+
+    Write-Section "Templates"
+    $tmpl = Join-Path $ClaudeDir "CLAUDE.md.clayworks-template"
+    if (Test-Path -LiteralPath $tmpl) {
+        Test-Check "CLAUDE.md.clayworks-template" "pass" "present"
+    } else {
+        Test-Check "CLAUDE.md.clayworks-template" "fail" "missing at $tmpl"
+    }
+    $setj = Join-Path $ClaudeDir "settings.example.json"
+    if (Test-Path -LiteralPath $setj) {
+        try {
+            Get-Content -LiteralPath $setj -Raw | ConvertFrom-Json | Out-Null
+            Test-Check "settings.example.json" "pass" "present + valid JSON"
+        } catch {
+            Test-Check "settings.example.json" "fail" "present but JSON parse failed"
+        }
+    } else {
+        Test-Check "settings.example.json" "fail" "missing at $setj"
+    }
+
+    Write-Section "Verify summary"
+    if ($script:VerifyFails -eq 0) {
+        Write-Host "  PASS: all checks passed" -ForegroundColor Green
+        exit 0
+    } else {
+        Write-Host "  WARN: $script:VerifyFails check(s) need attention" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+# --- Dispatch ---------------------------------------------------------------
+
+if ($Verify)    { Invoke-Verify }
+if ($Uninstall) { Invoke-Uninstall; exit 0 }
 
 # --- Pre-flight --------------------------------------------------------------
 
