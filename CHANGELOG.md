@@ -10,10 +10,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - `clayworks-lite-nudge` skill — SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. Includes `add_alert.py`, `ack_alert.py`, `check_alerts.py`, and a SKILL.md with hook-wiring instructions.
 - `templates/CLAUDE.md.clayworks-template` — anonymized CLAUDE.md starter. Preserves the structural philosophy (identity → memory routing → behavioral rules → project context) with `<YOUR ...>` placeholders for the parts a user fills in. Includes inline comments explaining WHY each section matters.
+- `hooks/examples/` — minimal annotated examples for 8 Claude Code hook events: UserPromptSubmit, PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStart, SubagentStop. Each example shows the JSON payload shape, common use cases, exit-code behavior, and registration syntax for `settings.json`. README in the dir explains the broader hook contract conventions.
 
 ### Pending for v1.0.0
 - Multi-memory routing decision-tree skill.
-- Hook scaffolding examples (one `.sh` per CC hook event).
 - Heartbeat framework concept doc.
 - `install.sh` / `install.ps1` installers.
 
