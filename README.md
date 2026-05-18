@@ -294,6 +294,18 @@ For service inquiries (sprint installs, custom setups, team retainers), open a G
 
 ---
 
+## Design rationale
+
+[`docs/`](docs/) carries the **why** behind LITE's design choices. The SKILL.md files and main README cover what the kit does; `docs/` covers why specific decisions were made and what was rejected:
+
+- [`docs/why-claude-md-structure-matters.md`](docs/why-claude-md-structure-matters.md) — section ordering as load-bearing design
+- [`docs/memory-routing-rationale.md`](docs/memory-routing-rationale.md) — why three layers, why a routing skill
+- [`docs/heartbeat-design.md`](docs/heartbeat-design.md) — pattern vs. implementation, why bounded time budgets, why these cadences
+- [`docs/installer-design.md`](docs/installer-design.md) — backup-then-install, hash-diff, symlink rejection, no-auto-edit-of-settings.json
+- [`docs/upgrade-philosophy.md`](docs/upgrade-philosophy.md) — the principles separating LITE from the paid bundle
+
+Skim if you're evaluating LITE against alternatives, customizing a component and want to know if your change crosses the design grain, or considering contributing a change to the design rather than just an addition.
+
 ## Contributing
 
 Issues and pull requests welcome. Specifically appreciated:
