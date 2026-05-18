@@ -57,7 +57,9 @@ done
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_ROOT="${CLAUDE_DIR}/.clayworks-lite-backup"
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+# PID suffix protects against directory collision if two installers run in
+# the same second (rare, but possible from CI matrices or scripted retries).
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)-$$"
 BACKUP_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
 
 # --- Hashing (prefer sha256sum, fall back to shasum on macOS) ----------------

@@ -45,7 +45,9 @@ $RepoRoot = $PSScriptRoot
 if (-not $RepoRoot) { $RepoRoot = (Get-Location).Path }
 
 $BackupRoot = Join-Path $ClaudeDir ".clayworks-lite-backup"
-$Timestamp  = Get-Date -Format "yyyyMMdd-HHmmss"
+# PID suffix protects against directory collision if two installers run in
+# the same second (rare, but possible from CI matrices or scripted retries).
+$Timestamp  = "$(Get-Date -Format 'yyyyMMdd-HHmmss')-$PID"
 $BackupDir  = Join-Path $BackupRoot $Timestamp
 
 # --- State -------------------------------------------------------------------

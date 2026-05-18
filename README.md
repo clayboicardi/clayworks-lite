@@ -130,6 +130,8 @@ LITE itself is shell scripts + markdown. No build, no compile, no Docker.
 
 ## Install
 
+Before running, glance at `install.sh` (or `install.ps1`) to satisfy yourself there's nothing surprising in it. The installer is ~600 lines and does what the comments say — `--dry-run` to see exactly what would change without writing anything.
+
 ```bash
 # Clone the repo somewhere out of the way
 git clone https://github.com/clayboicardi/clayworks-lite.git ~/clayworks-lite

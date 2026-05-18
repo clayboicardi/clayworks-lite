@@ -28,7 +28,7 @@ ACK_SCRIPT = Path(__file__).parent / "ack_alert.py"
 
 
 def init_db() -> None:
-    """Create the alerts table if it doesn't exist (idempotent)."""
+    """Create the alerts table if it doesn't exist (idempotent), tighten perms."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS alerts (
@@ -39,6 +39,13 @@ def init_db() -> None:
                 acknowledged INTEGER NOT NULL DEFAULT 0
             )
         """)
+    # Best-effort: alert content can be sensitive (e.g. "standup at 9:30 about
+    # acquisition negotiation"). Tighten so it isn't world-readable on shared
+    # multi-user systems. No-op semantics on Windows.
+    try:
+        DB_PATH.chmod(0o600)
+    except OSError:
+        pass
 
 
 def check_alerts() -> list[tuple[int, str, str]]:

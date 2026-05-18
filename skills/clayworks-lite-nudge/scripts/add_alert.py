@@ -22,7 +22,7 @@ DB_PATH = Path(__file__).parent / "alerts.db"
 
 
 def init_db() -> None:
-    """Create the alerts table if it doesn't exist."""
+    """Create the alerts table if it doesn't exist, and tighten file perms."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS alerts (
@@ -33,6 +33,12 @@ def init_db() -> None:
                 acknowledged INTEGER NOT NULL DEFAULT 0
             )
         """)
+    # Best-effort tighten perms so alert content isn't world-readable on
+    # shared multi-user systems. No-op semantics on Windows.
+    try:
+        DB_PATH.chmod(0o600)
+    except OSError:
+        pass
 
 
 def parse_time(time_str: str) -> str:
