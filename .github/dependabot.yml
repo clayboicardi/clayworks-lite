@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # GitHub Actions in .github/workflows/*.yml.
+  # LITE has no JS/Python runtime deps to track, but the CI workflow
+  # depends on third-party actions; monthly cadence catches Node-runtime
+  # deprecations before they fire CI warnings.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "ci"
+      - "dependencies"

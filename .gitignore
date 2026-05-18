@@ -27,6 +27,16 @@ alerts.db
 *.local
 .clayworks-lite-backup/
 
+# Common secrets — never commit credential material
+.env
+.env.*
+*.pem
+*.key
+*.token
+secrets/
+credentials/
+.aws/
+
 # CC artifacts
 .claude/
 .remember/
