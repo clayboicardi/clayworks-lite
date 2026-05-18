@@ -1,0 +1,17 @@
+{
+  "_comment": "Clayworks LITE — minimal example. Wires only the Nudge skill so time-based reminders fire on prompt submission. Merge this block into ~/.claude/settings.json; do not replace your existing hooks array if you have one.",
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

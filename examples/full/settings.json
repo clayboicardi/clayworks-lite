@@ -1,0 +1,44 @@
+{
+  "_comment": "Clayworks LITE — full example. Three hooks wired: UserPromptSubmit (Nudge), SessionStart (primer + git warn), Stop (turn log). Companion files in examples/full/hooks/ should be copied to ~/.claude/hooks/. Merge into ~/.claude/settings.json; append, do not replace existing hooks arrays.",
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 5,
+            "_comment": "Nudge: surfaces due alerts as system-reminders"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/sessionstart.sh",
+            "timeout": 10,
+            "_comment": "Primer surface + uncommitted-git warning. See examples/full/hooks/sessionstart.sh."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/stop.sh",
+            "timeout": 5,
+            "_comment": "Per-turn end-time logging. Extend with a 24h-gated background trigger for dream-style consolidation if you want; see hooks/examples/stop.sh in the LITE repo for the gating skeleton."
+          }
+        ]
+      }
+    ]
+  },
+
+  "_comment_extension": "Permissions and env blocks omitted from this example; add at the top level alongside `hooks`. See https://docs.claude.com/en/docs/claude-code/settings for the schema."
+}

@@ -47,7 +47,7 @@ LITE addresses the first three directly and gives you the structural scaffolding
 
 ## What's in LITE
 
-Six components. Each is opinionated and minimal.
+Seven components. Each is opinionated and minimal.
 
 ### 1. CLAUDE.md starter template
 
@@ -83,7 +83,11 @@ Three small Python scripts (`add_alert.py`, `ack_alert.py`, `check_alerts.py`) p
 
 [`skills/clayworks-lite-heartbeat-concept/SKILL.md`](skills/clayworks-lite-heartbeat-concept/SKILL.md) — a written explanation of the heartbeat pattern I use to keep my agent reflecting on its own state and surfacing decisions on a regular cadence. **Concept only, not implementation** — the full heartbeat system ships in the paid bundle because the generic refactoring is real work I haven't finished. The concept doc is enough to roll your own if you want.
 
-### 6. This README + install scripts
+### 6. Worked examples
+
+[`examples/`](examples/) — two complete LITE configurations (minimal + full) ready to adapt. Shows what the kit looks like assembled instead of as parts: `settings.json` for two adoption levels, customized hook scripts, and a sample CLAUDE.md based on the template. See [`examples/README.md`](examples/README.md) for the adoption pattern.
+
+### 7. This README + install scripts
 
 The walkthrough you're reading + a Bash/PowerShell installer that drops the right files into the right places without clobbering anything.
 
