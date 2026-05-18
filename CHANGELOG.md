@@ -31,6 +31,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `clayworks-lite-heartbeat-concept` SKILL.md: reframed the "20 minutes thinking + 5 minutes writing" anti-pattern entry. The earlier wording read as a universal prescription, leaking the author's personal discipline into reader-facing instruction. Reworded as "pick a budget that fits your work (mine is 20 + 5)" so the structure of the rule survives without the cargo-cult risk.
 - `CONTRIBUTING.md`: rewrote "Feature requests without context" line to match the pattern of the other "not appreciated" bullets — concrete quoted example of the failure mode and the alternative ("it would be cool if..." vs. "I hit X scenario because Y"). The previous line was a *request* in a list of *rejected categories*, which was structurally inconsistent.
 
+### Added
+- README: explicit "Updating LITE" subsection covering `git pull && ./install.sh` flow. The installer was already idempotent and update-safe, but the README didn't document the update path, leaving users to guess at the source-dir lifecycle and whether re-running the installer was safe.
+- README: explicit "No telemetry" line. LITE has no runtime dependencies and makes no network calls in its installed components, but the absence of an explicit "this does NOT phone home" statement was a missing trust signal for users who care (the same users who would buy the paid bundle).
+- README: post-verify guidance on adopting the CLAUDE.md starter template. The installer drops `CLAUDE.md.clayworks-template` next to `CLAUDE.md`, but the README never told the reader what to do with it. Added a backup-then-copy snippet so the user has a clean path to using the template.
+- README "Acknowledgments": credited the awesome-claude-code list curators (hesreallyhim, rohitg00, ComposioHQ) whose maintained inventories of the CC ecosystem make positioning a kit like LITE possible, plus a generic line for operator-setup-publishers whose rigs informed scope decisions.
+
 ### Changed
 - Cross-reference web added between LITE skills and hook examples. The three LITE skills + the 8 hook examples are designed to compose, but the SKILL.md files didn't point at the specific hook examples they pair with (and vice versa). Resolved:
   - `clayworks-lite-heartbeat-concept` SKILL.md: each cadence section (per-prompt, per-turn, end-of-session, daily) now names the specific LITE hook example that serves as its starting-point contract.

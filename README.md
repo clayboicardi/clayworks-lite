@@ -146,6 +146,20 @@ The installer:
 
 The installer is idempotent. Re-running it picks up new versions without re-clobbering your edits, as long as you've moved files out of the `clayworks-lite/` source dir (e.g., your customized `CLAUDE.md` lives at `~/.claude/CLAUDE.md`, not in the source).
 
+### Updating LITE
+
+To pick up a new release, pull and re-run the installer:
+
+```bash
+cd ~/clayworks-lite && git pull && ./install.sh
+```
+
+The hash-diff logic means unchanged files skip; only new or modified items get backed up + reinstalled. Your customized `~/.claude/CLAUDE.md` and live `~/.claude/hooks/` files are never touched.
+
+### No telemetry
+
+LITE is shell scripts + markdown + three Python scripts. No analytics, no phone-home, no usage tracking. The installer touches only paths under `~/.claude/` (configurable via `--claude-dir`). The Nudge SQLite database stays on your machine and is gitignored.
+
 ### Verify the install
 
 ```bash
@@ -155,6 +169,14 @@ ls ~/.claude/skills/clayworks-lite-*/
 ```
 
 You should see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. The `clayworks-lite-` prefix is intentional — it keeps these distinguishable from your own skills.
+
+The installer also dropped a starter `CLAUDE.md` template at `~/.claude/CLAUDE.md.clayworks-template`. To adopt it as your live `CLAUDE.md`, back up any existing one first and copy:
+
+```bash
+cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak 2>/dev/null || true
+cp ~/.claude/CLAUDE.md.clayworks-template ~/.claude/CLAUDE.md
+# Then edit ~/.claude/CLAUDE.md and replace <YOUR ...> placeholders
+```
 
 In your next CC session, try:
 
@@ -237,6 +259,8 @@ The pattern of organizing CC operations around persistent memory, structured hoo
 - **[Plastic Labs](https://plasticlabs.ai)** — Honcho, the user-modeling layer that taught me to separate "facts about the project" from "facts about the user"
 - **[nyldn / claude-octopus](https://github.com/nyldn/claude-octopus)** — Octo multi-AI orchestration plugin; the bundle's multi-AI routing pattern compounds with it nicely
 - **[Gentleman-Programming / engram](https://github.com/Gentleman-Programming/engram)** — Engram persistent memory plugin
+- **The awesome-claude-code curators** — [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code), [rohitg00/awesome-claude-code-toolkit](https://github.com/rohitg00/awesome-claude-code-toolkit), [ComposioHQ/awesome-claude-plugins](https://github.com/ComposioHQ/awesome-claude-plugins) — whose maintained lists mapped the CC plugin/skill ecosystem and made it possible to see what's table-stakes vs. what's distinctive
+- The other operator-setup-publishers in the CC ecosystem whose published rigs informed what LITE intentionally does and doesn't ship
 - The Claude Code community on Discord and GitHub for the steady flow of patterns, edge cases, and pushback that sharpens this kind of work
 
 ---
