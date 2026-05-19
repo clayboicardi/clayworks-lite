@@ -135,7 +135,9 @@ LITE itself is shell scripts + markdown. No build, no compile, no Docker.
 
 ## Install
 
-LITE ships **two install paths**. Pick one based on preference — don't run both or the skills end up duplicated on disk.
+**Before you start:** some of what's below will look unfamiliar if you don't have a coding background. That's expected. You don't need to read every line of every script before running it. Claude Code itself can summarize anything you're unsure about: paste the script into your CC session and ask "what does this do?" If anything reads as surprising or doesn't match what the section says it does, don't run it. Trust the system to walk you through what you're seeing.
+
+LITE ships **two install paths**. Pick one based on preference — don't run both or the skills end up duplicated on disk. Option A is the simpler path if anything below feels foreign; you can always switch to Option B later.
 
 ### Option A: Claude Code plugin marketplace (in-CC, no clone)
 
@@ -150,7 +152,7 @@ CC clones the kit to `~/.claude/plugins/marketplaces/clayworks-lite/`. The three
 
 ### Option B: Git clone + install script (deployed to `~/.claude/`)
 
-Before running, glance at `install.sh` (or `install.ps1`) to satisfy yourself there's nothing surprising in it. The installer is ~600 lines and does what the comments say — `--dry-run` to see exactly what would change without writing anything.
+Before running, paste `install.sh` (or `install.ps1`) into a Claude Code session and ask it to summarize what the script does. If anything reads as surprising or doesn't match the description below, don't run it. The installer is ~600 lines and does what the comments say. `--dry-run` shows exactly what would change without writing anything.
 
 ```bash
 # Clone the repo somewhere out of the way
