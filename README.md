@@ -144,6 +144,8 @@ LITE itself is shell scripts + markdown. No build, no compile, no Docker.
 
 **Before you start:** some of what's below will look unfamiliar if you don't have a coding background. That's expected. You don't need to read every line of every script before running it. Claude Code itself can summarize anything you're unsure about: paste the script into your CC session and ask "what does this do?" If anything reads as surprising or doesn't match what the section says it does, don't run it. Trust the system to walk you through what you're seeing.
 
+**On billing:** Clayworks runs on your existing Claude Pro or Max plan. Pro and Max share their usage limits across claude.ai and Claude Code. No API key needed unless you explicitly set one. If you don't have a Pro or Max subscription yet, get one before installing.
+
 LITE ships **two install paths**. Pick one based on preference. Don't run both, or the skills end up duplicated on disk. Option A is the simpler path if anything below feels foreign; you can always switch to Option B later.
 
 ### Option A: Claude Code plugin marketplace (in-CC, no clone)
@@ -287,7 +289,9 @@ If you already have `UserPromptSubmit` hooks, append this command to the existin
 
 If LITE gets you most of the way and you want the rest of the system without spending weeks figuring out the configuration yourself, the paid Clayworks bundle is the next step.
 
-For context: hiring a developer to build an equivalent CC operator system runs into tens of thousands of dollars. The bundle is a one-time purchase of the hardened configuration I run myself, with the rationale documented inline so you know why every choice was made.
+For context: a Claude power-user workshop runs around $800. An AI workflow consultant charges $150 an hour. An AI agency engagement to set up an equivalent CC operator system starts around $5,000, and hiring a developer to build one from scratch runs into tens of thousands of dollars.
+
+The bundle is a one-time purchase of the hardened configuration I run myself, with the rationale documented inline so you know why every choice was made.
 
 **What the bundle adds:**
 
