@@ -1,14 +1,14 @@
-# Installer design — rationale
+# Installer design: rationale
 
 The LITE installers (`install.sh`, `install.ps1`) implement a specific model: backup-then-install, SHA-256 hash-diff for idempotency, symlink rejection, no editing of user-owned config files. This doc explains each choice and what was rejected.
 
 ## Core design constraints
 
-LITE installs into `~/.claude/` — a directory that may contain:
+LITE installs into `~/.claude/`, a directory that may contain:
 
-- A user's customized `CLAUDE.md` (sacred — never touch)
-- A user's `settings.json` with hooks/permissions/env (sacred — never touch)
-- A user's custom hooks at `~/.claude/hooks/` (sacred — never touch the dir contents, only manage `hooks/examples/`)
+- A user's customized `CLAUDE.md` (sacred; never touch)
+- A user's `settings.json` with hooks/permissions/env (sacred; never touch)
+- A user's custom hooks at `~/.claude/hooks/` (sacred; never touch the dir contents, only manage `hooks/examples/`)
 - A user's own skills/agents/commands directories
 
 The constraint: **make additions to this directory without altering anything the user already owns**. Plus: any altering of LITE-installed files must be *reversible*.
@@ -32,7 +32,7 @@ This was chosen over alternatives:
 
 - **mtime comparison.** Rejected: clock skew across machines / filesystems would produce false positives. Plus, a user touch-modifying a file (no content change) would trigger spurious backups.
 - **Size + mtime check.** Less accurate than hash-diff for the same complexity. Rejected.
-- **No idempotency check (just always re-copy).** Simplest. Rejected because it generates noise on every re-run — the user can't tell "nothing changed" from "everything changed."
+- **No idempotency check (just always re-copy).** Simplest. Rejected because it generates noise on every re-run; the user can't tell "nothing changed" from "everything changed."
 - **Per-file diff (e.g. `diff -q`).** Equivalent to hash-diff in outcome, more I/O on large trees. Hash-diff scales better.
 
 The directory-hash function deserves a note: it walks the directory, finds all non-symlink files, sorts them by path under `LC_ALL=C` (byte-ordinal), concatenates `relpath:filehash` lines, and hashes that string. This makes the directory hash deterministic across machines as long as file contents are identical and the same files are present. PowerShell's equivalent uses `Sort-Object FullName` which is case-insensitive — leading to a known platform-divergence (documented in `install.ps1`'s comments) for directories with mixed-case file names. Operationally moot because each script compares src vs dest within its own platform; only matters if a cross-platform-cache scheme is later layered on top.
@@ -51,13 +51,13 @@ The threat model:
 Mitigations layered in this installer:
 
 1. **Pre-copy check rejects any symlink-containing source.** Loud fail with exit code 4.
-2. **`cp -RP`** instead of `cp -R` (preserves symlinks as symlinks rather than dereferencing — belt-and-suspenders with #1).
+2. **`cp -RP`** instead of `cp -R` (preserves symlinks as symlinks rather than dereferencing; belt-and-suspenders with #1).
 3. **`path_hash()` excludes symlinks** (`find . -type f -not -type l`) so an attacker swapping symlink targets between hash and copy doesn't corrupt the idempotency check (TOCTOU defense).
 4. **PowerShell equivalent** (`Test-NoSymlinksInSource`) handles SymbolicLink and Junction reparse points on Windows.
 
 Discussion of alternatives:
 
-- **Just allow symlinks; they're rare.** Rejected — the attack is realistic, the defense costs ~20 lines.
+- **Just allow symlinks; they're rare.** Rejected. The attack is realistic, the defense costs ~20 lines.
 - **Allow symlinks but validate targets stay inside source tree.** More complex; harder to get right cross-platform. Rejected for simplicity (zero-symlinks is easier to validate than constrained-symlinks).
 - **Sandbox the install entirely (e.g., chroot).** Overkill for the threat model. Rejected.
 
@@ -67,7 +67,7 @@ The installer never modifies `~/.claude/settings.json`. The user wires LITE hook
 
 This is a deliberate non-feature. Reasoning:
 
-**`settings.json` is a user-owned JSON file with arbitrary structure.** Hook registration is one of many things that file holds — permissions, env vars, plugin lists, statusLine config, etc. An installer that edits the file has to:
+**`settings.json` is a user-owned JSON file with arbitrary structure.** Hook registration is one of many things that file holds; permissions, env vars, plugin lists, statusLine config, and more. An installer that edits the file has to:
 
 1. Parse user's JSON (which may have comments if they use `jsonc`)
 2. Identify the right insertion point
@@ -86,7 +86,7 @@ The uninstaller has the same constraint: it can't auto-remove LITE hook entries 
 
 ## Why pure ASCII in `install.ps1`
 
-The PowerShell installer is ASCII-only — no em-dashes, no curly quotes, no Unicode. The bash installer has em-dashes in comments (LF + UTF-8 + no BOM works fine).
+The PowerShell installer is ASCII-only. No em-dashes, no curly quotes, no Unicode. The bash installer has em-dashes in comments (LF + UTF-8 + no BOM works fine).
 
 Why the constraint on PowerShell specifically?
 
@@ -101,7 +101,7 @@ The bash side doesn't have the same constraint (LF + UTF-8 + no BOM is the defau
 
 ## Why `--uninstall` is hash-guarded
 
-The uninstaller removes files only if `path_hash(src) == path_hash(dest)` — i.e., the installed file matches exactly what LITE ships. If the user customized the file (hash mismatch), it's left in place with a warning.
+The uninstaller removes files only if `path_hash(src) == path_hash(dest)`. That is, the installed file matches exactly what LITE ships. If the user customized the file (hash mismatch), it's left in place with a warning.
 
 This preserves user edits. The user's customization of a LITE-shipped file is *legitimate* (they made it theirs); silent deletion would be a betrayal. The trade-off: a user who wants to fully uninstall has to manually remove customized files themselves, after deciding they don't want them.
 
@@ -112,7 +112,7 @@ The README documents this. The uninstaller prints it. Explicit.
 Deliberately omitted features:
 
 - **Network calls.** Zero. No telemetry, no version check, no remote anything.
-- **Privileged operations.** Never `sudo`, never asks for elevation. Refuses paths under `/etc`, `/usr`, etc. (P3 item, not yet shipped — would harden against fat-fingered `--claude-dir` usage).
+- **Privileged operations.** Never `sudo`, never asks for elevation. Refuses paths under `/etc`, `/usr`, etc. (P3 item, not yet shipped; would harden against fat-fingered `--claude-dir` usage).
 - **Auto-update.** Users update by `git pull && ./install.sh`. The installer doesn't fetch new versions on its own.
 - **Plugin marketplace registration.** Users run `/plugin marketplace add` themselves (documented in `templates/CLAUDE.md.clayworks-template` and the memory-routing SKILL.md). The installer doesn't shell out to `claude` CLI.
 - **Settings.json mutation.** Covered above.

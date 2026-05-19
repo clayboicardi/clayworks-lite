@@ -3,7 +3,7 @@ name: clayworks-lite-nudge
 description: Nudge the user with time-based reminders (stopping times, meetings, break suggestions). Surfaces via UserPromptSubmit hook -- requires human interaction to fire. NOT for process monitoring or job polling -- use `sleep` in Bash for that.
 ---
 
-# Clayworks LITE — Nudge
+# Clayworks LITE: Nudge
 
 Human-facing reminder system for managing focus and pacing. Nudges are stored in a local SQLite database and surface via a UserPromptSubmit hook on the next prompt the user sends after the nudge is due.
 
@@ -101,9 +101,9 @@ This skill ships the SQL store and the helper scripts. For nudges to *fire*, you
 
 The hook runs on every prompt submission, queries the SQLite for due+unacknowledged alerts, and prints them. Claude Code surfaces the printed text as a system-reminder.
 
-For the broader UserPromptSubmit contract — full payload shape, exit behavior, common patterns beyond the Nudge use case — see [`hooks/examples/userpromptsubmit.sh`](../../hooks/examples/userpromptsubmit.sh) in the LITE repo. The example is annotated and a good starting point for chaining multiple effects (Nudge + a freshness gate + context injection, etc.).
+For the broader UserPromptSubmit contract (full payload shape, exit behavior, common patterns beyond the Nudge use case), see [`hooks/examples/userpromptsubmit.sh`](../../hooks/examples/userpromptsubmit.sh) in the LITE repo. The example is annotated and a good starting point for chaining multiple effects (Nudge + a freshness gate + context injection, etc.).
 
-If you already have UserPromptSubmit hooks, add this entry to the existing `hooks` array — don't replace the block.
+If you already have UserPromptSubmit hooks, add this entry to the existing `hooks` array. Don't replace the block.
 
 ## Database schema
 
@@ -117,7 +117,7 @@ CREATE TABLE alerts (
 )
 ```
 
-The DB file (`alerts.db`) is created in the `scripts/` directory on first use. It's gitignored — your personal alert history never leaves your machine.
+The DB file (`alerts.db`) is created in the `scripts/` directory on first use. It's gitignored. Your personal alert history never leaves your machine.
 
 ## Prerequisites
 

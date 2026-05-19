@@ -1,17 +1,17 @@
 ---
 name: clayworks-lite-memory-routing
-description: Pick the right memory layer when saving a fact — Engram (cross-model structured/procedural), native Claude Code MEMORY.md (project-scoped), or Honcho (user modeling). Use when the user says "remember/save/store this", states a preference or identity fact, describes a project convention or build command, or when Claude is about to write to memory and the destination isn't obvious. This skill is a routing decision tree, not a memory implementation — the underlying plugins handle storage.
+description: Pick the right memory layer when saving a fact across Engram (cross-model structured/procedural), native Claude Code MEMORY.md (project-scoped), or Honcho (user modeling). Use when the user says "remember/save/store this", states a preference or identity fact, describes a project convention or build command, or when Claude is about to write to memory and the destination isn't obvious. This skill is a routing decision tree, not a memory implementation. The underlying plugins handle storage.
 ---
 
-# Clayworks LITE — Multi-memory routing
+# Clayworks LITE: Multi-memory routing
 
-You have up to three memory layers. Each is good at different things. Picking the right one isn't a hunch — it's a decision that follows from what the fact IS.
+You have up to three memory layers. Each is good at different things. Picking the right one isn't a hunch. It's a decision that follows from what the fact IS.
 
 The point is the *decision*, not the *destination*. Even if you only have one layer installed, deciding deliberately keeps that layer's contents coherent.
 
 ## The three layers
 
-### Engram — cross-model structured memory
+### Engram: cross-model structured memory
 
 **Install** (free, runs locally):
 
@@ -33,7 +33,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 ### Native Claude Code memory (`MEMORY.md`)
 
-**Install:** built into Claude Code — no plugin needed.
+**Install:** built into Claude Code. No plugin needed.
 
 **Path:** `~/.claude/projects/<project-name>/memory/MEMORY.md`
 
@@ -46,7 +46,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 **Key trait:** auto-loaded into context on session start when CC is invoked from inside that project directory. Free. No plugin needed. Plain markdown — edit directly with your favorite editor.
 
-### Honcho — user modeling
+### Honcho: user modeling
 
 **Install** (cloud-hosted; $100 free credits then ~$2–3/mo at typical usage):
 
@@ -64,7 +64,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 **Key trait:** dialectical model that builds a persistent representation of the user across sessions. Auto-loaded as a profile at session start. Save with `create_conclusion`.
 
-**Alternative:** Honcho is one user-modeling layer; not the only one. If you use a different system (a hand-maintained `USER.md`, a separate vector store, a custom service), the routing principles still apply — Honcho's slot in the decision tree is just "your user-modeling layer of choice."
+**Alternative:** Honcho is one user-modeling layer; not the only one. If you use a different system (a hand-maintained `USER.md`, a separate vector store, a custom service), the routing principles still apply. Honcho's slot in the decision tree is just "your user-modeling layer of choice."
 
 ---
 
@@ -72,10 +72,10 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 Ask these questions in order. Stop at the first YES.
 
-**1. Is this a fact about WHO the user is — their role, working style, preferences, or behavioral patterns?**
+**1. Is this a fact about WHO the user is: their role, working style, preferences, or behavioral patterns?**
 → **Honcho.** (If Honcho isn't installed, fall through to Engram and tag with `user-profile/...`.)
 
-**2. Is this fact specific to one project — a build command, file convention, or recent decision affecting only that codebase?**
+**2. Is this fact specific to one project: a build command, file convention, or recent decision affecting only that codebase?**
 → **Native `MEMORY.md`** in that project's memory directory.
 
 **3. Is this a cross-project decision, a tool config, a procedure, a bug-fix root cause, or something that should be searchable from multiple AI tools?**
@@ -100,7 +100,7 @@ Ask these questions in order. Stop at the first YES.
 | "Pattern: backup-then-install + SHA-256 hash-diff for idempotent installers" | Engram | Cross-project architecture pattern |
 | "DocuSeal free tier doesn't support conditional logic" | Engram | Cross-project tool limitation |
 | "User is allergic to peanuts" | Honcho | Identity fact, persistent across sessions |
-| "Standup is at 09:30 daily" | Probably neither — this is a recurring event; use a calendar or the Nudge skill instead | Memory is for facts, not schedules |
+| "Standup is at 09:30 daily" | Probably neither: this is a recurring event; use a calendar or the Nudge skill instead | Memory is for facts, not schedules |
 
 ---
 
@@ -118,7 +118,7 @@ The skill works degraded. Use what's available:
 
 - **Not a memory implementation.** Engram, native CC memory, and Honcho are separate plugins/systems. This skill just helps pick the right one.
 - **Not a substitute for the underlying plugin docs.** `mem_save` syntax, `create_conclusion` parameters, and native MEMORY.md formatting are documented in their respective sources. Read those when you're actually saving.
-- **Not opinionated about which layers you install.** Install all three, install one, install something else entirely — the routing principles transfer. Destinations change; the decision doesn't.
+- **Not opinionated about which layers you install.** Install all three, install one, install something else entirely. The routing principles transfer. Destinations change; the decision doesn't.
 
 ---
 
@@ -133,7 +133,7 @@ Trigger conditions:
 - Claude is about to call `mem_save`, write to `MEMORY.md`, or call `create_conclusion` and the destination isn't obvious
 - User asks "where should this go?" or "what memory system is this?"
 
-When in doubt: invoke and run through the decision tree once. The 30 seconds it costs now beats the friction of finding a fact in the wrong layer later — or worse, saving it three times across all three layers and then maintaining the divergence.
+When in doubt: invoke and run through the decision tree once. The 30 seconds it costs now beats the friction of finding a fact in the wrong layer later, or worse, saving it three times across all three layers and then maintaining the divergence.
 
 ---
 
@@ -145,4 +145,4 @@ The three layers drift apart over time if you don't actively maintain them:
 - **Honcho** accumulates conclusions that contradict each other as preferences evolve
 - **MEMORY.md** drifts when project conventions change but old entries don't get pruned
 
-Quarterly: skim each layer. Re-route entries that are in the wrong place. Delete entries that no longer reflect reality. The decision tree is most valuable on day one of a new fact — but periodically *re-running* the decision on existing facts catches the drift.
+Quarterly: skim each layer. Re-route entries that are in the wrong place. Delete entries that no longer reflect reality. The decision tree is most valuable on day one of a new fact, but periodically *re-running* the decision on existing facts catches the drift.

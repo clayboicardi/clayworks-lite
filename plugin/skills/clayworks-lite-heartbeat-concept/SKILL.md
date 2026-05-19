@@ -1,22 +1,22 @@
 ---
 name: clayworks-lite-heartbeat-concept
-description: Reference for the heartbeat pattern — a cadenced loop of observe + reflect + update that keeps an agent's state coherent across sessions. Use when the user asks about agent self-observation, daily/weekly cycles, reflection cadences, the "heartbeat" pattern, drift detection, or how to make Claude Code reflect on its own state between sessions. Concept reference only — production implementation ships in the paid Clayworks bundle; this doc is enough to roll your own.
+description: Reference for the heartbeat pattern, a cadenced loop of observe + reflect + update that keeps an agent's state coherent across sessions. Use when the user asks about agent self-observation, daily/weekly cycles, reflection cadences, the "heartbeat" pattern, drift detection, or how to make Claude Code reflect on its own state between sessions. Concept reference only. Production implementation ships in the paid Clayworks bundle; this doc is enough to roll your own.
 ---
 
-# Clayworks LITE — Heartbeat framework (concept)
+# Clayworks LITE: Heartbeat framework (concept)
 
-A **heartbeat** is a structured, cadenced loop that keeps an agent's state coherent over time. Without it, what was "current" two weeks ago feels like "current" now — and drift accumulates silently until something breaks.
+A **heartbeat** is a structured, cadenced loop that keeps an agent's state coherent over time. Without it, what was "current" two weeks ago feels like "current" now, and drift accumulates silently until something breaks.
 
-This document explains the *pattern*. The full production implementation — telemetry schema, trust ledger, three-tier observability, daily-cycle templates — ships in the paid Clayworks bundle. **You do not need that to start.** A minimum-viable heartbeat takes one file and three lines of discipline.
+This document explains the *pattern*. The full production implementation (telemetry schema, trust ledger, three-tier observability, daily-cycle templates) ships in the paid Clayworks bundle. **You do not need that to start.** A minimum-viable heartbeat takes one file and three lines of discipline.
 
 ---
 
 ## What a heartbeat is (the pattern)
 
-Every heartbeat — regardless of cadence or sophistication — does three things on a repeating schedule:
+Every heartbeat, regardless of cadence or sophistication, does three things on a repeating schedule:
 
 1. **Observe state.** Read context: current work, recent activity, system health, open threads. The agent (and the user) anchor on what *is*, not what they remember to be the case.
-2. **Reflect.** Synthesize the observation: what's working, what's drifting, what needs attention. This is the step that produces signal — without it, observation is just logging.
+2. **Reflect.** Synthesize the observation: what's working, what's drifting, what needs attention. This is the step that produces signal. Without it, observation is just logging.
 3. **Update.** Write back to durable state. Logs, summary files, telemetry, a `NOW.md`-style anchor. The reflection escapes the conversation and survives the next compaction.
 
 Skip any of the three and the pattern degrades:
@@ -31,9 +31,9 @@ Skip any of the three and the pattern degrades:
 
 If you use Claude Code (or any agent) for real work over weeks, you've hit these:
 
-- **Memory degrades silently.** The agent's last understanding of "current state" is whatever it last saw — which may be days stale, contradicted by recent work, or based on a decision that's since been reversed.
+- **Memory degrades silently.** The agent's last understanding of "current state" is whatever it last saw, which may be days stale, contradicted by recent work, or based on a decision that's since been reversed.
 - **Drift compounds.** Small misalignments between *what you said you'd do* and *what you actually did* become large ones if nothing surfaces them.
-- **Decision rationale evaporates.** Six weeks from now, "we picked X" is in git history but the *why* — the rejected alternatives, the constraint that drove the choice — is gone.
+- **Decision rationale evaporates.** Six weeks from now, "we picked X" is in git history but the *why* (the rejected alternatives, the constraint that drove the choice) is gone.
 - **The agent grows stale identity.** Preferences you stated months ago either still apply (and shouldn't be re-asked) or have evolved (and shouldn't still be in force). Without periodic review, both failure modes feed on each other.
 
 A heartbeat addresses all four. It's the discipline of *deliberate re-anchoring* on a schedule, instead of hoping the right memory surfaces when needed.
@@ -50,7 +50,7 @@ Different problems need different beats. Use what fits the work:
 - Freshness gates that detect stale recall and re-fetch
 - Triggered hooks that surface time-due reminders (the `clayworks-lite-nudge` skill is one example)
 
-**LITE scaffolding:** `hooks/examples/userpromptsubmit.sh` is the contract reference for this cadence — payload shape, common patterns, exit behavior. The Nudge skill ships a working consumer of that contract.
+**LITE scaffolding:** `hooks/examples/userpromptsubmit.sh` is the contract reference for this cadence. Covers payload shape, common patterns, exit behavior. The Nudge skill ships a working consumer of that contract.
 
 **Good for:** keeping context fresh without per-prompt overhead the user feels.
 
@@ -60,7 +60,7 @@ Different problems need different beats. Use what fits the work:
 - Drift checks: did the agent honor explicit rules from CLAUDE.md / memory?
 - Structural integrity checks: do referenced files still exist? Have hooks been parsing cleanly?
 
-**LITE scaffolding:** `hooks/examples/stop.sh` is the contract reference — payload shape, the gated 24h trigger pattern, and how to spawn background work without blocking CC's exit.
+**LITE scaffolding:** `hooks/examples/stop.sh` is the contract reference. Covers payload shape, the gated 24h trigger pattern, and how to spawn background work without blocking CC's exit.
 
 **Good for:** catching regressions and silent failures before they accumulate.
 
@@ -70,7 +70,7 @@ Different problems need different beats. Use what fits the work:
 - Persist the summary to memory so the next session inherits context cleanly
 - Optional: write a hand-off doc if context-window saturation is approaching
 
-**LITE scaffolding:** `hooks/examples/sessionend.sh` is the contract reference for the evening tail. Pair with `hooks/examples/sessionstart.sh` for the session-open counterpart that surfaces unfinished threads at the next session's open — the closest CC-native approximation of a morning beat.
+**LITE scaffolding:** `hooks/examples/sessionend.sh` is the contract reference for the evening tail. Pair with `hooks/examples/sessionstart.sh` for the session-open counterpart that surfaces unfinished threads at the next session's open. That's the closest CC-native approximation of a morning beat.
 
 **Good for:** clean session boundaries. Single highest-impact cadence if you only have time for one.
 
@@ -79,7 +79,7 @@ Different problems need different beats. Use what fits the work:
 - **Morning beat:** read recent state, surface unfinished threads, set the day's focus
 - **Evening beat:** consolidate the day, prune stale items, write back updated state, surface anything that needs human decision before tomorrow
 
-**LITE scaffolding:** Daily beats run outside CC's hook lifecycle — schedule via cron (macOS/Linux) or Task Scheduler (Windows). For session-coupled approximations (fire on session open/close instead of fixed clock time), see `hooks/examples/sessionstart.sh` and `hooks/examples/sessionend.sh`. Weekly and monthly beats are also out-of-CC; same scheduler options apply.
+**LITE scaffolding:** Daily beats run outside CC's hook lifecycle. Schedule via cron (macOS/Linux) or Task Scheduler (Windows). For session-coupled approximations (fire on session open/close instead of fixed clock time), see `hooks/examples/sessionstart.sh` and `hooks/examples/sessionend.sh`. Weekly and monthly beats are also out-of-CC; same scheduler options apply.
 
 **Good for:** turning the agent into something between a journal and an operations runner. The daily pair is where most users feel the biggest leverage.
 
@@ -127,14 +127,14 @@ What NOT to make a heartbeat do:
 
 - **Observation without reflection.** A heartbeat that just appends raw logs and never synthesizes is telemetry, not heartbeat. Useful, but a different artifact.
 - **Reflection without update.** If the reflection only lives in the conversation, it dies with the session. The "update" step is what makes it survive.
-- **Heartbeat racing the work.** A daily beat that takes 40 minutes defeats the purpose. Bound the beat — pick a thinking-time and writing-time budget that fits your work (mine is 20 minutes thinking + 5 minutes writing, hard cap) and hold to it. If you can't say it within your writing budget, your reflection is the wrong shape.
+- **Heartbeat racing the work.** A daily beat that takes 40 minutes defeats the purpose. Bound the beat. Pick a thinking-time and writing-time budget that fits your work (mine is 20 minutes thinking + 5 minutes writing, hard cap) and hold to it. If you can't say it within your writing budget, your reflection is the wrong shape.
 - **Heartbeat without thresholds.** "Score: 7/10" means nothing without a baseline. Track means + standard deviations so you can distinguish normal variance from real drift.
 - **Heartbeat replacing actual work.** If you spend more time observing the agent than working with it, you've built a self-watching machine, not an operator. The beat exists to *enable* the work, not to *replace* it.
 - **Beating on the wrong axis.** A daily beat for something that changes weekly produces noise. A weekly beat for something that changes hourly produces stale signal. Match cadence to the rate-of-change of the thing being observed.
 
 ---
 
-## Production implementation — paid bundle
+## Production implementation: paid bundle
 
 LITE ships this concept doc; the full production heartbeat system is in the paid **Clayworks** bundle:
 

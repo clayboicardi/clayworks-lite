@@ -1,8 +1,8 @@
-# LITE in action — worked examples
+# LITE in action: worked examples
 
 This directory ships **two complete LITE configurations**, ready to adapt. They show what the kit looks like assembled, not just as parts.
 
-Both examples assume LITE is already installed into `~/.claude/` (via `./install.sh` from the repo root). Examples here are *configurations* — the artifacts a user lands in `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and `~/.claude/hooks/` after they decide what they want.
+Both examples assume LITE is already installed into `~/.claude/` (via `./install.sh` from the repo root). Examples here are *configurations*, the artifacts a user lands in `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and `~/.claude/hooks/` after they decide what they want.
 
 ## [`minimal/`](minimal/) — smallest viable config
 
@@ -28,7 +28,7 @@ Demonstrates the LITE skills + hook examples composed into a working heartbeat-s
 ## Adoption pattern (both)
 
 1. **Copy** the parts you want from `examples/<flavor>/` into the equivalent paths under `~/.claude/`.
-2. **Merge** `settings.json` if you already have one — the LITE settings live inside `hooks.*` arrays you append to, not replace.
+2. **Merge** `settings.json` if you already have one. The LITE settings live inside `hooks.*` arrays you append to, not replace.
 3. **Customize** the CLAUDE.md (placeholders, project paths, your preferences). Don't ship someone else's persona as your own.
 4. **Restart Claude Code** so the new settings load.
 5. **Verify** with `./install.sh --verify` from the LITE repo and an actual time-based natural-language prompt (e.g. *"stop me at 5pm to wrap up"*).

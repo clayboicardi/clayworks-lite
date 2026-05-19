@@ -20,7 +20,7 @@
 
 Claude Code is a model that can read files, edit files, and run commands on your machine. It's the engine. Out of the box, it's not yet a production system.
 
-The production version — the one that remembers across sessions, keeps its instructions consistent, surfaces fresh docs when you ask about libraries it doesn't know, and has the scaffolding to extend any of it — takes weeks of configuration work to assemble.
+The production version is the one that remembers across sessions, keeps its instructions consistent, surfaces fresh docs when you ask about libraries it doesn't know, and has the scaffolding to extend any of it. It takes weeks of configuration work to assemble.
 
 I did that work for myself, without a coding background. Six months before launching this I didn't know what GitHub was. The system is what let me ship real work anyway. LITE is the minimum competent baseline distilled out of it: enough to feel the difference, free under MIT, no commitment.
 
@@ -60,7 +60,7 @@ Seven components. Each is opinionated and minimal.
 
 [`plugin/templates/CLAUDE.md.clayworks-template`](plugin/templates/CLAUDE.md.clayworks-template) — an anonymized version of the `CLAUDE.md` I run in production, with structure preserved and contents replaced by example rules. Drop it in, customize per-section, ship.
 
-The structure encodes a specific philosophy: identity rules first, behavioral rules second, tool routing third, project-specific context last. Section ordering matters — the model reads top-to-bottom and weights early rules more heavily. The template's section ordering is the lesson.
+The structure encodes a specific philosophy: identity rules first, behavioral rules second, tool routing third, project-specific context last. Section ordering matters. The model reads top-to-bottom and weights early rules more heavily. The template's section ordering is the lesson.
 
 ### 2. Multi-memory routing decision tree
 
@@ -70,7 +70,7 @@ The structure encodes a specific philosophy: identity rules first, behavioral ru
 - **Honcho** (or your user-modeling layer of choice) for *who you are* — preferences, style, role
 - **Native `~/.claude/projects/<project>/memory/MEMORY.md`** for project-specific facts
 
-If you don't have all three, the skill still works — it'll route everything to whichever layer you have. The point is that "where does this belong?" is a decision, not a hunch.
+If you don't have all three, the skill still works. It'll route everything to whichever layer you have. The point is that "where does this belong?" is a decision, not a hunch.
 
 ### 3. Nudge install pattern
 
@@ -118,7 +118,7 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 - **Operating Claude Code at production quality** — a 15-30 page written guide covering the operator discipline that holds the system together
 - **Install guide + troubleshooting field guide**
 
-If your reaction to the LITE contents is *"I want the rest of this"* — that's the bundle.
+If your reaction to the LITE contents is *"I want the rest of this"*, that's the bundle.
 
 ---
 
@@ -144,7 +144,7 @@ LITE itself is shell scripts + markdown. No build, no compile, no Docker.
 
 **Before you start:** some of what's below will look unfamiliar if you don't have a coding background. That's expected. You don't need to read every line of every script before running it. Claude Code itself can summarize anything you're unsure about: paste the script into your CC session and ask "what does this do?" If anything reads as surprising or doesn't match what the section says it does, don't run it. Trust the system to walk you through what you're seeing.
 
-LITE ships **two install paths**. Pick one based on preference — don't run both or the skills end up duplicated on disk. Option A is the simpler path if anything below feels foreign; you can always switch to Option B later.
+LITE ships **two install paths**. Pick one based on preference. Don't run both, or the skills end up duplicated on disk. Option A is the simpler path if anything below feels foreign; you can always switch to Option B later.
 
 ### Option A: Claude Code plugin marketplace (in-CC, no clone)
 
@@ -176,9 +176,9 @@ The installer:
 
 1. **Backs up** anything it's about to overwrite to `~/.claude/.clayworks-lite-backup/<timestamp>/`
 2. Copies the LITE skills into `~/.claude/skills/`
-3. Copies the hook scaffolding examples into `~/.claude/hooks/examples/` (NOT into the live hooks dir — you opt-in by referencing them in `settings.json`)
-4. Copies the CLAUDE.md template to `~/.claude/CLAUDE.md.clayworks-template` (NOT `CLAUDE.md` — your existing file is sacred)
-5. Copies a `settings.example.json` to `~/.claude/settings.example.json` (NOT `settings.json` — same reason) showing the LITE-recommended hook composition
+3. Copies the hook scaffolding examples into `~/.claude/hooks/examples/` (NOT into the live hooks dir; you opt-in by referencing them in `settings.json`)
+4. Copies the CLAUDE.md template to `~/.claude/CLAUDE.md.clayworks-template` (NOT `CLAUDE.md`; your existing file is sacred)
+5. Copies a `settings.example.json` to `~/.claude/settings.example.json` (NOT `settings.json`; same reason) showing the LITE-recommended hook composition
 6. Prints a summary of what changed and what to do next
 
 The installer is idempotent. Re-running it picks up new versions without re-clobbering your edits, as long as you've moved files out of the `clayworks-lite/` source dir (e.g., your customized `CLAUDE.md` lives at `~/.claude/CLAUDE.md`, not in the source).
@@ -225,9 +225,9 @@ To remove what LITE installed:
 .\install.ps1 -Uninstall     # Windows PowerShell 5.1+
 ```
 
-The uninstaller removes only files that match what LITE shipped (compared by SHA-256 hash). Any file you've customized is left in place — your edits aren't silently lost. Your live `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, and `~/.claude/hooks/` directory are never touched. The backup folder (`~/.claude/.clayworks-lite-backup/`) is preserved; remove it manually if you want a clean slate.
+The uninstaller removes only files that match what LITE shipped (compared by SHA-256 hash). Any file you've customized is left in place. Your edits aren't silently lost. Your live `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, and `~/.claude/hooks/` directory are never touched. The backup folder (`~/.claude/.clayworks-lite-backup/`) is preserved; remove it manually if you want a clean slate.
 
-If you wired Nudge or other LITE hooks into `~/.claude/settings.json`, you'll need to remove those entries yourself — the uninstaller doesn't edit your settings file.
+If you wired Nudge or other LITE hooks into `~/.claude/settings.json`, you'll need to remove those entries yourself. The uninstaller doesn't edit your settings file.
 
 ### No telemetry
 
@@ -241,7 +241,7 @@ LITE is shell scripts + markdown + three Python scripts. No analytics, no phone-
 ls ~/.claude/skills/clayworks-lite-*/
 ```
 
-You should see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. The `clayworks-lite-` prefix is intentional — it keeps these distinguishable from your own skills.
+You should see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. The `clayworks-lite-` prefix is intentional. It keeps these distinguishable from your own skills.
 
 The installer also dropped a starter `CLAUDE.md` template at `~/.claude/CLAUDE.md.clayworks-template`. To adopt it as your live `CLAUDE.md`, back up any existing one first and copy:
 
@@ -251,7 +251,7 @@ cp ~/.claude/CLAUDE.md.clayworks-template ~/.claude/CLAUDE.md
 # Then edit ~/.claude/CLAUDE.md and replace <YOUR ...> placeholders
 ```
 
-In your next CC session, try the Nudge skill in plain English — it auto-triggers on time references; no slash command needed:
+In your next CC session, try the Nudge skill in plain English. It auto-triggers on time references; no slash command needed:
 
 > stop me at 5pm to wrap up
 
@@ -279,7 +279,7 @@ The skill *registers* alerts; for them to actually *fire* at the due time, the i
 }
 ```
 
-If you already have `UserPromptSubmit` hooks, append this command to the existing `hooks` array — don't replace the block. See [`plugin/skills/clayworks-lite-nudge/SKILL.md`](plugin/skills/clayworks-lite-nudge/SKILL.md) for the full Nudge surface (time formats, message format, dismissal, schema).
+If you already have `UserPromptSubmit` hooks, append this command to the existing `hooks` array. Don't replace the block. See [`plugin/skills/clayworks-lite-nudge/SKILL.md`](plugin/skills/clayworks-lite-nudge/SKILL.md) for the full Nudge surface (time formats, message format, dismissal, schema).
 
 ---
 
@@ -325,7 +325,7 @@ What I've shipped using this pattern:
 
 - **[HarmonoidWidget](https://github.com/clayboicardi/HarmonoidWidget)** — Android home-screen widget for the Harmonoid music player (Kotlin / MediaSession)
 - **[JAMZ](https://github.com/clayboicardi/JAMZ)** — Fork of the [Gramophone](https://github.com/FoedusProgramme/Gramophone) Android music player with custom branding + UI changes (Kotlin / Material Design)
-- The internal operator system this kit and the paid bundle distill from — built over months of daily Claude Code use
+- The internal operator system this kit and the paid bundle distill from, built over months of daily Claude Code use
 
 I run this stack every day on my own machine. It's not a thought experiment. It's the system I actually use to do work I would otherwise have to pay a developer thousands of dollars for.
 

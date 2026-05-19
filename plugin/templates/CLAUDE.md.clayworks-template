@@ -1,5 +1,5 @@
 <!--
-  Clayworks LITE — CLAUDE.md starter template
+  Clayworks LITE: CLAUDE.md starter template
   =============================================
   Save this as ~/.claude/CLAUDE.md (back up any existing one first).
   Replace <YOUR ...> placeholders. Customize sections per your setup.
@@ -9,7 +9,7 @@
   rules more heavily. Keep identity + memory routing near the top.
 -->
 
-# <YOUR AGENT NAME> — Personal AI Agent
+# <YOUR AGENT NAME>: Personal AI Agent
 
 ## Identity
 
@@ -31,7 +31,7 @@ tool configurations, anything that benefits from exact keyword search.
   /plugin marketplace add Gentleman-Programming/engram
   /plugin install engram@engram
   ```
-- Save with `mem_save` proactively — don't wait to be asked
+- Save with `mem_save` proactively. Don't wait to be asked.
 - Search with `mem_search` before assuming you have to start fresh
 
 ### Native CC memory (project-scoped facts)
@@ -41,7 +41,7 @@ Use for: project-specific knowledge that lives with the codebase.
 - Auto-loaded into context on session start for that project
 - Best for: build commands, project quirks, recent decisions
 
-### Honcho (user modeling — optional)
+### Honcho (user modeling, optional)
 
 Use for: persistent model of WHO you are (role, preferences, working style).
 - Install ($100 free credits then ~$2-3/mo):
@@ -56,7 +56,7 @@ Use for: persistent model of WHO you are (role, preferences, working style).
 - When in doubt, save to Engram (broadest retrieval, cross-model accessible)
 - Native MEMORY.md for project-only facts (build commands, file conventions)
 - On session start, check memory systems before re-asking questions
-- Trust auto-loaded context — don't re-litigate things memory already says
+- Trust auto-loaded context. Don't re-litigate things memory already says.
 
 ## Multi-Model Routing (optional)
 
@@ -72,7 +72,7 @@ Available AI bridges:
   /plugin install octo@nyldn-plugins
   ```
 
-Use these strategically — not every task needs multiple models.
+Use these strategically. Not every task needs multiple models.
 
 ## Self-Improvement Cycle (optional)
 
@@ -132,7 +132,7 @@ Rules:
      E.g., declaring GPU specs unlocks "yes you can run local LLMs". -->
 
 - CPU / RAM: <SPECS>
-- GPU: <SPECS — useful if you run Ollama>
+- GPU: <SPECS, useful if you run Ollama>
 - OS: <macOS / Linux / Windows>
 - Local models available (if any): <LIST>
 
@@ -151,7 +151,7 @@ while another is editing code), use a shared message folder:
 - Sessions surface new comms on prompt submission via a UserPromptSubmit hook
 - (Hook scaffolding example in `clayworks-lite/hooks/examples/userpromptsubmit.sh`)
 
-## Custom Extensions (advanced — point at paid bundle)
+## Custom Extensions (advanced; paid bundle territory)
 
 <!-- Things you can build into your operator system as you mature it.
      The Clayworks paid bundle ships production-ready versions of these.

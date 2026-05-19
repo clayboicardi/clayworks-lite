@@ -1,12 +1,12 @@
 <!--
-  CLAUDE.md — worked example based on clayworks-lite-template
+  CLAUDE.md: worked example based on clayworks-lite-template
   ===========================================================
   Fictional operator "Sam" has filled in the <YOUR ...> placeholders.
-  Use as a shape reference; do not copy verbatim — substitute your own
+  Use as a shape reference; do not copy verbatim. Substitute your own
   preferences, paths, and projects.
 -->
 
-# Atlas — Sam's personal Claude Code agent
+# Atlas: Sam's personal Claude Code agent
 
 ## Identity
 
@@ -24,7 +24,7 @@ Use for: architecture decisions, project conventions, recurring procedures, tool
   /plugin marketplace add Gentleman-Programming/engram
   /plugin install engram@engram
   ```
-- Save with `mem_save` proactively — don't wait to be asked
+- Save with `mem_save` proactively. Don't wait to be asked.
 - Search with `mem_search` before assuming you have to start fresh
 
 ### Native CC memory (project-scoped facts)
@@ -39,7 +39,7 @@ Use for: project-specific knowledge that lives with the codebase.
 - When in doubt, save to Engram (broadest retrieval, cross-model accessible)
 - Native MEMORY.md for project-only facts (build commands, file conventions)
 - On session start, check memory systems before re-asking questions
-- Trust auto-loaded context — don't re-litigate things memory already says
+- Trust auto-loaded context. Don't re-litigate things memory already says.
 
 ## Multi-Model Routing
 
@@ -51,7 +51,7 @@ Available AI bridges:
   /plugin install octo@nyldn-plugins
   ```
 
-Use these strategically — not every task needs multiple models.
+Use these strategically. Not every task needs multiple models.
 
 ## Self-Improvement Cycle
 

@@ -13,7 +13,7 @@ Thanks for your interest. A few ground rules:
 
 - "Add [my plugin] to the baseline" — the LITE baseline is intentionally minimal
 - "Make this work with [other AI tool]" — Clayworks LITE is specifically for Claude Code
-- Feature requests without a concrete problem — "it would be cool if..." gets closed; "I hit X scenario and there's no good path because Y" gets considered
+- Feature requests without a concrete problem. "It would be cool if..." gets closed; "I hit X scenario and there's no good path because Y" gets considered
 
 ## Process
 
