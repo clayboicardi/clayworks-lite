@@ -1,3 +1,10 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/clayworks-banner-dark.webp" type="image/webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/clayworks-banner-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/clayworks-banner-light.webp" type="image/webp">
+  <img src="docs/clayworks-banner-light.png" alt="Clayworks">
+</picture>
+
 # Clayworks LITE
 
 > The Claude Code operator scaffolding I built without writing the code. Open-sourced for anyone else doing the same.
