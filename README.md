@@ -1,6 +1,6 @@
 # Clayworks LITE
 
-> The Claude Code operator scaffolding I built for my own work, now open-sourced.
+> The Claude Code operator scaffolding I built without writing the code. Open-sourced for anyone else doing the same.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code 2.1.x](https://img.shields.io/badge/Claude%20Code-2.1.x-blue)](https://docs.claude.com/en/docs/claude-code)
@@ -11,13 +11,13 @@
 
 ## What this is
 
-Claude Code is small at install. Out of the box you get a model that can read your code, edit files, and run commands. That's the engine. It is not yet a production system.
+Claude Code is a model that can read files, edit files, and run commands on your machine. It's the engine. Out of the box, it's not yet a production system.
 
-The production version of Claude Code — the one that remembers across sessions, surfaces fresh docs when you ask about libraries, structures your CLAUDE.md so the model actually behaves consistently, and includes the hook scaffolding to extend any of it — takes weeks of configuration work to assemble from scratch.
+The production version — the one that remembers across sessions, keeps its instructions consistent, surfaces fresh docs when you ask about libraries it doesn't know, and has the scaffolding to extend any of it — takes weeks of configuration work to assemble.
 
-I did that work for my own operator system. This LITE kit is the minimum competent baseline distilled out of it: enough to feel the difference, free under MIT, no commitment.
+I did that work for myself, without a coding background. Six months before launching this I didn't know what GitHub was. The system is what let me ship real work anyway. LITE is the minimum competent baseline distilled out of it: enough to feel the difference, free under MIT, no commitment.
 
-The full production stack lives in **Clayworks** — the paid bundle, launching alongside this kit. See the "Upgrade path" section below.
+The full production stack lives in the paid **Clayworks bundle**, launching alongside this kit. See the "Upgrade path" section below.
 
 ---
 
@@ -37,11 +37,11 @@ LITE addresses the first three directly and gives you the structural scaffolding
 
 ## Who it's for
 
-**Yes, for you:** You're using Claude Code for real work. You've already hit the friction above. You're comfortable in a shell and have opinions about your tooling. You want a sharper edge, not a wizard.
+**For you:** You want to build real things with Claude Code. You don't have to know how to code. Clayworks is built so you can use what you don't fully understand and stay in control of the work. Trust the system.
 
-**Probably not for you:** You're just starting with Claude Code and want the simplest possible experience. Use CC stock for a few weeks first; come back when you feel the gaps.
+Most of what LITE installs is shell scripts and config files. Some commands will look unfamiliar at first. That's expected. The system is designed to compensate for what you don't know yet, while you stay in the driver's seat.
 
-**Definitely not for you:** You're looking for a no-code "AI assistant builder" or a low-effort productivity app. Clayworks is operator scaffolding for technical users.
+**Not for you:** You want a wizard that decides everything for you. You want a "no-code AI assistant" you barely interact with. Clayworks is for people who want to build, not delegate.
 
 ---
 
@@ -307,15 +307,17 @@ The MIT choice is deliberate: this is operator scaffolding, not a moat. If LITE 
 
 ## Who built this
 
-I'm **[@clayboicardi](https://github.com/clayboicardi)** on GitHub. I'm a technical operator who learned most of my stack autodidactically over the last several years. I've built:
+I'm **[@clayboicardi](https://github.com/clayboicardi)** on GitHub. I'm not a developer. Six months before launching Clayworks LITE, I didn't know what GitHub was. The system you're looking at is what let me ship real work anyway.
 
-- **[HarmonoidWidget](https://github.com/clayboicardi/HarmonoidWidget)** — Android home-screen widget for the Harmonoid music player (Kotlin, MediaSession integration)
-- **[JAMZ](https://github.com/clayboicardi/JAMZ)** — Fork of the [Gramophone](https://github.com/FoedusProgramme/Gramophone) Android music player with custom branding + UI changes (Kotlin, Material Design)
-- The internal operator system this kit and the paid bundle distill from — built over several years of daily Claude Code use
+What I've shipped using this pattern:
 
-I run this stack every day on my own machine. It's not a thought experiment. It's the system I actually use.
+- **[HarmonoidWidget](https://github.com/clayboicardi/HarmonoidWidget)** — Android home-screen widget for the Harmonoid music player (Kotlin / MediaSession)
+- **[JAMZ](https://github.com/clayboicardi/JAMZ)** — Fork of the [Gramophone](https://github.com/FoedusProgramme/Gramophone) Android music player with custom branding + UI changes (Kotlin / Material Design)
+- The internal operator system this kit and the paid bundle distill from — built over months of daily Claude Code use
 
-For service inquiries (sprint installs, custom setups, team retainers), open a GitHub issue here. A dedicated intake form on the Clayworks landing page is coming soon.
+I run this stack every day on my own machine. It's not a thought experiment. It's the system I actually use to do work I would otherwise have to pay a developer thousands of dollars for.
+
+For service inquiries (sprint installs, custom setups, team retainers), open a GitHub issue here. A dedicated intake form is coming soon at [clayboicardi.com](https://clayboicardi.com).
 
 ---
 
