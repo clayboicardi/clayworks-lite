@@ -25,7 +25,7 @@ jobs:
       - name: ShellCheck install.sh + hook examples
         run: |
           shellcheck install.sh
-          shellcheck hooks/examples/*.sh
+          shellcheck plugin/hooks/examples/*.sh
 
       - name: Installer dry-run (clean target)
         run: |
