@@ -278,14 +278,16 @@ If you already have `UserPromptSubmit` hooks, append this command to the existin
 
 ## Upgrade path to the paid bundle
 
-If LITE delivers on its promise — you feel the structural difference, you want the rest — the paid Clayworks bundle is the next step.
+If LITE gets you most of the way and you want the rest of the system without spending weeks figuring out the configuration yourself, the paid Clayworks bundle is the next step.
 
-**What you get:**
+For context: hiring a developer to build an equivalent CC operator system runs into tens of thousands of dollars. The bundle is a one-time purchase of the hardened configuration I run myself, with the rationale documented inline so you know why every choice was made.
+
+**What the bundle adds:**
 
 - All of the items listed in "What's NOT in LITE" above
 - The 15-30 page "Operating Claude Code at production quality" written guide
-- Install guide + troubleshooting field guide
-- Annotated production CLAUDE.md (every rule with the why)
+- Install + troubleshooting field guide
+- Annotated production CLAUDE.md with every rule's rationale
 - Curated plugin baseline doc for the full 23-plugin operator stack
 - Update access for v1.x patches
 
@@ -293,9 +295,10 @@ If LITE delivers on its promise — you feel the structural difference, you want
 
 - **Early adopter (first 30 days):** $49
 - **Standard:** $79
-- Optional sprint-tier service offerings (install acceleration $499 / full custom setup $1,500) and monthly retainer ($399/mo) for teams that want the bundle deployed to their environment rather than self-installing.
+- Optional sprint-tier service offerings: install acceleration ($499) or full custom setup ($1,500) for people who want the bundle deployed by me rather than self-installing.
+- Monthly retainer ($399/mo) for ongoing operator support, advisory, and configuration updates.
 
-Checkout link forthcoming on launch — watch this repo or the [Clayworks landing page](https://clayboicardi.com) (coming soon) for the buy URL.
+Checkout link forthcoming on launch. Watch this repo or [clayboicardi.com](https://clayboicardi.com) for the buy URL.
 
 ---
 
