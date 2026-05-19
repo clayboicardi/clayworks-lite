@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+ICP-pivot work landed 2026-05-19. Repositioned LITE for the actual customer profile (non-coder builders who want to ship real things with Claude Code) rather than the gatekept "technical operators" framing that shipped at v1.0.1. Product is unchanged; voice, framing, and audience filter changed. Companion landing-page work shipped in parallel at `clayboicardi-com`.
+
+### Changed
+
+- README "Who it's for" replaces three-way gatekeeping ("Yes for you / Probably not / Definitely not") with a two-way frame ("For you" / "Not for you"). The new filter is build-versus-delegate, not coding-ability. The "For you" paragraph leads with "you don't have to know how to code" and surfaces the "Trust the system" stance: Clayworks is built so users can use what they don't fully understand and stay in control. The "Not for you" filter rejects people who want a wizard to decide everything, not people without coding backgrounds.
+
+- README tagline now leads with the lived-experience hook: "The Claude Code operator scaffolding I built without writing the code. Open-sourced for anyone else doing the same." The "What this is" section surfaces the non-coder angle in a third-paragraph beat after the technical setup: "I'm not a developer. Six months before launching this I didn't know what GitHub was. The system is what let me ship real work anyway." The "Who built this" bio leads with the same beat and adds the competitive frame: "It's the system I actually use to do work I would otherwise have to pay a developer thousands of dollars for."
+
+- README Install section opens with a "Trust the system" advisory acknowledging that some commands will look unfamiliar to non-coders. Names the safety pattern explicitly: paste the install script into a Claude Code session and ask Claude to summarize it. Option B's safety-review line updated to the same active pattern (use CC as the reading aid, don't just "glance at" the script). Surfaces Option A as the simpler path for users feeling out of their depth.
+
+- README "Upgrade path to the paid bundle" reframed with the developer-cost competitive anchor: hiring a developer to build an equivalent CC operator system runs into tens of thousands of dollars; the bundle is a one-time purchase at $49 early adopter. Opening sentence drops insider vocabulary ("if LITE delivers on its promise") in favor of concrete value: "without spending weeks figuring out the configuration yourself." Pricing list restructured: monthly retainer broken onto its own line for visibility, sprint-tier descriptor switches em-dash to colon. The "(coming soon)" parenthetical for clayboicardi.com removed because the landing is now live.
+
+- GitHub repository description refreshed to mirror the new tagline: "The Claude Code operator scaffolding I built without writing the code. Open-sourced under MIT for anyone else doing the same."
+
 ## [1.0.1] — 2026-05-18
 
 Packaging release. Adds the Claude Code plugin marketplace install path (`/plugin install clayworks-lite@clayworks-lite`) alongside the existing `install.sh` flow. LITE's actual contents — skills, hook examples, templates, docs — are unchanged from v1.0.0. Internal repo restructure made the marketplace publishing work cleanly.
