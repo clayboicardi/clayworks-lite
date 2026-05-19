@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "clayworks-lite",
-  "description": "Clayworks LITE — operator scaffolding for Claude Code. The free foundation of the Clayworks operator system.",
+  "description": "Operator scaffolding for Claude Code, built without writing the code. The free MIT foundation of the Clayworks operator system, for builders without a coding background.",
   "owner": {
     "name": "Clay Haworth",
     "url": "https://github.com/clayboicardi"
