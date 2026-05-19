@@ -7,6 +7,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-05-18
+
+Packaging release. Adds the Claude Code plugin marketplace install path (`/plugin install clayworks-lite@clayworks-lite`) alongside the existing `install.sh` flow. LITE's actual contents — skills, hook examples, templates, docs — are unchanged from v1.0.0. Internal repo restructure made the marketplace publishing work cleanly.
+
 ### Changed
 
 - Repo restructure: moved plugin-shippable content into a `./plugin/` subdirectory so the plugin's `source` field in `marketplace.json` can point at a real subdir (matching the engram / honcho / nyldn-plugins convention). The previous `"source": "."` self-reference triggered CC's "source type your CC version does not support" error on `/plugin install` — every other working marketplace points at a subdirectory or remote URL, none at the marketplace root itself. Moved into `./plugin/`: `skills/`, `hooks/`, `templates/`, `examples/`, `docs/`, plus `.claude-plugin/plugin.json`. Stayed at repo root: `README.md`, `LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `Makefile`, `install.sh`, `install.ps1`, `.github/`, `.gitattributes`, `.gitignore`, and `.claude-plugin/marketplace.json`. Updated: `marketplace.json` source `"."` → `"./plugin"`; `install.sh` + `install.ps1` source paths from `${REPO_ROOT}/<x>` → `${REPO_ROOT}/plugin/<x>`; README cross-link section to point at new `plugin/<x>` paths. No user-visible change in either install path — both options install to the same destination paths in `~/.claude/`. Plugin install now actually works (verified post-push by `/plugin install clayworks-lite@clayworks-lite`).
