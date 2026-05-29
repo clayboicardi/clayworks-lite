@@ -114,7 +114,7 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 - **Morning briefing / evening consolidation / weekly review / reflection beat templates** — structured daily-cycle prompts that turn CC into something between a journal and an operations runner
 - **Telegram integration** — proactive notifications + remote control over your CC instance from your phone
 - **Settings.example.json + per-key rationale** — the env vars, hooks, permissions, plugin set, and marketplaces I run in production
-- **Plugin baseline doc (full 23-plugin operator stack, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho, Octo); the paid doc covers all 23 with the why for each addition
+- **Plugin baseline doc (full 22-plugin operator stack, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho); the paid doc covers all 22 with the why for each addition
 - **Operating Claude Code at production quality** — a 15-30 page written guide covering the operator discipline that holds the system together
 - **Install guide + troubleshooting field guide**
 

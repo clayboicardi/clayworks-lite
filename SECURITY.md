@@ -13,7 +13,7 @@ Instead, use one of:
 - **GitHub's private vulnerability reporting:** [github.com/clayboicardi/clayworks-lite/security/advisories/new](https://github.com/clayboicardi/clayworks-lite/security/advisories/new)
 - **Email:** [clayhaworth1@gmail.com](mailto:clayhaworth1@gmail.com) — subject `[clayworks-lite security]`
 
-Expected response: acknowledgement within 7 days, fix-or-disclosure-plan within 30 days. If the issue requires coordination with the upstream plugins LITE references (Engram, Honcho, Octo), I'll loop in their maintainers.
+Expected response: acknowledgement within 7 days, fix-or-disclosure-plan within 30 days. If the issue requires coordination with the upstream plugins LITE references (Engram, Honcho), I'll loop in their maintainers.
 
 ## Threat model
 
