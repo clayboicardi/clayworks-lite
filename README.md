@@ -373,7 +373,7 @@ The pattern of organizing CC operations around persistent memory, structured hoo
 
 - **[Anthropic](https://anthropic.com)** — Claude Code itself, plus the [superpowers](https://github.com/anthropics/claude-plugins-official) skill collection (in `claude-plugins-official`) that anchors a lot of LITE's structural assumptions
 - **[Plastic Labs](https://plasticlabs.ai)** — Honcho, the user-modeling layer that taught me to separate "facts about the project" from "facts about the user"
-- **[nyldn / claude-octopus](https://github.com/nyldn/claude-octopus)** — Octo multi-AI orchestration plugin; the bundle's multi-AI routing pattern compounds with it nicely
+- **[nyldn / claude-octopus](https://github.com/nyldn/claude-octopus)** — Octo's multi-AI orchestration shaped the bundle's early routing pattern; since retired from my stack in favor of a homegrown multi-provider fan-out (multi-ask), but the influence stands
 - **[Gentleman-Programming / engram](https://github.com/Gentleman-Programming/engram)** — Engram persistent memory plugin
 - **The awesome-claude-code curators** — [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code), [rohitg00/awesome-claude-code-toolkit](https://github.com/rohitg00/awesome-claude-code-toolkit), [ComposioHQ/awesome-claude-plugins](https://github.com/ComposioHQ/awesome-claude-plugins) — whose maintained lists mapped the CC plugin/skill ecosystem and made it possible to see what's table-stakes vs. what's distinctive
 - The other operator-setup-publishers in the CC ecosystem whose published rigs informed what LITE intentionally does and doesn't ship

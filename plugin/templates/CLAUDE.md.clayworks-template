@@ -64,13 +64,9 @@ Use for: persistent model of WHO you are (role, preferences, working style).
      If you do, declare them here so Claude knows when to reach for them. -->
 
 Available AI bridges:
-- **Gemini (Google OAuth CLI):** `~/.claude/scripts/ask-gemini.sh "prompt"` — research, second opinions, web-grounded queries
+- **Gemini (Google OAuth CLI):** `~/.claude/scripts/ask-gemini.sh "prompt"` — research, second opinions, web-grounded queries. (Google is retiring the standalone Gemini CLI for consumer tiers around mid-2026 in favor of the Antigravity CLI, `agy`; if you depend on Gemini, plan to point this bridge at `agy`.)
 - **Local LLMs (Ollama):** `localhost:11434` — privacy-sensitive work, no cloud dependency
-- **Multi-model orchestration:** `/octo:research`, `/octo:debate`, `/octo:review`. Install:
-  ```
-  /plugin marketplace add nyldn/claude-octopus
-  /plugin install octo@nyldn-plugins
-  ```
+- **Multi-model orchestration:** wrapper skills (e.g. `/multi:research`, `/multi:decide`, `/multi:diff-review`) composed on top of a parallel multi-provider fan-out script like `multi-ask.sh`. These layer on the bridges above rather than a single bundled plugin — substitute your own stack's orchestrator.
 
 Use these strategically. Not every task needs multiple models.
 
@@ -159,8 +155,8 @@ while another is editing code), use a shared message folder:
 
 - **Observability stack** — per-prompt outcomes grading, end-of-session
   structural-integrity checks, dream-style memory consolidation
-- **Multi-AI bridges** — wired Gemini CLI + local Ollama with logging,
-  sandboxing, and fallback handling
+- **Multi-AI bridges** — wired multi-provider fan-out (Gemini, Codex,
+  Cerebras, local Ollama) with logging, sandboxing, and fallback handling
 - **CC docs freshness gate** — UserPromptSubmit hook that injects fresh
   Claude Code docs into prompts mentioning CC features
 - **Inbox watcher pattern** — drop a markdown file in a folder, the agent

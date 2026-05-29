@@ -59,7 +59,7 @@ The three questions don't always agree. When they conflict, **Question 1 is the 
 
 **Three-tier observability stack** (per-prompt outcomes grading, end-of-session structural integrity check, end-of-session memory consolidation candidate). Q1: implementation. Q2: requires LLM API key (for outcomes grading), specific telemetry paths, specific anomaly thresholds. Q3: LITE doesn't need it for the minimum competent baseline; heartbeat-concept skill describes the pattern. → **Bundle.**
 
-**Plugin baseline doc** (curated list of plugins with rationale per plugin). Q1: pattern, debatable — it's curation-as-content. Q2: no setup, just docs. Q3: LITE doesn't need it for minimum baseline; the README's "Acknowledgments" credits 4-5 specific plugins and the LITE template names 3 (Engram, Honcho, Octo). → **Bundle for the full 23-plugin list with rationale.**
+**Plugin baseline doc** (curated list of plugins with rationale per plugin). Q1: pattern, debatable — it's curation-as-content. Q2: no setup, just docs. Q3: LITE doesn't need it for minimum baseline; the README's "Acknowledgments" credits 4-5 specific plugins and the LITE template names 2 (Engram, Honcho; Octo was dropped after its 2026 retirement). → **Bundle for the full 23-plugin list with rationale.**
 
 **Worked CLAUDE.md examples** (template with placeholders filled). Q1: pattern (the *shape* of an assembled CLAUDE.md). Q2: no user-specific setup. Q3: LITE feels notably less competent without a "what does this look like assembled?" reference. → **LITE.** Shipped in `examples/full/CLAUDE.md`.
 

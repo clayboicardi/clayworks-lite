@@ -30,7 +30,7 @@ LITE installs into `~/.claude/`, a directory that may contain Claude Code conver
 **Out of scope:**
 
 - The Claude Code platform itself (report to Anthropic)
-- Third-party plugins LITE mentions (Engram → Gentleman-Programming/engram; Honcho → plastic-labs/claude-honcho; Octo → nyldn/claude-octopus)
+- Third-party plugins LITE mentions (Engram → Gentleman-Programming/engram; Honcho → plastic-labs/claude-honcho)
 - **Network-level concerns** — LITE has no network calls in any shipped runtime component
 - **User error** — running with `--claude-dir=/etc` is a self-inflicted wound, not a vulnerability
 
