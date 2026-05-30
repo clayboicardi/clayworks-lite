@@ -55,5 +55,5 @@
 
   "_comment_env": "Add a top-level 'env' block for environment variables that should be set when CC runs (project-relevant paths, API keys via your shell's secret store, debug flags, etc.). Strict JSON — string values only.",
 
-  "_comment_plugins": "If you install LITE-recommended plugins (Engram for memory, Honcho for user modeling, Octo for multi-AI orchestration), they manage their own settings.json entries when added via /plugin install. See the LITE README's Acknowledgments for the upstream repos and skills/clayworks-lite-memory-routing/SKILL.md for the marketplace-add commands."
+  "_comment_plugins": "If you install LITE-recommended plugins (Engram for memory, Honcho for user modeling), they manage their own settings.json entries when added via /plugin install. See the LITE README's Acknowledgments for the upstream repos and skills/clayworks-lite-memory-routing/SKILL.md for the marketplace-add commands."
 }

@@ -114,7 +114,7 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 - **Morning briefing / evening consolidation / weekly review / reflection beat templates** — structured daily-cycle prompts that turn CC into something between a journal and an operations runner
 - **Telegram integration** — proactive notifications + remote control over your CC instance from your phone
 - **Settings.example.json + per-key rationale** — the env vars, hooks, permissions, plugin set, and marketplaces I run in production
-- **Plugin baseline doc (full 23-plugin operator stack, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho, Octo); the paid doc covers all 23 with the why for each addition
+- **Plugin baseline doc (full 22-plugin operator stack, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho); the paid doc covers all 22 with the why for each addition
 - **Operating Claude Code at production quality** — a 15-30 page written guide covering the operator discipline that holds the system together
 - **Install guide + troubleshooting field guide**
 
@@ -373,7 +373,7 @@ The pattern of organizing CC operations around persistent memory, structured hoo
 
 - **[Anthropic](https://anthropic.com)** — Claude Code itself, plus the [superpowers](https://github.com/anthropics/claude-plugins-official) skill collection (in `claude-plugins-official`) that anchors a lot of LITE's structural assumptions
 - **[Plastic Labs](https://plasticlabs.ai)** — Honcho, the user-modeling layer that taught me to separate "facts about the project" from "facts about the user"
-- **[nyldn / claude-octopus](https://github.com/nyldn/claude-octopus)** — Octo multi-AI orchestration plugin; the bundle's multi-AI routing pattern compounds with it nicely
+- **[nyldn / claude-octopus](https://github.com/nyldn/claude-octopus)** — Octo's multi-AI orchestration shaped the bundle's early routing pattern; since retired from my stack in favor of a homegrown multi-provider fan-out (multi-ask), but the influence stands
 - **[Gentleman-Programming / engram](https://github.com/Gentleman-Programming/engram)** — Engram persistent memory plugin
 - **The awesome-claude-code curators** — [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code), [rohitg00/awesome-claude-code-toolkit](https://github.com/rohitg00/awesome-claude-code-toolkit), [ComposioHQ/awesome-claude-plugins](https://github.com/ComposioHQ/awesome-claude-plugins) — whose maintained lists mapped the CC plugin/skill ecosystem and made it possible to see what's table-stakes vs. what's distinctive
 - The other operator-setup-publishers in the CC ecosystem whose published rigs informed what LITE intentionally does and doesn't ship

@@ -45,11 +45,7 @@ Use for: project-specific knowledge that lives with the codebase.
 
 Available AI bridges:
 - **Local LLMs (Ollama):** `localhost:11434` — privacy-sensitive work, no cloud dependency
-- **Multi-model orchestration:** `/octo:research`, `/octo:debate`, `/octo:review`. Install:
-  ```
-  /plugin marketplace add nyldn/claude-octopus
-  /plugin install octo@nyldn-plugins
-  ```
+- **Multi-model orchestration:** Wrapper skills like `/multi:research`, `/multi:decide`, `/multi:diff-review` composed on top of a multi-provider fan-out script (e.g. `multi-ask.sh`). Substitute your own stack's orchestrator.
 
 Use these strategically. Not every task needs multiple models.
 
