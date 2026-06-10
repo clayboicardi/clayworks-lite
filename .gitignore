@@ -44,3 +44,5 @@ credentials/
 # Test outputs
 test-output/
 *.test.log
+.firecrawl/
+.scratch/
