@@ -48,6 +48,8 @@ Reach for models by role:
 - **Web-grounded research:** `~/.claude/scripts/ask-gemini.sh "prompt"` for current-facts questions and a second opinion
 - **Local floor (Ollama):** `localhost:11434` for offline work and anything that must not leave the machine
 
+The `ask-*.sh` bridges above are illustrative. LITE ships no bridge scripts; this setup wires its own. Substitute yours, or drop the roles you do not use.
+
 **Sovereignty rule:** never send real credentials, API keys, or customer data to a cloud model. Sensitive content goes to the local model only.
 
 For fanning a question across providers, this setup uses `/multi:*`-style wrapper skills (`/multi:research`, `/multi:decide`, `/multi:diff-review`) on top of a `multi-ask.sh` fan-out script. LITE does not ship those wrappers; they are wired separately. Default to solo; fan out only on high-stakes or freshness-critical work.
