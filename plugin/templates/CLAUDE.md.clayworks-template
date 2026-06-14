@@ -73,7 +73,7 @@ Reach for models by role:
 
 **Sovereignty rule (non-negotiable):** never send real credentials, API keys, tokens, or other people's personal data to a cloud model. For sensitive content, use a local model only. A secret sent to a cloud provider cannot be un-sent.
 
-**When to use more than one model:** fanning a question across providers buys independence but costs latency and attention, so default to solo and reach for a fan-out only on high-stakes, irreversible, or freshness-critical work. Orchestration wrapper skills (a `/multi:*`-style layer on top of a fan-out script like `multi-ask.sh`) automate the common combinations. LITE does not ship those wrappers; substitute your own stack's orchestrator. The paid Clayworks bundle ships a full Multi-Provider Decision Matrix (a task-to-route table, the solo / offer-fan-out / explicit-only vocabulary, and a store-after policy) for this.
+**When to use more than one model:** fanning a question across providers buys independence but costs latency and attention, so default to solo and reach for a fan-out only on high-stakes, irreversible, or freshness-critical work. Orchestration wrapper skills (a `/multi:*`-style layer on top of a fan-out script like `multi-ask.sh`) automate the common combinations. LITE does not ship those wrappers; substitute your own stack's orchestrator. The paid Clayworks bundle ships a full Multi-Provider Decision Matrix (routing policy for when to fan out across providers versus stay solo) for this.
 
 Use these strategically. Not every task needs multiple models.
 
