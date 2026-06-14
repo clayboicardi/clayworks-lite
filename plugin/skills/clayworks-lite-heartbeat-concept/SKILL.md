@@ -136,7 +136,7 @@ What NOT to make a heartbeat do:
 
 ## Production implementation: paid bundle
 
-LITE ships this concept doc; the full production heartbeat system is in the paid **Clayworks** bundle. In the bundle's observability model, **this heartbeat-concept is Layer 1** (liveness, the free no-LLM base layer that answers "is it running"). The bundle adds the two layers above it:
+LITE ships this concept doc; the full production heartbeat system is in the paid **Clayworks** bundle. In the bundle's observability model, **this heartbeat-concept is the Layer 1 (liveness) pattern**: the "is it running" base layer. As everywhere in LITE, what ships here is the pattern, not a running checker. The bundle adds working implementations of the two layers above it:
 
 - **Layer 2: rubric-graded outcome evaluation** — scores the agent's actual outputs against rubrics you define, on a sampled fraction of sessions, and appends the result to an observation log.
 - **Layer 3: structural-validity checking** — an LLM-free checker that catches config drift (broken hook references, unparseable hook scripts, stale service logs, plugin-cache drift) and writes a standalone report.

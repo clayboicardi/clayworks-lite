@@ -161,9 +161,9 @@ while another is editing code), use a shared message folder:
      This LITE template just names them so you know they exist. -->
 
 - **Observability stack** — rubric-graded outcome evaluation (Layer 2)
-  and structural-validity checks (Layer 3) on top of the free
-  heartbeat-concept's liveness check (Layer 1), plus dream-style
-  memory consolidation
+  and structural-validity checks (Layer 3) on top of the Layer 1
+  liveness pattern the free heartbeat-concept documents, plus
+  dream-style memory consolidation
 - **Multi-AI bridges** — wired multi-provider fan-out (Gemini, Codex,
   Cerebras, local Ollama) with logging, sandboxing, and fallback handling
 - **CC docs freshness gate** — UserPromptSubmit hook that injects fresh

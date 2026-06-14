@@ -106,7 +106,7 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 
 - **Annotated production CLAUDE.md** — every rule with rationale, not just structure
 - **CC↔CC inter-session communication system** — when you run two CC sessions in parallel, they coordinate via filesystem messaging + Telegram routing
-- **Upper observability layers** — rubric-graded outcome evaluation (Layer 2) and structural-validity checking (Layer 3), layered on top of the liveness check (Layer 1) that LITE's heartbeat-concept already covers; plus dream-style memory consolidation
+- **Upper observability layers** — rubric-graded outcome evaluation (Layer 2) and structural-validity checking (Layer 3), layered on top of the Layer 1 liveness pattern that LITE's heartbeat-concept documents; plus dream-style memory consolidation
 - **Multi-AI bridges** — wired external-provider bridges (Codex, Gemini, Cerebras, local Ollama) with logging, sandboxing, and fallback handling
 - **CC docs freshness gate** — a UserPromptSubmit hook that detects Claude Code-related questions and injects fresh local mirror context so the model doesn't fall back to stale training-data recall
 - **Inbox watcher pattern** — drop a markdown file in a folder, the agent picks it up on next session start
