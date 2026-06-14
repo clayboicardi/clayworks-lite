@@ -61,12 +61,19 @@ Use for: persistent model of WHO you are (role, preferences, working style).
 ## Multi-Model Routing (optional)
 
 <!-- Skip this whole section if you don't use other AI tools alongside Claude.
-     If you do, declare them here so Claude knows when to reach for them. -->
+     If you do, declare them here and reach for them by ROLE, not at random.
+     The roles are the durable part; map them onto whatever models you run. -->
 
-Available AI bridges:
-- **Gemini (Google OAuth CLI):** `~/.claude/scripts/ask-gemini.sh "prompt"` — research, second opinions, web-grounded queries. (Google is retiring the standalone Gemini CLI for consumer tiers around mid-2026 in favor of the Antigravity CLI, `agy`; if you depend on Gemini, plan to point this bridge at `agy`.)
-- **Local LLMs (Ollama):** `localhost:11434` — privacy-sensitive work, no cloud dependency
-- **Multi-model orchestration:** wrapper skills (e.g. `/multi:research`, `/multi:decide`, `/multi:diff-review`) composed on top of a parallel multi-provider fan-out script like `multi-ask.sh`. These layer on the bridges above rather than a single bundled plugin — substitute your own stack's orchestrator.
+Reach for models by role:
+
+- **Code workhorse (primary):** an external code-biased reasoner for review, debugging, refactors, and implementation (e.g. `~/.claude/scripts/ask-codex.sh "prompt"`). If you pay a flat monthly rate for it, heavy use costs nothing marginal.
+- **Host orchestrator:** this Claude Code session. It owns orchestration and synthesis: deciding what to delegate and reconciling what comes back.
+- **Web-grounded research:** a web-aware model for current-facts questions and an independent second voice (e.g. `~/.claude/scripts/ask-gemini.sh "prompt"`). (Google is retiring the standalone Gemini CLI for consumer tiers around mid-2026 in favor of the Antigravity CLI, `agy`; if you depend on Gemini, plan to point this bridge at `agy`.)
+- **Local floor (Ollama):** `localhost:11434` for offline work and anything that must not leave the machine.
+
+**Sovereignty rule (non-negotiable):** never send real credentials, API keys, tokens, or other people's personal data to a cloud model. For sensitive content, use a local model only. A secret sent to a cloud provider cannot be un-sent.
+
+**When to use more than one model:** fanning a question across providers buys independence but costs latency and attention, so default to solo and reach for a fan-out only on high-stakes, irreversible, or freshness-critical work. Orchestration wrapper skills (a `/multi:*`-style layer on top of a fan-out script like `multi-ask.sh`) automate the common combinations. LITE does not ship those wrappers; substitute your own stack's orchestrator. The paid Clayworks bundle ships a full Multi-Provider Decision Matrix (a task-to-route table, the solo / offer-fan-out / explicit-only vocabulary, and a store-after policy) for this.
 
 Use these strategically. Not every task needs multiple models.
 
@@ -153,8 +160,10 @@ while another is editing code), use a shared message folder:
      The Clayworks paid bundle ships production-ready versions of these.
      This LITE template just names them so you know they exist. -->
 
-- **Observability stack** — per-prompt outcomes grading, end-of-session
-  structural-integrity checks, dream-style memory consolidation
+- **Observability stack** — rubric-graded outcome evaluation (Layer 2)
+  and structural-validity checks (Layer 3) on top of the free
+  heartbeat-concept's liveness check (Layer 1), plus dream-style
+  memory consolidation
 - **Multi-AI bridges** — wired multi-provider fan-out (Gemini, Codex,
   Cerebras, local Ollama) with logging, sandboxing, and fallback handling
 - **CC docs freshness gate** — UserPromptSubmit hook that injects fresh

@@ -57,9 +57,9 @@ The three questions don't always agree. When they conflict, **Question 1 is the 
 
 **Settings.example.json** (composed working `settings.json` showing hooks composition). Q1: pattern (the *shape* of hook composition). Q2: no user-specific setup. Q3: LITE feels gimped without it (audit finding — 5 separate LITE files reference settings.json without showing assembly). → **LITE.** Shipped.
 
-**Three-tier observability stack** (per-prompt outcomes grading, end-of-session structural integrity check, end-of-session memory consolidation candidate). Q1: implementation. Q2: requires LLM API key (for outcomes grading), specific telemetry paths, specific anomaly thresholds. Q3: LITE doesn't need it for the minimum competent baseline; heartbeat-concept skill describes the pattern. → **Bundle.**
+**Upper observability layers** (Layer 2 rubric-graded outcome evaluation + Layer 3 structural-validity checking, on top of the free heartbeat-concept's Layer 1 liveness check). Q1: implementation. Q2: Layer 2 needs an LLM and specific telemetry paths; Layer 3 needs a config-walker with specific check thresholds. Q3: LITE doesn't need them for the minimum competent baseline; the heartbeat-concept skill is Layer 1 and describes the pattern. → **Bundle.**
 
-**Plugin baseline doc** (curated list of plugins with rationale per plugin). Q1: pattern, debatable — it's curation-as-content. Q2: no setup, just docs. Q3: LITE doesn't need it for minimum baseline; the README's "Acknowledgments" credits 4-5 specific plugins and the LITE template names 2 (Engram, Honcho; Octo was dropped after its 2026 retirement). → **Bundle for the full 23-plugin list with rationale.**
+**Plugin baseline doc** (curated list of plugins with rationale per plugin). Q1: pattern, debatable — it's curation-as-content. Q2: no setup, just docs. Q3: LITE doesn't need it for minimum baseline; the README's "Acknowledgments" credits 4-5 specific plugins and the LITE template names 2 (Engram, Honcho; Octo was dropped after its 2026 retirement). → **Bundle for the full 20-plugin operator baseline (plus optional add-ons) with rationale.**
 
 **Worked CLAUDE.md examples** (template with placeholders filled). Q1: pattern (the *shape* of an assembled CLAUDE.md). Q2: no user-specific setup. Q3: LITE feels notably less competent without a "what does this look like assembled?" reference. → **LITE.** Shipped in `examples/full/CLAUDE.md`.
 
@@ -78,7 +78,7 @@ The README's "What's NOT in LITE" section is the single most-important honesty s
 - **No overselling.** If a bundle feature is debatable on the LITE/bundle line, lean toward including it in LITE.
 - **No artificial scarcity.** Features go on the LITE side based on the three-question framework, not on revenue optimization.
 
-The audit caught one bundle item that was over-specifically named in the heartbeat SKILL.md ("three-tier observability stack, daily-cycle templates, trust ledger schema, drift signaling"). The audit's verdict: that level of specificity worked because it was paired with "you can build all of this yourself from the pattern above." The honest tease is honest because it invites the reader to do the work themselves. Withholding the names while charging for them is the dishonest version.
+The audit caught one bundle item that was over-specifically named in the heartbeat SKILL.md (the upper observability layers, trust ledger schema, drift signaling, and daily-cycle templates). The audit's verdict: that level of specificity worked because it was paired with "you can build all of this yourself from the pattern above." The honest tease is honest because it invites the reader to do the work themselves. Withholding the names while charging for them is the dishonest version.
 
 ## When you'd revisit the line
 
