@@ -136,12 +136,13 @@ What NOT to make a heartbeat do:
 
 ## Production implementation: paid bundle
 
-LITE ships this concept doc; the full production heartbeat system is in the paid **Clayworks** bundle:
+LITE ships this concept doc; the full production heartbeat system is in the paid **Clayworks** bundle. In the bundle's observability model, **this heartbeat-concept is the Layer 1 (liveness) pattern**: the "is it running" base layer. As everywhere in LITE, what ships here is the pattern, not a running checker. The bundle adds working implementations of the two layers above it:
 
-- **Three-tier observability stack** — per-prompt outcomes grading (lightweight, sampled), end-of-session structural integrity check (catches reference rot, hook parse errors, log staleness), end-of-session memory consolidation candidate (proposes new memory entries for explicit human approval).
-- **Daily-cycle templates** — full prompts for morning briefing, evening consolidation, weekly review, monthly identity review. Each is a structured prompt with the right read-context + the right reflection questions + the right write-back format.
+- **Layer 2: rubric-graded outcome evaluation** — scores the agent's actual outputs against rubrics you define, on a sampled fraction of sessions, and appends the result to an observation log.
+- **Layer 3: structural-validity checking** — an LLM-free checker that catches config drift (broken hook references, unparseable hook scripts, stale service logs, plugin-cache drift) and writes a standalone report.
 - **Trust ledger schema** — append-only JSON with caps, per-tier summary aggregation, designed for SPC-style streak analysis if you want it.
 - **Drift signaling** — per-tier P0/P1/P2 findings routed to notification channels (Telegram, system tray) with frequency throttling so you only see real signal.
+- **Daily-cycle templates and dream-style memory consolidation** — full prompts for morning briefing, evening consolidation, weekly review, and monthly identity review, plus an end-of-session pass that proposes new memory entries for explicit human approval.
 - **Heartbeat-aware skills** — the rest of the paid bundle composes with the heartbeat in concrete ways. CC↔CC comms surfaces inter-session disagreements *during* the beat (a parallel CC may have flagged something your beat needs to weigh before the "update" step). Inbox watcher catches dropped artifacts that should land in the beat's observation. Freshness gate injects current CC docs when the beat asks about CC features whose docs have evolved since training. Each composition is "skill A makes step N of the beat smarter," not just "ships alongside."
 
 You can build all of this yourself from the pattern above. The bundle ships *one* version of it that's been hardened over months of daily use.

@@ -106,15 +106,15 @@ LITE is honest about what it isn't. The following live in the paid **Clayworks**
 
 - **Annotated production CLAUDE.md** — every rule with rationale, not just structure
 - **CC↔CC inter-session communication system** — when you run two CC sessions in parallel, they coordinate via filesystem messaging + Telegram routing
-- **Full three-tier observability stack** — three layers of self-evaluation (per-prompt outcomes, end-of-session structure check, end-of-session memory consolidation candidate)
-- **Multi-AI bridges** — wired Gemini CLI + local Ollama integrations with logging, sandboxing, and fallback handling
+- **Upper observability layers** — rubric-graded outcome evaluation (Layer 2) and structural-validity checking (Layer 3), layered on top of the Layer 1 liveness pattern that LITE's heartbeat-concept documents; plus dream-style memory consolidation
+- **Multi-AI bridges** — wired external-provider bridges (Codex, Gemini, Cerebras, local Ollama) with logging, sandboxing, and fallback handling
 - **CC docs freshness gate** — a UserPromptSubmit hook that detects Claude Code-related questions and injects fresh local mirror context so the model doesn't fall back to stale training-data recall
 - **Inbox watcher pattern** — drop a markdown file in a folder, the agent picks it up on next session start
 - **Multi-node sync docs** — running CC across a primary machine + secondary machines with consistent state
 - **Morning briefing / evening consolidation / weekly review / reflection beat templates** — structured daily-cycle prompts that turn CC into something between a journal and an operations runner
 - **Telegram integration** — proactive notifications + remote control over your CC instance from your phone
 - **Settings.example.json + per-key rationale** — the env vars, hooks, permissions, plugin set, and marketplaces I run in production
-- **Plugin baseline doc (full 22-plugin operator stack, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho); the paid doc covers all 22 with the why for each addition
+- **Plugin baseline doc (the 20-plugin operator baseline plus optional add-ons, rationale per plugin)** — LITE names a few plugins in passing (Engram, Honcho); the paid doc covers the full baseline with the why for each addition
 - **Operating Claude Code at production quality** — a 15-30 page written guide covering the operator discipline that holds the system together
 - **Install guide + troubleshooting field guide**
 
@@ -299,7 +299,7 @@ The bundle is a one-time purchase of the hardened configuration I run myself, wi
 - The 15-30 page "Operating Claude Code at production quality" written guide
 - Install + troubleshooting field guide
 - Annotated production CLAUDE.md with every rule's rationale
-- Curated plugin baseline doc for the full 23-plugin operator stack
+- Curated plugin baseline doc for the 20-plugin operator baseline (plus optional add-ons)
 - Update access for v1.x patches
 
 **Pricing:**
@@ -360,7 +360,7 @@ Issues and pull requests welcome. Specifically appreciated:
 
 Not specifically appreciated:
 
-- "Add my favorite plugin to the baseline" — the LITE baseline is intentionally small (6 plugins); the paid bundle covers the larger curated set
+- "Add my favorite plugin to the baseline" — LITE intentionally names only a couple of plugins in passing (Engram, Honcho); the paid bundle covers the larger curated plugin set with rationale
 - "Make this work with [non-CC tool]" — Clayworks LITE is specifically for Claude Code, not generic agent infra
 
 Issues: [github.com/clayboicardi/clayworks-lite/issues](https://github.com/clayboicardi/clayworks-lite/issues)
