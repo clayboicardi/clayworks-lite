@@ -8,6 +8,6 @@ Write in first person, active voice on public surfaces. Speak as the maintainer.
 
 ## Review
 
-Codex is the sole bot reviewer. Google is sunsetting Gemini Code Assist: it ends all review activity on 2026-07-17. Codex reviews on PR-open and on `@codex review`, and it reaches the operator's review host over Tailscale. A missing Codex review is review-absent, not review-clean: if none appears, enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`.
+Codex is the lead bot reviewer, and the sole one after the sunset. Google is sunsetting the consumer Gemini Code Assist app: it ends all review activity on 2026-07-17, and until then Gemini also auto-reviews opened PRs. Codex reviews on PR-open and on `@codex review`, and it reaches the operator's review host over Tailscale. A missing Codex review is review-absent, not review-clean: if none appears, enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`.
 
 For the full style, installer-security, hook, skill, README-accuracy, brand-separation, and language-discipline rules, read [CONTRIBUTING.md](CONTRIBUTING.md#style--review-conventions).

@@ -24,7 +24,7 @@ Thanks for your interest. A few ground rules:
 
 ## Code review
 
-Codex is the sole bot reviewer for this repo. Gemini Code Assist used to auto-review here, but Google is sunsetting it: it blocks new org installs from 2026-06-18 and ends all review activity on 2026-07-17.
+Codex is the lead bot reviewer, and the sole one after the sunset. Gemini Code Assist still auto-reviews here too, but Google is sunsetting the consumer app: it blocks new org installs from 2026-06-18 and ends all review activity on 2026-07-17. Until then, expect both bots to review opened PRs.
 
 - **Codex** (`chatgpt-codex-connector`) reviews automatically when a PR opens, and on demand when you comment `@codex review`. It reaches the operator's review host over Tailscale.
 - **The independent project-scoped Claude Code session is the second voice.** `/multi:diff-review` is an optional extra read.

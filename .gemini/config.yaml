@@ -1,7 +1,7 @@
-# DEPRECATED — Gemini Code Assist is being sunset (new org installs blocked
-# 2026-06-18; all review activity ceases 2026-07-17). Codex is the sole bot
-# reviewer going forward; conventions now live in ../CONTRIBUTING.md. Remove
-# this directory after the 2026-07-17 sunset.
+# DEPRECATED — Google is sunsetting the consumer Gemini Code Assist app (it
+# blocks new org installs from 2026-06-18 and ceases review activity 2026-07-17).
+# Codex is the sole bot reviewer after the sunset; conventions now live in
+# ../CONTRIBUTING.md. Remove this directory after the 2026-07-17 sunset.
 have_fun: false
 memory_config:
   disabled: false
