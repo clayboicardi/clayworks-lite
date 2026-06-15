@@ -1,5 +1,7 @@
 # clayworks-lite Style & Review Guide
 
+> **Deprecated — retained for Gemini's remaining review window only.** Google is sunsetting the consumer Gemini Code Assist app (it blocks new org installs from 2026-06-18 and ceases all review activity on 2026-07-17). The authoritative style-and-review conventions now live in [`CONTRIBUTING.md`](../CONTRIBUTING.md#style--review-conventions); Codex is the sole bot reviewer after the sunset. Edit `CONTRIBUTING.md`; mirror any load-bearing change here only while Gemini still reviews. This file and `config.yaml` should be removed after the 2026-07-17 sunset.
+
 Tells Gemini Code Assist what matters when reviewing changes to the open-source LITE base.
 
 ## Voice
