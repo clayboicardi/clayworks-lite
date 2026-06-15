@@ -13,10 +13,10 @@
 
 ## Review
 
-Codex is the sole bot reviewer (Gemini Code Assist is sunset). See [CONTRIBUTING.md](../CONTRIBUTING.md#code-review).
+Codex is the sole bot reviewer (Google is sunsetting Gemini Code Assist). See [CONTRIBUTING.md](../CONTRIBUTING.md#code-review).
 
-- [ ] Codex reviewed this PR — auto-on-open or via `@codex review` — and findings are addressed
-- [ ] A Codex review is actually present (a *missing* review is **not** a clean review — Codex routes via Tailscale to CLAY-MAE; if absent, run `tailscale set --accept-dns=true` and re-trigger with `@codex review`)
+- [ ] Codex reviewed this PR (auto-on-open or via `@codex review`) and I addressed the findings
+- [ ] A Codex review is actually present (a *missing* review is **not** a clean review; Codex reaches the review host over Tailscale, so if absent, enable accept-dns on that host with `tailscale set --accept-dns=true` and re-trigger with `@codex review`)
 - [ ] Voice holds per CONTRIBUTING.md: first person, active voice, no marketing-speak
 
 ## Testing

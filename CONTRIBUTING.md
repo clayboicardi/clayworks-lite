@@ -24,11 +24,11 @@ Thanks for your interest. A few ground rules:
 
 ## Code review
 
-Codex is the sole bot reviewer for this repo. (Gemini Code Assist used to auto-review here; Google is sunsetting it — new org installs blocked from 2026-06-18, all review activity ceases 2026-07-17.)
+Codex is the sole bot reviewer for this repo. Gemini Code Assist used to auto-review here, but Google is sunsetting it: it blocks new org installs from 2026-06-18 and ends all review activity on 2026-07-17.
 
-- **Codex** (`chatgpt-codex-connector`) reviews automatically when a PR opens, and on demand when you comment `@codex review`. It routes through Tailscale to the CLAY-MAE host.
+- **Codex** (`chatgpt-codex-connector`) reviews automatically when a PR opens, and on demand when you comment `@codex review`. It reaches the operator's review host over Tailscale.
 - **The independent project-scoped Claude Code session is the second voice.** `/multi:diff-review` is an optional extra read.
-- **A *missing* Codex review is not a clean review.** Codex silently no-fires when CLAY-MAE is unreachable — most often when the laptop's Tailscale `accept-dns` is off, so `clay-mae.tailb690b1.ts.net` doesn't resolve. If a PR opens and no Codex review appears, treat it as **review absent**, not "review clean." Fix: `tailscale set --accept-dns=true`, then re-trigger with `@codex review`. The PR template's review checklist exists so this can't lapse silently.
+- **A *missing* Codex review is not a clean review.** Codex silently no-fires when it cannot reach the review host. The usual cause: the host's Tailscale `accept-dns` is off, so its MagicDNS name fails to resolve. If a PR opens and no Codex review appears, treat it as **review absent**, not "review clean." To fix, enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`. The PR template's review checklist exists so this cannot lapse silently.
 
 ## Local development
 
@@ -61,7 +61,7 @@ The repo's commit history uses **imperative subject + em-dash + brief rationale*
 
 ## Style & review conventions
 
-These are the conventions the reviewer applies. Ported from `.gemini/styleguide.md` (deprecated; see banner there) so they survive Gemini's removal and feed Codex directly.
+These are the conventions the reviewer applies. I ported them from `.gemini/styleguide.md` (deprecated; see the banner there) so they survive Gemini's removal and feed Codex directly.
 
 **Voice**
 
