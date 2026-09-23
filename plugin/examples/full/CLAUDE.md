@@ -30,8 +30,8 @@ Use for: architecture decisions, project conventions, recurring procedures, tool
 ### Native CC memory (project-scoped facts)
 
 Use for: project-specific knowledge that lives with the codebase.
-- Path: `~/.claude/projects/<project-name>/memory/MEMORY.md`
-- Auto-loaded into context on session start for that project
+- Path: `~/.claude/projects/<project>/memory/MEMORY.md` (Claude Code derives `<project>` from the repo path, e.g. `-Users-sam-Projects-dashboard`)
+- First 200 lines / 25KB auto-loaded at session start for that project; keep MEMORY.md a short index
 - Best for: build commands, project quirks, recent decisions
 
 ### Routing rules
@@ -45,10 +45,10 @@ Use for: project-specific knowledge that lives with the codebase.
 
 Reach for models by role:
 - **Code workhorse (primary):** `~/.claude/scripts/ask-codex.sh "prompt"` for review, debugging, and refactors
-- **Web-grounded research:** `~/.claude/scripts/ask-gemini.sh "prompt"` for current-facts questions and a second opinion
+- **Web-grounded research:** Claude Code's built-in web search and fetch tools for current-facts questions (Sam dropped the Gemini CLI bridge when Google retired consumer access on 2026-06-18)
 - **Local floor (Ollama):** `localhost:11434` for offline work and anything that must not leave the machine
 
-The `ask-*.sh` bridges above are illustrative. LITE ships no bridge scripts; this setup wires its own. Substitute yours, or drop the roles you do not use.
+The `ask-codex.sh` bridge above is illustrative. LITE ships no bridge scripts; this setup wires its own. Substitute yours, or drop the roles you do not use.
 
 **Sovereignty rule:** never send real credentials, API keys, or customer data to a cloud model. Sensitive content goes to the local model only.
 
@@ -114,7 +114,7 @@ When concurrent CC sessions need to coordinate (e.g., one running tests while an
 
 - Drop a markdown file in `~/agent/cc-comms/` named `from-<source>_to-<target>_<topic>.md`
 - Sessions surface new comms on prompt submission via a UserPromptSubmit hook
-- (Hook scaffolding example in `clayworks-lite/hooks/examples/userpromptsubmit.sh`)
+- (Hook scaffolding example in `plugin/hooks/examples/userpromptsubmit.sh` in the LITE repo)
 
 ---
 
@@ -125,6 +125,8 @@ When concurrent CC sessions need to coordinate (e.g., one running tests while an
     I configured it."
   - When you add a new rule, write WHY in a comment next to it. Future-you
     will not remember the reasoning.
-  - Use the `claude-md-management` plugin (`/revise-claude-md`,
-    `/claude-md-improver`) for structured maintenance passes.
+  - Use the `claude-md-management` plugin
+    (`/claude-md-management:revise-claude-md`,
+    `/claude-md-management:claude-md-improver`) for structured maintenance
+    passes.
 -->

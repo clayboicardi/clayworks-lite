@@ -27,7 +27,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 - Bug fixes worth surfacing later (include the root cause)
 - Recurring procedures (build commands, deploy steps, recovery playbooks)
 - Anything that needs exact keyword search
-- Anything that should be reachable from non-Claude tools (Gemini CLI, Codex, etc.)
+- Anything that should be reachable from non-Claude tools (Codex, local models, etc.)
 
 **Key trait:** topic-keyed, searchable, cross-model accessible. Survives compaction and session boundaries. Save with `mem_save`; retrieve with `mem_search`.
 
@@ -35,7 +35,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 **Install:** built into Claude Code. No plugin needed.
 
-**Path:** `~/.claude/projects/<project-name>/memory/MEMORY.md`
+**Path:** `~/.claude/projects/<project>/memory/MEMORY.md`. Claude Code derives `<project>` from the repository's path on disk (for example `-home-me-Projects-app` on Linux or `C--Users-me-Projects-app` on Windows), not from a friendly project name, and every worktree and subdirectory of one repo shares it. An `autoMemoryDirectory` setting can move it elsewhere.
 
 **Use for:**
 
@@ -44,7 +44,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 - Recent decisions affecting current work in that project
 - Anything the auto-loader should surface at session start for the matching project
 
-**Key trait:** auto-loaded into context on session start when CC is invoked from inside that project directory. Free. No plugin needed. Plain markdown — edit directly with your favorite editor.
+**Key trait:** auto-loaded into context on session start when CC runs inside that project. Claude Code loads only the first 200 lines or 25KB of `MEMORY.md`, so keep it a one-line-per-entry index and move detail into topic files beside it. On by default; `autoMemoryEnabled: false` turns it off. Free. No plugin needed. Plain markdown — edit directly with your favorite editor.
 
 ### Honcho: user modeling
 

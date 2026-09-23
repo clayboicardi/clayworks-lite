@@ -4,7 +4,7 @@
 
 ## Why this earns inclusion
 
-<!-- LITE is intentionally minimal at six components. Explain why this belongs
+<!-- LITE is intentionally minimal at seven components. Explain why this belongs
      here rather than as a user-side customization or a paid-bundle feature. -->
 
 ## Before / after
@@ -13,7 +13,7 @@
 
 ## Review
 
-Codex is the lead bot reviewer, and the sole one after Gemini Code Assist's 2026-07-17 sunset (until then, Gemini also auto-reviews opened PRs). See [CONTRIBUTING.md](../CONTRIBUTING.md#code-review).
+Codex is the sole bot reviewer (Gemini Code Assist ended its review activity on 2026-07-17). See [CONTRIBUTING.md](../CONTRIBUTING.md#code-review).
 
 - [ ] Codex reviewed this PR (auto-on-open or via `@codex review`) and I addressed the findings
 - [ ] A Codex review is actually present (a *missing* review is **not** a clean review; Codex reaches the review host over Tailscale, so if absent, enable accept-dns on that host with `tailscale set --accept-dns=true` and re-trigger with `@codex review`)
@@ -29,6 +29,8 @@ Codex is the lead bot reviewer, and the sole one after Gemini Code Assist's 2026
 - [ ] `CHANGELOG.md` updated under `[Unreleased]` with the change category (`### Added` / `### Fixed` / `### Changed` / `### Security`)
 - [ ] If the PR touches shell scripts, `shellcheck` passes locally
 - [ ] If the PR touches PowerShell, `Invoke-ScriptAnalyzer` shows no new warnings
+- [ ] If the PR touches `plugin/` or `.claude-plugin/`, `claude plugin validate --strict` passes on `./plugin`, `.`, and `./plugin/skills`
+- [ ] If the PR touches the Nudge scripts, the add → check → ack round trip still works (CI runs it on ubuntu + windows)
 
 ## License
 

@@ -14,11 +14,21 @@
       - hooks/examples/                -> ~/.claude/hooks/examples/
       - templates/CLAUDE.md.clayworks-template
                                        -> ~/.claude/CLAUDE.md.clayworks-template
+      - templates/settings.example.json
+                                       -> ~/.claude/settings.example.json
 
-    Your live ~/.claude/CLAUDE.md and ~/.claude/hooks/ contents are never touched.
+    Your live ~/.claude/CLAUDE.md, ~/.claude/settings.json, and ~/.claude/hooks/
+    contents are never touched. Nudge alerts live in
+    ~/.claude/clayworks-lite/nudge/ and survive reinstall and uninstall.
 
 .PARAMETER DryRun
     Show what would change without writing anything.
+
+.PARAMETER Uninstall
+    Remove LITE-shipped files, skipping any you've customized.
+
+.PARAMETER Verify
+    Check the install: file presence, Python + sqlite3, template JSON.
 
 .PARAMETER ClaudeDir
     Install root. Defaults to ~/.claude. Override for testing.
@@ -68,6 +78,39 @@ function Write-Added    { param([string]$Text) Write-Host "  + $Text" -Foregroun
 function Write-Updated  { param([string]$Text) Write-Host "  ~ $Text" -ForegroundColor Yellow }
 function Write-SkippedM { param([string]$Text) Write-Host "  - $Text" -ForegroundColor DarkGray }
 
+# --- Python discovery --------------------------------------------------------
+# The Nudge scripts need Python 3.10+. On Windows the executable is often
+# `python` or the `py` launcher rather than `python3`, and `python3` may be a
+# Microsoft Store alias that only prints an install hint, so probe each one.
+
+function Find-Python {
+    $probe = 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'
+    $candidates = @(
+        @{ Name = 'python3'; Extra = @() },
+        @{ Name = 'python';  Extra = @() },
+        @{ Name = 'py';      Extra = @('-3') }
+    )
+    foreach ($c in $candidates) {
+        $cmd = Get-Command $c.Name -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if (-not $cmd) { continue }
+        $extra = $c.Extra
+        try {
+            & $cmd.Source @extra -c $probe 2>$null | Out-Null
+        } catch {
+            continue
+        }
+        if ($LASTEXITCODE -eq 0) {
+            return [pscustomobject]@{
+                Exe   = $cmd.Source
+                Extra = $extra
+                Label = (@($c.Name) + $extra) -join ' '
+            }
+        }
+    }
+    return $null
+}
+
 # --- Hashing -----------------------------------------------------------------
 
 function Get-PathHash {
@@ -77,10 +120,13 @@ function Get-PathHash {
         return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
     }
     # Directory: concat sorted "relpath:filehash" lines, then hash that string.
+    # -Name yields paths relative to $Path. Slicing FullName by $Path.Length
+    # breaks when $Path holds an 8.3 short name (e.g. C:\Users\RUNNER~1\...,
+    # the default %TEMP% form): Get-ChildItem expands it, so the lengths differ.
     $entries = [System.Collections.Generic.List[string]]::new()
-    Get-ChildItem -LiteralPath $Path -Recurse -File | Sort-Object FullName | ForEach-Object {
-        $rel = $_.FullName.Substring($Path.Length).TrimStart('\','/').Replace('\','/')
-        $h   = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+    Get-ChildItem -LiteralPath $Path -Recurse -File -Name | Sort-Object | ForEach-Object {
+        $rel = $_.Replace('\','/')
+        $h   = (Get-FileHash -LiteralPath (Join-Path $Path $_) -Algorithm SHA256).Hash
         $entries.Add("${rel}:${h}")
     }
     $joined = ($entries -join "`n")
@@ -244,6 +290,7 @@ function Invoke-Uninstall {
     Write-Info "  $(Join-Path $ClaudeDir 'CLAUDE.md') (your live config)"
     Write-Info "  $(Join-Path $ClaudeDir 'settings.json') (your live config)"
     Write-Info "  $(Join-Path $ClaudeDir 'hooks/')  (excluding examples/ subdir)"
+    Write-Info "  $(Join-Path $ClaudeDir 'clayworks-lite/') (your Nudge alerts DB -- remove manually if desired)"
     Write-Info "  $(Join-Path $ClaudeDir '.clayworks-lite-backup/') (your backups -- remove manually)"
 
     Write-Section "Next steps"
@@ -251,10 +298,12 @@ function Invoke-Uninstall {
 If you wired Nudge or other LITE hooks into ~/.claude/settings.json,
 remove those entries manually. The uninstaller can't safely edit
 your settings.json -- JSON parsing of an arbitrary user file would
-be too fragile.
+be too fragile. A leftover Nudge hook entry points at a launcher
+that no longer exists, so it shows a hook error on every prompt.
 
-To purge the backup folder:
+To purge the backup folder and your Nudge alerts:
   Remove-Item -Recurse -Force "$(Join-Path $ClaudeDir '.clayworks-lite-backup')"
+  Remove-Item -Recurse -Force "$(Join-Path $ClaudeDir 'clayworks-lite')"
 "@ | Write-Host
 
     Write-Host ""
@@ -268,6 +317,7 @@ function Test-Check {
     switch ($Status) {
         "pass" { Write-Added "${Label}: ${Detail}" }
         "warn" { Write-Updated "${Label}: ${Detail}" }
+        "skip" { Write-SkippedM "${Label}: ${Detail}" }
         "fail" {
             Write-Host "  ? ${Label}: ${Detail}" -ForegroundColor Yellow
             $script:VerifyFails++
@@ -283,19 +333,22 @@ function Invoke-Verify {
     $script:VerifyFails = 0
 
     Write-Section "Runtime"
-    $py3 = Get-Command python3 -ErrorAction SilentlyContinue
-    if (-not $py3) { $py3 = Get-Command python -ErrorAction SilentlyContinue }
-    if ($py3) {
-        $ver = & $py3.Source --version 2>&1
-        Test-Check "python3" "pass" "$ver"
-        & $py3.Source -c "import sqlite3" 2>&1 | Out-Null
+    $py = Find-Python
+    if ($py) {
+        $pyExtra = $py.Extra
+        $ver = & $py.Exe @pyExtra --version 2>&1
+        Test-Check "python ($($py.Label))" "pass" "$ver"
+        if ($py.Label -ne 'python3') {
+            Test-Check "python3 name" "warn" "not on PATH; the Nudge hook launcher falls back to '$($py.Label)', but the hook examples call python3 by name"
+        }
+        try { & $py.Exe @pyExtra -c "import sqlite3" 2>$null | Out-Null } catch { $null = $_ }
         if ($LASTEXITCODE -eq 0) {
-            Test-Check "python3 sqlite3 import" "pass" "ok"
+            Test-Check "python sqlite3 import" "pass" "ok"
         } else {
-            Test-Check "python3 sqlite3 import" "fail" "cannot import -- Nudge skill will not work"
+            Test-Check "python sqlite3 import" "fail" "cannot import -- Nudge skill will not work"
         }
     } else {
-        Test-Check "python3" "fail" "not on PATH -- Nudge skill + hook examples will not work"
+        Test-Check "python" "warn" "no Python 3.10+ found (tried python3, python, py -3) -- Nudge skill + hook examples will not work until you install one"
     }
     $cc = Get-Command claude -ErrorAction SilentlyContinue
     if ($cc) {
@@ -317,6 +370,17 @@ function Invoke-Verify {
             }
         } else {
             Test-Check $s "fail" "SKILL.md missing at $f"
+        }
+    }
+
+    Write-Section "Nudge hook launcher"
+    $nudgeDir = Join-Path $ClaudeDir "skills/clayworks-lite-nudge/scripts"
+    foreach ($nf in @("run-python.sh", "nudge_db.py", "check_alerts.py")) {
+        $nfPath = Join-Path $nudgeDir $nf
+        if (Test-Path -LiteralPath $nfPath) {
+            Test-Check "nudge/scripts/$nf" "pass" "present"
+        } else {
+            Test-Check "nudge/scripts/$nf" "fail" "missing at $nfPath"
         }
     }
 
@@ -391,6 +455,35 @@ if (-not (Test-Path -LiteralPath $ClaudeDir)) {
 # Supply-chain check: refuse to proceed if the source tree contains symlinks.
 Test-NoSymlinksInSource -Path $RepoRoot
 
+# --- Nudge alerts DB: move out of the skill dir (pre-1.1.0 layout) -----------
+# Before 1.1.0 the Nudge DB lived inside the skill dir, which this installer
+# replaces wholesale on update. Move it to its stable home first so an update
+# never strands your alerts in a backup folder.
+
+Write-Section "Nudge alerts database"
+$legacyDb = Join-Path $ClaudeDir "skills/clayworks-lite-nudge/scripts/alerts.db"
+if ($env:CLAYWORKS_NUDGE_DB) {
+    $newDb = $env:CLAYWORKS_NUDGE_DB
+} else {
+    $newDb = Join-Path $ClaudeDir "clayworks-lite/nudge/alerts.db"
+}
+if ((Test-Path -LiteralPath $legacyDb -PathType Leaf) -and -not (Test-Path -LiteralPath $newDb)) {
+    if (-not $DryRun) {
+        $newDbDir = Split-Path -Parent $newDb
+        if (-not (Test-Path -LiteralPath $newDbDir)) {
+            New-Item -ItemType Directory -Path $newDbDir -Force | Out-Null
+        }
+        Move-Item -LiteralPath $legacyDb -Destination $newDb
+        Write-Updated "moved legacy alerts.db -> $newDb"
+    } else {
+        Write-Updated "would move legacy alerts.db -> $newDb"
+    }
+} elseif (Test-Path -LiteralPath $legacyDb -PathType Leaf) {
+    Write-SkippedM "legacy alerts.db left in place ($newDb already exists)"
+} else {
+    Write-SkippedM "nothing to migrate (alerts live in $newDb)"
+}
+
 # --- Install items -----------------------------------------------------------
 
 Write-Section "Installing skills"
@@ -464,8 +557,9 @@ if ($DryRun) {
 
 Write-Section "Next steps"
 @"
-1. Restart Claude Code so it picks up new skills:
-     close all CC sessions, then open a fresh one.
+1. Claude Code picks up new skills in a running session. If
+     ~/.claude/skills/ didn't exist before this install, start a new
+     session so Claude Code can watch the new directory.
 
 2. To use the CLAUDE.md starter template:
      copy ~/.claude/CLAUDE.md.clayworks-template -> ~/.claude/CLAUDE.md
@@ -475,8 +569,14 @@ Write-Section "Next steps"
 3. To use the nudge skill (if installed):
      the skill auto-triggers when you mention a time
      ("stop me at 5pm", "remind me about standup at 9:55").
-     For nudges to actually fire, wire the UserPromptSubmit hook -
-     see ~/.claude/skills/clayworks-lite-nudge/SKILL.md.
+     For nudges to actually fire, add the UserPromptSubmit hook from
+     ~/.claude/settings.example.json to ~/.claude/settings.json
+     (details in ~/.claude/skills/clayworks-lite-nudge/SKILL.md).
+     The hook needs bash, which Git for Windows provides; Claude Code
+     uses the same Git Bash to run hooks. Claude Code applies
+     settings.json edits without a restart. Skip this if you also
+     installed LITE as a plugin: the plugin registers the same hook,
+     and you'd see every alert twice.
 
 4. To use a hook example:
      copy ~/.claude/hooks/examples/<event>.sh -> ~/.claude/hooks/<name>.sh

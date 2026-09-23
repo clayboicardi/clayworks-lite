@@ -24,7 +24,7 @@ Thanks for your interest. A few ground rules:
 
 ## Code review
 
-Codex is the lead bot reviewer, and the sole one after the sunset. Gemini Code Assist still auto-reviews here too, but Google is sunsetting the consumer app: it blocks new org installs from 2026-06-18 and ends all review activity on 2026-07-17. Until then, expect both bots to review opened PRs.
+Codex is the sole bot reviewer. Gemini Code Assist used to auto-review here too, but Google sunset the consumer app: it blocked new org installs from 2026-06-18 and ended all review activity on 2026-07-17. I removed the `.gemini/` config after the sunset.
 
 - **Codex** (`chatgpt-codex-connector`) reviews automatically when a PR opens, and on demand when you comment `@codex review`. It reaches the operator's review host over Tailscale.
 - **The independent project-scoped Claude Code session is the second voice.** `/multi:diff-review` is an optional extra read.
@@ -53,7 +53,17 @@ To test installer changes against a throwaway target dir:
 
 Or just `make test` — runs the same loop and grep-asserts idempotency.
 
-Before opening a PR, the [PR template](.github/PULL_REQUEST_TEMPLATE.md) lists the checklist (`shellcheck` on shell files, `PSScriptAnalyzer` on `install.ps1`, CHANGELOG entry under `[Unreleased]`, `.gitattributes`-respecting line endings). CI runs these automatically on push.
+For plugin changes, validate the manifests, `hooks/hooks.json`, and skill frontmatter the way CI does:
+
+```bash
+claude plugin validate --strict ./plugin
+claude plugin validate --strict .
+claude plugin validate --strict ./plugin/skills
+```
+
+To try the plugin itself without installing it, run `claude --plugin-dir ./plugin` and check `/hooks` for the Nudge entry. Point `CLAYWORKS_NUDGE_DB` at a scratch file first so test alerts stay out of your real DB.
+
+Before opening a PR, the [PR template](.github/PULL_REQUEST_TEMPLATE.md) lists the checklist (`shellcheck` on shell files, `PSScriptAnalyzer` on `install.ps1`, `claude plugin validate --strict`, CHANGELOG entry under `[Unreleased]`, `.gitattributes`-respecting line endings). CI runs these automatically on push, plus a Nudge add → check → ack round trip on ubuntu and windows.
 
 ## Commit conventions
 
@@ -61,7 +71,7 @@ The repo's commit history uses **imperative subject + em-dash + brief rationale*
 
 ## Style & review conventions
 
-These are the conventions the reviewer applies. I ported them from `.gemini/styleguide.md` (deprecated; see the banner there) so they survive Gemini's removal and feed Codex directly.
+These are the conventions the reviewer applies. I ported them from the old Gemini style guide (removed after the Gemini Code Assist sunset) so they feed Codex directly.
 
 **Voice**
 
@@ -78,18 +88,19 @@ These are the conventions the reviewer applies. I ported them from `.gemini/styl
 
 **Hook scaffolding contract**
 
-- All standard hook events covered correctly; hook outputs JSON where the contract requires JSON.
-- No hook script silently swallows errors.
+- Each hook example matches the current Claude Code contract for its event: real stdin field names, `exit 2` (never `exit 1`) for anything meant to block, plain-text stdout where Claude Code adds it to context, and JSON output only where the event needs structured control. No hand-rolled `<system-reminder>` wrappers; Claude Code wraps hook output itself.
+- No hook script silently swallows errors. The one deliberate exception: `run-python.sh` exits 0 with no output when no Python exists, so an optional feature can't turn every prompt into a hook error (`--verify` reports the missing Python instead).
 
 **Skill structure**
 
 - `SKILL.md` frontmatter present and valid; kebab-case naming.
-- Skills register their tool surface explicitly, no implicit globals.
+- Skills reference their own files through `${CLAUDE_SKILL_DIR}`, never a hard-coded install path, so they work under both the plugin cache and `~/.claude/skills/`.
+- Skills keep user data (like the Nudge DB) outside the skill directory, which plugin updates replace.
 
 **README accuracy**
 
 - README claims must match installed behavior; quick-start commands work on a fresh clone.
-- Version numbers in README match `package.json` / `pyproject.toml` / equivalents.
+- Version numbers in the README badge match `plugin/.claude-plugin/plugin.json` and the top-level `version` in `.claude-plugin/marketplace.json`. The plugin version lives only in `plugin.json`; Claude Code uses it over any version in the marketplace entry, so I don't set one there.
 
 **Brand separation (MIT compliance + private-system isolation)**
 
@@ -98,8 +109,8 @@ These are the conventions the reviewer applies. I ported them from `.gemini/styl
 
 **Python & shell discipline**
 
-- `python3` invocation only, never bare `python`. Type hints on public surfaces. No shell-injection risk in any subprocess call.
-- Bash scripts target POSIX-compatible shells unless otherwise declared; PowerShell targets PS 7+.
+- `python3` invocation in docs and hook examples, never bare `python`. The one exception is `run-python.sh`, whose job is to fall back to `python` / `py -3` on Windows. Type hints on public surfaces. No shell-injection risk in any subprocess call.
+- Bash scripts target bash (macOS/Linux, and Git Bash on Windows, which Claude Code uses to run hooks) and stay ShellCheck-clean. `install.ps1` targets Windows PowerShell 5.1+ (`#Requires -Version 5.1`) and also runs on PowerShell 7+; don't use PS 7-only syntax there. When PowerShell writes JSON or markdown, write UTF-8 without a BOM.
 - No BOM on `.ps1`. Consistent line endings per file.
 
 **Non-goals (do not nit)**

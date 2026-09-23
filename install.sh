@@ -6,7 +6,7 @@
 # your existing setup. Any file the installer is about to overwrite is first
 # copied to ~/.claude/.clayworks-lite-backup/<timestamp>/.
 #
-# Usage: ./install.sh [--dry-run] [--claude-dir PATH]
+# Usage: ./install.sh [--dry-run] [--uninstall] [--verify] [--claude-dir PATH]
 
 set -eo pipefail
 
@@ -44,7 +44,8 @@ Installs:
   templates/settings.example.json -> \$CLAUDE_DIR/settings.example.json
 
 Your live \$CLAUDE_DIR/CLAUDE.md, \$CLAUDE_DIR/settings.json, and
-\$CLAUDE_DIR/hooks/ are never touched.
+\$CLAUDE_DIR/hooks/ are never touched. Nudge alerts live in
+\$CLAUDE_DIR/clayworks-lite/nudge/ and survive reinstall and uninstall.
 Anything overwritten is first copied to \$CLAUDE_DIR/.clayworks-lite-backup/.
 EOF
             exit 0
@@ -64,12 +65,15 @@ BACKUP_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
 
 # --- Hashing (prefer sha256sum, fall back to shasum on macOS) ----------------
 
+# sha_file reads the file on stdin rather than by name: GNU sha256sum prefixes
+# its output with a backslash when the path contains one (e.g. a Windows-style
+# --claude-dir under Git Bash), which would break the hash comparison.
 if command -v sha256sum >/dev/null 2>&1; then
-    sha_file()  { sha256sum  "$1" | awk '{print $1}'; }
-    sha_stdin() { sha256sum     | awk '{print $1}'; }
+    sha_file()  { sha256sum < "$1" | awk '{print $1}'; }
+    sha_stdin() { sha256sum        | awk '{print $1}'; }
 elif command -v shasum >/dev/null 2>&1; then
-    sha_file()  { shasum -a 256 "$1" | awk '{print $1}'; }
-    sha_stdin() { shasum -a 256     | awk '{print $1}'; }
+    sha_file()  { shasum -a 256 < "$1" | awk '{print $1}'; }
+    sha_stdin() { shasum -a 256        | awk '{print $1}'; }
 else
     echo "ERROR: need sha256sum or shasum on PATH" >&2
     exit 3
@@ -123,6 +127,27 @@ INSTALLED=()
 UPDATED=()
 SKIPPED=()
 BACKUP_PATHS=()
+
+# --- Python discovery --------------------------------------------------------
+# The Nudge scripts and JSON checks need Python 3.10+. The executable name
+# varies: python3 on macOS/Linux, often only python or the py launcher on
+# Windows (where "python3" may be a Store alias that just prints a hint).
+# PYTHON_CMD ends up as an array ("python3" / "python" / "py -3"), or empty.
+
+PYTHON_CMD=()
+find_python() {
+    local probe='import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'
+    local c
+    for c in python3 python; do
+        if command -v "$c" >/dev/null 2>&1 && "$c" -c "$probe" >/dev/null 2>&1; then
+            PYTHON_CMD=("$c"); return 0
+        fi
+    done
+    if command -v py >/dev/null 2>&1 && py -3 -c "$probe" >/dev/null 2>&1; then
+        PYTHON_CMD=(py -3); return 0
+    fi
+    return 1
+}
 
 # --- Output helpers ----------------------------------------------------------
 
@@ -255,6 +280,7 @@ run_uninstall() {
     info "  ${CLAUDE_DIR}/CLAUDE.md (your live config)"
     info "  ${CLAUDE_DIR}/settings.json (your live config)"
     info "  ${CLAUDE_DIR}/hooks/  (excluding examples/ subdir handled above)"
+    info "  ${CLAUDE_DIR}/clayworks-lite/ (your Nudge alerts DB — remove manually if desired)"
     info "  ${CLAUDE_DIR}/.clayworks-lite-backup/ (your backups — remove manually if desired)"
 
     section "Next steps"
@@ -262,10 +288,11 @@ run_uninstall() {
 If you wired Nudge or other LITE hooks into ~/.claude/settings.json,
 remove those entries manually. The uninstaller can't safely edit
 your settings.json — JSON parsing of an arbitrary user file would
-be too fragile.
+be too fragile. A leftover Nudge hook entry points at a launcher
+that no longer exists, so it shows a hook error on every prompt.
 
-To purge the backup folder:
-  rm -rf ~/.claude/.clayworks-lite-backup
+To purge the backup folder and your Nudge alerts:
+  rm -rf ~/.claude/.clayworks-lite-backup ~/.claude/clayworks-lite
 EOF
     echo
     echo "${C_GREEN}Uninstall complete.${C_RESET}"
@@ -278,6 +305,7 @@ verify_check() {
     case "$status" in
         pass) added "${label}: ${detail}";;
         warn) upd "${label}: ${detail}";;
+        skip) skip "${label}: ${detail}";;
         fail) echo "  ${C_YELLOW}? ${label}: ${detail}${C_RESET}"; VERIFY_FAILS=$((VERIFY_FAILS+1));;
     esac
 }
@@ -290,15 +318,18 @@ run_verify() {
     VERIFY_FAILS=0
 
     section "Runtime"
-    if command -v python3 >/dev/null 2>&1; then
-        verify_check "python3" pass "$(python3 --version 2>&1)"
-        if python3 -c "import sqlite3" 2>/dev/null; then
-            verify_check "python3 sqlite3 import" pass "ok"
+    if find_python; then
+        verify_check "python (${PYTHON_CMD[*]})" pass "$("${PYTHON_CMD[@]}" --version 2>&1)"
+        if [[ "${PYTHON_CMD[0]}" != "python3" ]]; then
+            verify_check "python3 name" warn "not on PATH; the Nudge hook launcher falls back to '${PYTHON_CMD[*]}', but the hook examples call python3 by name"
+        fi
+        if "${PYTHON_CMD[@]}" -c "import sqlite3" 2>/dev/null; then
+            verify_check "python sqlite3 import" pass "ok"
         else
-            verify_check "python3 sqlite3 import" fail "cannot import — Nudge skill will not work"
+            verify_check "python sqlite3 import" fail "cannot import — Nudge skill will not work"
         fi
     else
-        verify_check "python3" fail "not on PATH — Nudge skill + hook examples will not work"
+        verify_check "python" warn "no Python 3.10+ found (tried python3, python, py -3) — Nudge skill + hook examples will not work until you install one"
     fi
     if command -v claude >/dev/null 2>&1; then
         verify_check "claude" pass "$(claude --version 2>&1 | head -1)"
@@ -318,6 +349,17 @@ run_verify() {
             fi
         else
             verify_check "${s}" fail "SKILL.md missing at ${f}"
+        fi
+    done
+
+    section "Nudge hook launcher"
+    local nd="${CLAUDE_DIR}/skills/clayworks-lite-nudge/scripts"
+    local nf
+    for nf in run-python.sh nudge_db.py check_alerts.py; do
+        if [[ -f "${nd}/${nf}" ]]; then
+            verify_check "nudge/scripts/${nf}" pass "present"
+        else
+            verify_check "nudge/scripts/${nf}" fail "missing at ${nd}/${nf}"
         fi
     done
 
@@ -347,7 +389,9 @@ run_verify() {
     if [[ -f "$setj" ]]; then
         # Pipe via stdin to dodge Git-Bash/Windows-Python path-space mismatch
         # (bash's POSIX-style /tmp/... isn't visible to Windows Python).
-        if python3 -c "import json, sys; json.load(sys.stdin)" < "$setj" 2>/dev/null; then
+        if [[ ${#PYTHON_CMD[@]} -eq 0 ]]; then
+            verify_check "settings.example.json" skip "present; JSON check skipped (no Python found)"
+        elif "${PYTHON_CMD[@]}" -c "import json, sys; json.load(sys.stdin)" < "$setj" 2>/dev/null; then
             verify_check "settings.example.json" pass "present + valid JSON"
         else
             verify_check "settings.example.json" fail "present but JSON parse failed"
@@ -403,6 +447,29 @@ fi
 
 # Supply-chain check: refuse to proceed if the source tree contains symlinks.
 reject_symlinks_in_source "$REPO_ROOT"
+
+# --- Nudge alerts DB: move out of the skill dir (pre-1.1.0 layout) -----------
+# Before 1.1.0 the Nudge DB lived inside the skill dir, which this installer
+# replaces wholesale on update. Move it to its stable home first so an update
+# never strands your alerts in a backup folder.
+
+section "Nudge alerts database"
+legacy_db="${CLAUDE_DIR}/skills/clayworks-lite-nudge/scripts/alerts.db"
+new_db="${CLAYWORKS_NUDGE_DB:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
+if [[ -f "$legacy_db" && ! -e "$new_db" ]]; then
+    if [[ $DRY_RUN -eq 0 ]]; then
+        mkdir -p "$(dirname "$new_db")"
+        chmod 700 "$(dirname "$new_db")" 2>/dev/null || true
+        mv "$legacy_db" "$new_db"
+        upd "moved legacy alerts.db -> ${new_db}"
+    else
+        upd "would move legacy alerts.db -> ${new_db}"
+    fi
+elif [[ -f "$legacy_db" ]]; then
+    skip "legacy alerts.db left in place (${new_db} already exists)"
+else
+    skip "nothing to migrate (alerts live in ${new_db})"
+fi
 
 # --- Install items -----------------------------------------------------------
 
@@ -479,8 +546,9 @@ fi
 
 section "Next steps"
 cat <<'EOF'
-1. Restart Claude Code so it picks up new skills:
-     close all CC sessions, then open a fresh one.
+1. Claude Code picks up new skills in a running session. If
+     ~/.claude/skills/ didn't exist before this install, start a new
+     session so Claude Code can watch the new directory.
 
 2. To use the CLAUDE.md starter template:
      cp ~/.claude/CLAUDE.md.clayworks-template ~/.claude/CLAUDE.md
@@ -490,8 +558,12 @@ cat <<'EOF'
 3. To use the nudge skill (if installed):
      the skill auto-triggers when you mention a time
      ("stop me at 5pm", "remind me about standup at 9:55").
-     For nudges to actually fire, wire the UserPromptSubmit hook -
-     see ~/.claude/skills/clayworks-lite-nudge/SKILL.md.
+     For nudges to actually fire, add the UserPromptSubmit hook from
+     ~/.claude/settings.example.json to ~/.claude/settings.json
+     (details in ~/.claude/skills/clayworks-lite-nudge/SKILL.md).
+     Claude Code applies settings.json edits without a restart.
+     Skip this if you also installed LITE as a plugin: the plugin
+     registers the same hook, and you'd see every alert twice.
 
 4. To use a hook example:
      cp ~/.claude/hooks/examples/<event>.sh ~/.claude/hooks/<name>.sh

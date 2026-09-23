@@ -4,7 +4,7 @@ The `clayworks-lite-template` ships a specific section ordering: **identity → 
 
 ## The model reads top-to-bottom and weights early rules more heavily
 
-Claude (and any LLM) processes its system prompt sequentially. Early content sets *frames* that color how later content is interpreted. Late content can refine but rarely overrides framing.
+Claude Code delivers CLAUDE.md as context at the start of the conversation (as a message after the system prompt, not inside it), and Claude reads it top to bottom like any other text. Early content sets *frames* that color how Claude interprets later content. Late content can refine but rarely overrides framing. Because it isn't the system prompt, nothing guarantees strict compliance, which is one more reason to make each rule specific and put the load-bearing ones first.
 
 Concrete examples:
 
@@ -44,7 +44,7 @@ The choice isn't "should CLAUDE.md have an identity section." It's "where does t
 ## When this design would be wrong
 
 - **You don't want an agent persona.** If Claude-as-rule-follower is exactly what you want, putting identity first is overkill. Strip the identity section and treat the file as a list of conventions. Several LITE-adjacent operator setups do this — they're not wrong, they're targeting a different use.
-- **Your project has many CLAUDE.md-like files per subdirectory.** Project-scoped files at `<project>/.claude/CLAUDE.md` shouldn't try to establish identity — that's the user-level `~/.claude/CLAUDE.md`'s job. The template's identity-first ordering applies to the user-level file. Per-project files lead with project context, by design.
+- **Your project has many CLAUDE.md-like files per subdirectory.** Project-scoped files at `<project>/.claude/CLAUDE.md` shouldn't try to establish identity — that's the user-level `~/.claude/CLAUDE.md`'s job. The template's identity-first ordering applies to the user-level file. Per-project files lead with project context, by design. The same goes for a repo that already keeps its instructions in `AGENTS.md`: since 2.1.277, Claude Code reads `AGENTS.md` when a project has no `CLAUDE.md`, and your user-level file still loads alongside it.
 - **You're maintaining a multi-user team CLAUDE.md.** Team-shared files can't establish a single user's identity. They should lead with shared conventions, not single-operator persona. Use this template for personal use; write a different template for team use.
 
 ## Maintenance discipline
@@ -55,7 +55,7 @@ The template ships with HTML-comment guidance:
 > - Re-read this file monthly. If a rule hasn't fired in 90 days, consider removing it. CLAUDE.md drift is the #1 cause of "CC stopped behaving how I configured it."
 > - When you add a new rule, write WHY in a comment next to it. Future-you will not remember the reasoning.
 
-This is part of the design, not an afterthought. The ordering is load-bearing *and the file degrades over time without active maintenance*. Both are real, both need addressing. The `claude-md-management` plugin (`/revise-claude-md`, `/claude-md-improver`) is the suggested maintenance tool — not because it's the only option, but because it's the option that exists.
+This is part of the design, not an afterthought. The ordering is load-bearing *and the file degrades over time without active maintenance*. Both are real, both need addressing. The `claude-md-management` plugin (`/claude-md-management:revise-claude-md`, `/claude-md-management:claude-md-improver`) is the suggested maintenance tool — not because it's the only option, but because it's the option that exists.
 
 ## What this doc is NOT
 

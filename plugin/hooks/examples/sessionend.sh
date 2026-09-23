@@ -1,56 +1,60 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SessionEnd hook — fires when a Claude Code session terminates
+# SessionEnd hook — fires when a Claude Code session ends
 # =============================================================================
-# Payload (stdin, JSON):
+# Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
-#     "session_id": "...",
-#     "transcript_path": "...",
-#     "ended_at": "ISO-8601 timestamp",
-#     "duration_seconds": 1234
+#     "session_id": "abc123",
+#     "transcript_path": "/Users/.../.claude/projects/.../<session>.jsonl",
+#     "cwd": "/Users/.../my-project",
+#     "hook_event_name": "SessionEnd",
+#     "reason": "prompt_input_exit"
 #   }
+# reason is one of: clear | resume | logout | prompt_input_exit | other
+# There is no duration or end-timestamp field; compute those yourself (e.g.
+# from the transcript file's timestamps) if you need them.
 #
 # Common uses:
 #   - Append a session summary line to a daily log
 #   - Persist final state (e.g., dump current TODO list)
-#   - Trigger downstream automation (deploy, notify, etc.)
-#   - Capture session-length telemetry
+#   - Capture session-end telemetry
 #
-# Exit behavior: stdout is suppressed (session is already ending). Non-zero
-# exit is logged. SessionEnd hooks should be FAST — CC waits for them before
-# fully exiting.
+# Exit behavior: SessionEnd can't block the session from ending, and Claude
+# Code discards JSON output. A non-zero exit only shows stderr to the user.
 #
-# Register in ~/.claude/settings.json under hooks.SessionEnd.
+# TIMEOUT: SessionEnd hooks share a short budget, 1.5 seconds by default. A
+# per-hook "timeout" in settings.json raises that budget (up to 60s), and so
+# does the CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS environment variable. Keep
+# the work tiny, or hand anything slow to a detached background process.
+#
+# Register in ~/.claude/settings.json under hooks.SessionEnd. Add a matcher
+# (e.g. "prompt_input_exit|logout") to skip /clear and /resume switches.
 # =============================================================================
 
 set -u
 
 PAYLOAD=$(cat)
-SESSION_ID=$(printf '%s' "$PAYLOAD" | python3 -c "
+FIELDS=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
-    print(d.get('session_id', '<unknown>'), end='')
+    print(d.get('session_id', '<unknown>'), d.get('reason', 'unknown'), sep='\x1f', end='')
 except Exception:
-    print('<unknown>', end='')
+    print('<unknown>', 'unknown', sep='\x1f', end='')
 ")
-DURATION=$(printf '%s' "$PAYLOAD" | python3 -c "
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    print(d.get('duration_seconds', 0), end='')
-except Exception:
-    print(0, end='')
-")
+IFS=$'\x1f' read -r SESSION_ID REASON <<< "$FIELDS"
 
-# --- Example: log session-end telemetry to a daily log -----------------------
+# --- Example: log session-end reason to a monthly log -------------------------
 
 LOG_DIR="$HOME/agent/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null
 LOG_FILE="$LOG_DIR/sessions-$(date +%Y-%m).log"
 
+# Sanitize: payload strings can carry newlines/ANSI escapes that forge log lines.
+SESSION_ID_SAFE=$(printf '%s' "$SESSION_ID" | tr -d '\000-\037\177' | cut -c1-100)
+REASON_SAFE=$(printf '%s' "$REASON" | tr -d '\000-\037\177' | cut -c1-50)
+
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-MINUTES=$(( DURATION / 60 ))
-printf '[%s] session=%s duration=%dm\n' "$TIMESTAMP" "$SESSION_ID" "$MINUTES" >> "$LOG_FILE" 2>/dev/null
+printf '[%s] session=%s reason=%s\n' "$TIMESTAMP" "$SESSION_ID_SAFE" "$REASON_SAFE" >> "$LOG_FILE" 2>/dev/null
 
 exit 0

@@ -1,45 +1,46 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SubagentStart hook — fires when Claude dispatches a subagent via Agent tool
+# SubagentStart hook — fires when Claude spawns (or resumes) a subagent
 # =============================================================================
-# Payload (stdin, JSON):
+# Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
-#     "subagent_type": "general-purpose" | "Explore" | ...,
-#     "session_id": "...",          # parent session
-#     "subagent_session_id": "...", # the subagent's own session ID
-#     "description": "...",         # short description from the Agent call
-#     "started_at": "ISO-8601"
+#     "session_id": "abc123",
+#     "transcript_path": "/Users/.../.claude/projects/.../<session>.jsonl",
+#     "cwd": "/Users/.../my-project",
+#     "hook_event_name": "SubagentStart",
+#     "agent_id": "agent-abc123",
+#     "agent_type": "Explore"
 #   }
+# agent_type is what a matcher filters on: built-in names like
+# "general-purpose", "Explore", "Plan", a custom agent's frontmatter name, or a
+# plugin-scoped name like "my-plugin:reviewer". The payload doesn't carry the
+# task description.
 #
 # Common uses:
 #   - Track parallel work (counter, dashboard, telemetry)
-#   - Log delegated tasks for later auditing
-#   - Surface a warning if too many subagents are in flight
+#   - Log delegated work for later auditing
+#   - Inject context into the subagent (JSON hookSpecificOutput.additionalContext)
 #
-# Exit behavior: stdout is logged, not surfaced to either session.
+# Exit behavior: SubagentStart can't block the subagent. Plain stdout goes to
+# the debug log; to give the subagent context, print JSON additionalContext.
+# A non-zero exit shows a hook-error notice in the subagent's transcript.
 #
-# Register in ~/.claude/settings.json under hooks.SubagentStart.
+# Register in ~/.claude/settings.json under hooks.SubagentStart, optionally
+# with a matcher on agent type (e.g. "Explore|Plan").
 # =============================================================================
 
 set -u
 
 PAYLOAD=$(cat)
-SUBAGENT_TYPE=$(printf '%s' "$PAYLOAD" | python3 -c "
+FIELDS=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
-    print(d.get('subagent_type', '<unknown>'), end='')
+    print(d.get('agent_type', '<unknown>'), d.get('agent_id', '<unknown>'), sep='\x1f', end='')
 except Exception:
-    print('<unknown>', end='')
+    print('<unknown>', '<unknown>', sep='\x1f', end='')
 ")
-DESCRIPTION=$(printf '%s' "$PAYLOAD" | python3 -c "
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    print(d.get('description', '<no description>'), end='')
-except Exception:
-    print('<no description>', end='')
-")
+IFS=$'\x1f' read -r AGENT_TYPE AGENT_ID <<< "$FIELDS"
 
 # --- Example: log subagent dispatches for audit ------------------------------
 
@@ -49,10 +50,10 @@ LOG_FILE="$LOG_DIR/subagents.log"
 
 # Sanitize: strip control chars + cap length. Payload fields can carry
 # newlines/ANSI escapes that forge log entries or attack a terminal session.
-SUBAGENT_TYPE_SAFE=$(printf '%s' "$SUBAGENT_TYPE" | tr -d '\000-\037\177' | cut -c1-100)
-DESCRIPTION_SAFE=$(printf '%s' "$DESCRIPTION" | tr -d '\000-\037\177' | cut -c1-500)
+AGENT_TYPE_SAFE=$(printf '%s' "$AGENT_TYPE" | tr -d '\000-\037\177' | cut -c1-100)
+AGENT_ID_SAFE=$(printf '%s' "$AGENT_ID" | tr -d '\000-\037\177' | cut -c1-100)
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-printf '[%s] START %s "%s"\n' "$TIMESTAMP" "$SUBAGENT_TYPE_SAFE" "$DESCRIPTION_SAFE" >> "$LOG_FILE" 2>/dev/null
+printf '[%s] START %s id=%s\n' "$TIMESTAMP" "$AGENT_TYPE_SAFE" "$AGENT_ID_SAFE" >> "$LOG_FILE" 2>/dev/null
 
 exit 0

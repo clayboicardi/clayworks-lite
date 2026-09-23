@@ -5,7 +5,7 @@ description: Nudge the user with time-based reminders (stopping times, meetings,
 
 # Clayworks LITE: Nudge
 
-Human-facing reminder system for managing focus and pacing. Nudges are stored in a local SQLite database and surface via a UserPromptSubmit hook on the next prompt the user sends after the nudge is due.
+Human-facing reminder system for managing focus and pacing. Nudges live in a local SQLite database and surface through a UserPromptSubmit hook on the next prompt the user sends after the nudge is due.
 
 ## When to use
 
@@ -19,14 +19,16 @@ Human-facing reminder system for managing focus and pacing. Nudges are stored in
 **Do NOT use Nudge for:**
 
 - Tasks Claude will complete in the current turn
-- Information that should go in memory instead (use the engram plugin or `~/.claude/projects/<project>/memory/MEMORY.md` for facts)
+- Information that should go in memory instead (use the engram plugin or the project's auto memory for facts; see the `clayworks-lite-memory-routing` skill)
 - **Process monitoring** — nudges fire on prompt submission, so they can't poll running processes. Use `sleep <seconds>` in Bash for inline blocking, or background tasks for non-blocking.
 
 ## Adding a nudge
 
 ```bash
-python3 ~/.claude/skills/clayworks-lite-nudge/scripts/add_alert.py "<time>" "<message>"
+python3 "${CLAUDE_SKILL_DIR}/scripts/add_alert.py" "<time>" "<message>"
 ```
+
+If `python3` isn't on PATH (common on Windows), use `python` or `py -3` instead, or run the bundled launcher, which picks whichever works: `bash "${CLAUDE_SKILL_DIR}/scripts/run-python.sh" "${CLAUDE_SKILL_DIR}/scripts/add_alert.py" "<time>" "<message>"`.
 
 **Time formats:**
 
@@ -39,18 +41,20 @@ python3 ~/.claude/skills/clayworks-lite-nudge/scripts/add_alert.py "<time>" "<me
 
 ## Acknowledging a nudge
 
-When a nudge has fired and been addressed, dismiss it so it doesn't repeat:
+When a nudge has fired and the user has dealt with it, dismiss it so it doesn't repeat:
 
 ```bash
-python3 ~/.claude/skills/clayworks-lite-nudge/scripts/ack_alert.py <id>
+python3 "${CLAUDE_SKILL_DIR}/scripts/ack_alert.py" <id>
 ```
 
 ## Viewing pending nudges
 
 ```bash
-sqlite3 ~/.claude/skills/clayworks-lite-nudge/scripts/alerts.db \
+sqlite3 ~/.claude/clayworks-lite/nudge/alerts.db \
   "SELECT id, due_at, message FROM alerts WHERE acknowledged = 0 ORDER BY due_at"
 ```
+
+If the user set `CLAYWORKS_NUDGE_DB`, query that path instead.
 
 ## Message format
 
@@ -67,11 +71,11 @@ Messages are notes-to-self for Claude. The format that's worked best:
 - `2 hours on debugging session - check if stuck, suggest stepping away`
 - `Deployment window opens at 14:00 - remind user to run deploy script`
 
-The **reason** gives Claude context for *why* the nudge was set; the **action** tells Claude what to do when it fires. Without both, Claude has to reconstruct intent from a one-word message, which fails often.
+The **reason** gives Claude context for *why* the user set the nudge; the **action** tells Claude what to do when it fires. Without both, Claude has to reconstruct intent from a one-word message, which fails often.
 
 ## When nudges fire
 
-Due nudges appear in a system-reminder on the next prompt submission after their `due_at` time has passed. When Claude sees an alert in the system-reminder:
+Due nudges reach Claude's context alongside the next prompt the user submits after their `due_at` time, as an `ALERTS DUE:` block. When Claude sees that block:
 
 1. Read the message to understand the context + action
 2. Take the action (surface the reminder, suggest a break, etc.)
@@ -79,7 +83,10 @@ Due nudges appear in a system-reminder on the next prompt submission after their
 
 ## Hook wiring (required for nudges to fire)
 
-This skill ships the SQL store and the helper scripts. For nudges to *fire*, you need a UserPromptSubmit hook configured in `~/.claude/settings.json`:
+How the hook gets wired depends on how you installed LITE:
+
+- **Plugin install** (`/plugin install clayworks-lite@clayworks-lite`): the plugin registers the UserPromptSubmit hook for you in its `hooks/hooks.json`. Nothing to add.
+- **Script install** (`install.sh` / `install.ps1`): add the hook to `~/.claude/settings.json` yourself:
 
 ```json
 {
@@ -89,8 +96,8 @@ This skill ships the SQL store and the helper scripts. For nudges to *fire*, you
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
-            "timeout": 5
+            "command": "bash ~/.claude/skills/clayworks-lite-nudge/scripts/run-python.sh ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 10
           }
         ]
       }
@@ -99,13 +106,21 @@ This skill ships the SQL store and the helper scripts. For nudges to *fire*, you
 }
 ```
 
-The hook runs on every prompt submission, queries the SQLite for due+unacknowledged alerts, and prints them. Claude Code surfaces the printed text as a system-reminder.
+`run-python.sh` finds a working Python (`python3`, then `python`, then `py -3`) and exits silently if none exists, so a missing interpreter never turns into a hook error on every prompt. Claude Code watches `settings.json` and picks up the new hook in a running session, no restart needed.
+
+Don't wire the settings snippet on top of a plugin install. Claude Code deduplicates only identical handlers across settings files; a plugin's hook always stays separate, so you'd see every due alert twice.
+
+The hook runs on every prompt submission, queries the SQLite store for due + unacknowledged alerts, and prints them as plain text. Claude Code adds that text to Claude's context next to the prompt.
 
 For the broader UserPromptSubmit contract (full payload shape, exit behavior, common patterns beyond the Nudge use case), see [`hooks/examples/userpromptsubmit.sh`](../../hooks/examples/userpromptsubmit.sh) in the LITE repo. The example is annotated and a good starting point for chaining multiple effects (Nudge + a freshness gate + context injection, etc.).
 
 If you already have UserPromptSubmit hooks, add this entry to the existing `hooks` array. Don't replace the block.
 
-## Database schema
+## Database
+
+The alerts DB lives at `~/.claude/clayworks-lite/nudge/alerts.db` (or under `$CLAUDE_CONFIG_DIR` if you set it). Set `CLAYWORKS_NUDGE_DB` to a full file path to put it somewhere else. The scripts create the directory on first use and tighten the file to owner-only permissions where the OS supports it.
+
+I keep it outside the skill directory on purpose: plugin updates replace the skill directory, and both install paths share this one location, so your alerts survive updates and switching install methods. Before 1.1.0 the DB lived in `scripts/alerts.db`; the scripts move that file to the new location the first time they run. Your alert history never leaves your machine.
 
 ```sql
 CREATE TABLE alerts (
@@ -117,10 +132,9 @@ CREATE TABLE alerts (
 )
 ```
 
-The DB file (`alerts.db`) is created in the `scripts/` directory on first use. It's gitignored. Your personal alert history never leaves your machine.
-
 ## Prerequisites
 
 - **Python 3.10+** — the scripts use modern type hints
 - **sqlite3** — bundled with Python's standard library; no install needed
-- **Claude Code** with UserPromptSubmit hook support (any 2.x version)
+- **bash** — for the hook launcher (built into macOS/Linux; Git Bash on Windows, which Claude Code also uses to run hooks)
+- **Claude Code 2.1.x** — I test LITE against 2.1.280

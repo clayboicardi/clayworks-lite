@@ -22,10 +22,12 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install shellcheck
 
-      - name: ShellCheck install.sh + hook examples
+      - name: ShellCheck install.sh + hook examples + Nudge launcher
         run: |
           shellcheck install.sh
           shellcheck plugin/hooks/examples/*.sh
+          shellcheck plugin/examples/full/hooks/*.sh
+          shellcheck plugin/skills/clayworks-lite-nudge/scripts/*.sh
 
       - name: Installer dry-run (clean target)
         run: |
@@ -40,10 +42,16 @@ jobs:
             echo "ERROR: idempotency check failed — re-run did not report any item as unchanged" >&2
             exit 1
           fi
+          if grep -q "differed from source" out.log; then
+            echo "ERROR: idempotency check failed — re-run reinstalled an unchanged item" >&2
+            exit 1
+          fi
 
       - name: Verify expected install layout
         run: |
           ls /tmp/clayworks-test/skills/clayworks-lite-nudge/SKILL.md
+          ls /tmp/clayworks-test/skills/clayworks-lite-nudge/scripts/run-python.sh
+          ls /tmp/clayworks-test/skills/clayworks-lite-nudge/scripts/nudge_db.py
           ls /tmp/clayworks-test/skills/clayworks-lite-memory-routing/SKILL.md
           ls /tmp/clayworks-test/skills/clayworks-lite-heartbeat-concept/SKILL.md
           ls /tmp/clayworks-test/hooks/examples/userpromptsubmit.sh
@@ -87,6 +95,11 @@ jobs:
           if ($out -notmatch "already installed and unchanged") {
             throw "Idempotency check failed — re-run did not report any item as unchanged"
           }
+          # %TEMP% on the runner is an 8.3 short path (RUNNER~1); this guards
+          # the directory-hash regression fixed in 1.1.0.
+          if ($out -match "differed from source") {
+            throw "Idempotency check failed — re-run reinstalled an unchanged item"
+          }
 
       - name: Verify expected install layout
         shell: pwsh
@@ -94,6 +107,8 @@ jobs:
           $target = Join-Path $env:TEMP "clayworks-test"
           @(
             "$target\skills\clayworks-lite-nudge\SKILL.md",
+            "$target\skills\clayworks-lite-nudge\scripts\run-python.sh",
+            "$target\skills\clayworks-lite-nudge\scripts\nudge_db.py",
             "$target\skills\clayworks-lite-memory-routing\SKILL.md",
             "$target\skills\clayworks-lite-heartbeat-concept\SKILL.md",
             "$target\hooks\examples\userpromptsubmit.sh",
@@ -104,3 +119,86 @@ jobs:
                 throw "Expected file missing after install: $_"
               }
             }
+
+  plugin-validate:
+    name: claude plugin validate --strict
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      # `claude plugin validate` checks manifests, hooks/hooks.json, and skill
+      # frontmatter locally. It needs no login or API key; if a future Claude
+      # Code release changes that, this job fails at the validate step rather
+      # than silently passing.
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate plugin, marketplace, and skills
+        run: |
+          claude --version
+          claude plugin validate --strict ./plugin
+          claude plugin validate --strict .
+          claude plugin validate --strict ./plugin/skills
+
+  nudge-scripts:
+    name: Nudge scripts round trip (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        # Git Bash on Windows: the same shell Claude Code uses to run hooks.
+        shell: bash
+    env:
+      CLAYWORKS_NUDGE_DB: ${{ runner.temp }}/nudge-ci/alerts.db
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Syntax-check the Nudge scripts
+        # ast.parse rather than py_compile, which would write __pycache__
+        # into the skill dir and trip the check below.
+        run: python -c "import ast, sys; [ast.parse(open(f, encoding='utf-8').read(), f) for f in sys.argv[1:]]" plugin/skills/clayworks-lite-nudge/scripts/*.py
+
+      - name: add -> check -> ack -> check, through the plugin hook command
+        run: |
+          S=plugin/skills/clayworks-lite-nudge/scripts
+          export CLAUDE_PLUGIN_ROOT="$PWD/plugin"
+          # Run the exact command string the plugin registers in hooks.json.
+          HOOK_CMD=$(python -c "import json; print(json.load(open('plugin/hooks/hooks.json'))['hooks']['UserPromptSubmit'][0]['hooks'][0]['command'])")
+
+          bash "$S/run-python.sh" "$S/add_alert.py" "+0m" "CI check - acknowledge me"
+
+          out=$(eval "$HOOK_CMD")
+          echo "$out"
+          grep -q "ALERTS DUE:" <<< "$out"
+          grep -q "CI check - acknowledge me" <<< "$out"
+
+          bash "$S/run-python.sh" "$S/ack_alert.py" 1
+
+          out=$(eval "$HOOK_CMD")
+          if [ -n "$out" ]; then
+            echo "ERROR: alert still fires after ack: $out" >&2
+            exit 1
+          fi
+
+          # The launcher must not leave __pycache__ in the skill dir: the
+          # installers hash that dir to detect local edits.
+          if [ -d "$S/__pycache__" ]; then
+            echo "ERROR: __pycache__ written into the skill dir" >&2
+            exit 1
+          fi
+
+      - name: Launcher exits 0 silently when no Python exists
+        run: |
+          out=$(PATH=/nonexistent /bin/bash plugin/skills/clayworks-lite-nudge/scripts/run-python.sh plugin/skills/clayworks-lite-nudge/scripts/check_alerts.py; echo "rc=$?")
+          test "$out" = "rc=0"

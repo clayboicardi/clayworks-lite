@@ -1,57 +1,42 @@
 #!/usr/bin/env python3
 """Hook script: check for due alerts and print them.
 
-Intended to be invoked from a UserPromptSubmit hook in ~/.claude/settings.json:
+Runs from a UserPromptSubmit hook. The plugin install registers it for you
+(plugin/hooks/hooks.json). For the install.sh / install.ps1 path, add this to
+~/.claude/settings.json:
 
     {
       "hooks": {
         "UserPromptSubmit": [{
           "hooks": [{
             "type": "command",
-            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
-            "timeout": 5
+            "command": "bash ~/.claude/skills/clayworks-lite-nudge/scripts/run-python.sh ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 10
           }]
         }]
       }
     }
 
-Prints due+unacknowledged alerts. Claude Code surfaces the printed text
-as a system-reminder so the model sees it on the user's next prompt.
+Prints due + unacknowledged alerts as plain text. Claude Code adds plain
+UserPromptSubmit stdout to Claude's context (it wraps it itself), so the model
+sees the alerts alongside the user's next prompt. Prints nothing when no
+alert is due.
 """
 
-import sqlite3
+import sys
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "alerts.db"
-ACK_SCRIPT = Path(__file__).parent / "ack_alert.py"
+sys.dont_write_bytecode = True  # keep __pycache__ out of the skill dir
+from nudge_db import open_db  # noqa: E402
 
-
-def init_db() -> None:
-    """Create the alerts table if it doesn't exist (idempotent), tighten perms."""
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS alerts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                due_at TEXT NOT NULL,
-                message TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                acknowledged INTEGER NOT NULL DEFAULT 0
-            )
-        """)
-    # Best-effort: alert content can be sensitive (e.g. "standup at 9:30 about
-    # acquisition negotiation"). Tighten so it isn't world-readable on shared
-    # multi-user systems. No-op semantics on Windows.
-    try:
-        DB_PATH.chmod(0o600)
-    except OSError:
-        pass
+ACK_SCRIPT = Path(__file__).resolve().parent / "ack_alert.py"
 
 
 def check_alerts() -> list[tuple[int, str, str]]:
     """Return (id, due_at, message) tuples for unacknowledged due alerts."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    with sqlite3.connect(DB_PATH) as conn:
+    with open_db() as conn:
         cursor = conn.execute(
             """
             SELECT id, due_at, message
@@ -65,13 +50,18 @@ def check_alerts() -> list[tuple[int, str, str]]:
 
 
 def main() -> None:
-    init_db()
-    alerts = check_alerts()
+    try:
+        alerts = check_alerts()
+    except Exception as exc:  # noqa: BLE001 -- report, don't dump a traceback
+        # One short stderr line: Claude Code shows it in a non-blocking
+        # "hook error" notice, and the prompt still goes through.
+        print(f"clayworks-lite-nudge: could not read alerts DB: {exc}", file=sys.stderr)
+        sys.exit(1)
     if alerts:
         print("ALERTS DUE:")
         for alert_id, due_at, message in alerts:
             print(f"  [{alert_id}] {due_at}: {message}")
-        print(f"(Dismiss with: python {ACK_SCRIPT} <id>)")
+        print(f'(Dismiss with: python3 "{ACK_SCRIPT.as_posix()}" <id>)')
 
 
 if __name__ == "__main__":
