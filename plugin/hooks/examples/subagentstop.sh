@@ -45,7 +45,8 @@ try:
     msg = (d.get('last_assistant_message') or '').replace('\n', ' ')
     print(d.get('agent_type', '') or '<internal>', d.get('agent_id', '<unknown>'),
           msg, sep='\x1f', end='')
-except Exception:
+except Exception as exc:
+    print(f'subagentstop.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', '<unknown>', '', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r AGENT_TYPE AGENT_ID LAST_MESSAGE <<< "$FIELDS"

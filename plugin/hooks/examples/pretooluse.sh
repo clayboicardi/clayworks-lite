@@ -46,7 +46,8 @@ import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('tool_name', ''), end='')
-except Exception:
+except Exception as exc:
+    print(f'pretooluse.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     pass
 ")
 
@@ -66,7 +67,8 @@ try:
     d = json.load(sys.stdin)
     ti = d.get('tool_input', {})
     print(ti.get('file_path') or ti.get('notebook_path') or '<unknown>', end='')
-except Exception:
+except Exception as exc:
+    print(f'pretooluse.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', end='')
 ")
         # Sanitize: strip control chars + cap length. A maliciously-crafted

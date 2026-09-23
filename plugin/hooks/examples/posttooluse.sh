@@ -57,7 +57,8 @@ try:
     print(d.get('tool_name', ''), d.get('duration_ms', 'n/a'),
           'n/a' if interrupted is None else str(bool(interrupted)).lower(),
           sep='\x1f', end='')
-except Exception:
+except Exception as exc:
+    print(f'posttooluse.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('', 'n/a', 'n/a', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r TOOL_NAME DURATION_MS INTERRUPTED <<< "$FIELDS"

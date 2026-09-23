@@ -42,7 +42,8 @@ import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('prompt', ''), end='')
-except Exception:
+except Exception as exc:
+    print(f'userpromptsubmit.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     pass
 ")
 

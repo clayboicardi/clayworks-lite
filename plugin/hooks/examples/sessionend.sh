@@ -39,7 +39,8 @@ import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('session_id', '<unknown>'), d.get('reason', 'unknown'), sep='\x1f', end='')
-except Exception:
+except Exception as exc:
+    print(f'sessionend.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', 'unknown', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SESSION_ID REASON <<< "$FIELDS"

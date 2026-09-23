@@ -30,7 +30,8 @@ import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('source', ''), d.get('cwd', ''), sep='\x1f', end='')
-except Exception:
+except Exception as exc:
+    print(f'sessionstart.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('', '', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SOURCE CWD <<< "$FIELDS"

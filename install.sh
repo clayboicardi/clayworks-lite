@@ -63,6 +63,22 @@ BACKUP_ROOT="${CLAUDE_DIR}/.clayworks-lite-backup"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)-$$"
 BACKUP_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
 
+# Nudge alerts: the same DB path nudge_db.py resolves for a script install
+# into CLAUDE_DIR, with a leading ~ expanded the way nudge_db.py does it. The
+# runtime merges every *.db in the import dir next to the DB on its next run,
+# so I hand a legacy DB over by dropping it there; I never merge myself.
+# NUDGE_MARKER_DIR is always under CLAUDE_DIR, even with an override: the
+# runtime uses it to recognize a script-install root.
+NUDGE_DB="${CLAYWORKS_NUDGE_DB:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
+if [[ $NUDGE_DB == \~ || $NUDGE_DB == \~/* ]]; then
+    NUDGE_DB="${HOME}${NUDGE_DB:1}"
+fi
+NUDGE_DB_DIR="$(dirname "$NUDGE_DB")"
+NUDGE_IMPORT_DIR="${NUDGE_DB_DIR}/import"
+NUDGE_MARKER_DIR="${CLAUDE_DIR}/clayworks-lite/nudge"
+# Where 1.0.x kept the DB, relative to the Nudge skill dir.
+LEGACY_DB_IN_SKILL="scripts/alerts.db"
+
 # .installer/shipped-hashes.txt lists "<installed-relpath><TAB><sha256>" for
 # every version of every file LITE ever shipped (tools/gen-shipped-hashes.py
 # writes it from git history). Uninstall uses it to recognize an older
@@ -93,14 +109,16 @@ fi
 # Hash a file (sha256) or a directory (sha256 over sorted "relpath:filehash" lines).
 # Excludes symlinks from the directory walk so the hash is deterministic against
 # an attacker that might swap a symlink's target between hash and copy (TOCTOU).
+# An optional second argument names one relpath inside the dir to leave out.
 path_hash() {
-    local path="$1"
+    local path="$1" ignore="${2:-}"
     if [[ ! -e "$path" ]]; then echo ""; return; fi
     if [[ -f "$path" ]]; then sha_file "$path"; return; fi
     if [[ -d "$path" ]]; then
         (
             cd "$path"
             find . -type f -not -type l -print0 | LC_ALL=C sort -z | while IFS= read -r -d '' f; do
+                [[ -n "$ignore" && "${f#./}" == "$ignore" ]] && continue
                 printf '%s:%s\n' "${f#./}" "$(sha_file "$f")"
             done
         ) | sha_stdin
@@ -229,50 +247,46 @@ install_item() {
     UPDATED+=("$label")
 }
 
-# --- Nudge alerts DB: move out of the skill dir (pre-1.1.0 layout) -----------
+# --- Nudge alerts DB: hand a pre-1.1.0 DB to the runtime --------------------
 # Before 1.1.0 the Nudge DB lived inside the skill dir, which install replaces
-# wholesale and uninstall removes. Both paths call this first, so an update
-# never strands your alerts in a backup folder and a 1.0.x skill dir isn't
-# held back by its runtime DB. When the stable DB already exists I leave the
-# legacy file alone: uninstall then keeps that skill dir as "customized",
-# which is right, because your data still lives in it.
+# wholesale and uninstall removes. I move that legacy DB into the import dir
+# before either one touches the skill dir, and the runtime merges it into the
+# stable DB on its next run. I never merge, and I never skip the move because
+# the stable DB already exists: a legacy DB left behind would end up in a
+# backup folder or deleted.
 
-# Set on a dry run that would move the DB, so the uninstall preview can
-# ignore the file the live run moves out first.
-NUDGE_DB_PENDING_REL=""
+# mkdir -p that tightens to 700 only the dirs it actually creates. If
+# CLAYWORKS_NUDGE_DB points into an existing shared dir, its owner's
+# permissions stay as they are.
+make_private_dir() {
+    local dir="$1" d="$1" created=()
+    while [[ ! -d "$d" ]]; do
+        created+=("$d")
+        d="$(dirname "$d")"
+    done
+    [[ ${#created[@]} -gt 0 ]] || return 0
+    mkdir -p "$dir"
+    for d in "${created[@]}"; do
+        chmod 700 "$d" 2>/dev/null || true
+    done
+}
 
-migrate_legacy_nudge_db() {
-    section "Nudge alerts database"
-    local legacy_db="${CLAUDE_DIR}/skills/clayworks-lite-nudge/scripts/alerts.db"
-    # The same path nudge_db.py resolves for a script install into CLAUDE_DIR.
-    local new_db="${CLAYWORKS_NUDGE_DB:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
-    # nudge_db.py expands a leading ~, so I do too.
-    if [[ $new_db == \~ || $new_db == \~/* ]]; then
-        new_db="${HOME}${new_db:1}"
+# Move <skill_dir>/scripts/alerts.db to import/legacy-<timestamp>-<pid>.db.
+stash_legacy_nudge_db() {
+    local legacy="$1/${LEGACY_DB_IN_SKILL}"
+    [[ -f "$legacy" ]] || return 0
+    local target="${NUDGE_IMPORT_DIR}/legacy-${TIMESTAMP}.db" n=1
+    while [[ -e "$target" ]]; do
+        target="${NUDGE_IMPORT_DIR}/legacy-${TIMESTAMP}-${n}.db"
+        n=$((n+1))
+    done
+    if [[ $DRY_RUN -eq 1 ]]; then
+        upd "would move legacy alerts.db -> ${target} (Nudge merges it on its next run)"
+        return 0
     fi
-
-    if [[ -f "$legacy_db" && ! -e "$new_db" ]]; then
-        if [[ $DRY_RUN -eq 0 ]]; then
-            local db_dir
-            db_dir="$(dirname "$new_db")"
-            if [[ ! -d "$db_dir" ]]; then
-                mkdir -p "$db_dir"
-                # I tighten only a dir I just created. If CLAYWORKS_NUDGE_DB
-                # points into an existing shared dir, its owner's permissions
-                # stay as they are.
-                chmod 700 "$db_dir" 2>/dev/null || true
-            fi
-            mv "$legacy_db" "$new_db"
-            upd "moved legacy alerts.db -> ${new_db}"
-        else
-            NUDGE_DB_PENDING_REL="skills/clayworks-lite-nudge/scripts/alerts.db"
-            upd "would move legacy alerts.db -> ${new_db}"
-        fi
-    elif [[ -f "$legacy_db" ]]; then
-        skip "legacy alerts.db left in place (${new_db} already exists)"
-    else
-        skip "nothing to migrate (alerts live in ${new_db})"
-    fi
+    make_private_dir "$NUDGE_IMPORT_DIR"
+    mv "$legacy" "$target"
+    upd "moved legacy alerts.db -> ${target} (Nudge merges it on its next run)"
 }
 
 # --- Uninstall operation -----------------------------------------------------
@@ -285,11 +299,12 @@ is_shipped_file() {
 }
 
 # True if dest holds nothing but files some LITE version shipped at the same
-# installed path. I ignore __pycache__/ and *.pyc, which 1.0.x left behind by
-# running Python from inside the skill dir. A symlink, an extra file, or an
-# edited file means you touched it, so the answer is no.
+# installed path, apart from the optional ignore relpath. I also skip
+# __pycache__/ and *.pyc, which 1.0.x left behind by running Python from
+# inside the skill dir. A symlink, an extra file, or an edited file means you
+# touched it, so the answer is no.
 matches_shipped_version() {
-    local dest="$1" rel="$2"
+    local dest="$1" rel="$2" ignore="${3:-}"
     [[ -n "$SHIPPED_LINES" && ! -L "$dest" ]] || return 1
     if [[ -f "$dest" ]]; then
         is_shipped_file "$rel" "$(sha_file "$dest")"
@@ -300,7 +315,7 @@ matches_shipped_version() {
     local f
     while IFS= read -r -d '' f; do
         f="${f#./}"
-        [[ "${rel}/${f}" == "$NUDGE_DB_PENDING_REL" ]] && continue
+        [[ -n "$ignore" && "$f" == "$ignore" ]] && continue
         is_shipped_file "${rel}/${f}" "$(sha_file "${dest}/${f}")" || return 1
     done < <(cd "$dest" && find . -name __pycache__ -type d -prune -o -type f ! -name '*.pyc' -print0)
     return 0
@@ -308,8 +323,12 @@ matches_shipped_version() {
 
 # Remove dest if it matches the current source, or failing that, if every
 # file in it matches some shipped version. Otherwise keep it and count it.
+# The optional fifth argument names a runtime file inside dest (the Nudge
+# legacy DB) that I leave out of that decision. When dest goes, I hand that
+# file to the Nudge import dir first; when dest stays, the file stays with
+# it, because the retained 1.0.x scripts still read it there.
 uninstall_item() {
-    local dest="$1" src="$2" label="$3" rel="$4"
+    local dest="$1" src="$2" label="$3" rel="$4" ignore="${5:-}"
 
     if [[ ! -e "$dest" ]]; then
         skip "${label}: not present (already uninstalled)"
@@ -317,9 +336,9 @@ uninstall_item() {
     fi
 
     local how
-    if [[ -e "$src" && "$(path_hash "$src")" == "$(path_hash "$dest")" ]]; then
+    if [[ -e "$src" && "$(path_hash "$src" "$ignore")" == "$(path_hash "$dest" "$ignore")" ]]; then
         how="removed"
-    elif matches_shipped_version "$dest" "$rel"; then
+    elif matches_shipped_version "$dest" "$rel" "$ignore"; then
         how="removed (matches a shipped LITE version)"
     else
         upd "${label}: customized (differs from every shipped version) — SKIPPING; remove manually if you want"
@@ -327,6 +346,9 @@ uninstall_item() {
         return
     fi
 
+    if [[ "$ignore" == "$LEGACY_DB_IN_SKILL" ]]; then
+        stash_legacy_nudge_db "$dest"
+    fi
     if [[ $DRY_RUN -eq 0 ]]; then
         rm -rf "$dest"
     fi
@@ -345,17 +367,18 @@ run_uninstall() {
         info "Mode         : LIVE"
     fi
 
-    # Before hashing: a 1.0.x Nudge skill dir still holds its runtime DB.
-    migrate_legacy_nudge_db
-
     section "Removing LITE skills"
     local skills_src="${REPO_ROOT}/plugin/skills"
     local skills_dest="${CLAUDE_DIR}/skills"
     # Every skill the current tree ships, plus any an older version shipped.
-    local name
+    # A 1.0.x Nudge skill dir still holds its runtime DB, which I leave out
+    # of the keep-or-remove decision.
+    local name ignore
     while IFS= read -r name; do
         [[ -z "$name" ]] && continue
-        uninstall_item "${skills_dest}/${name}" "${skills_src}/${name}" "skill: ${name}" "skills/${name}"
+        ignore=""
+        [[ "$name" == "clayworks-lite-nudge" ]] && ignore="$LEGACY_DB_IN_SKILL"
+        uninstall_item "${skills_dest}/${name}" "${skills_src}/${name}" "skill: ${name}" "skills/${name}" "$ignore"
     done < <(
         {
             if [[ -d "$skills_src" ]]; then
@@ -378,20 +401,28 @@ run_uninstall() {
     info "  ${CLAUDE_DIR}/CLAUDE.md (your live config)"
     info "  ${CLAUDE_DIR}/settings.json (your live config)"
     info "  ${CLAUDE_DIR}/hooks/  (excluding examples/ subdir handled above)"
-    info "  ${CLAUDE_DIR}/clayworks-lite/ (your Nudge alerts DB — remove manually if desired)"
-    info "  ${CLAUDE_DIR}/.clayworks-lite-backup/ (your backups — remove manually if desired)"
+    info "  ${NUDGE_DB_DIR}/ (your Nudge alerts DB — remove manually if desired)"
+    info "  ${BACKUP_ROOT}/ (your backups — remove manually if desired)"
 
     section "Next steps"
-    cat <<'EOF'
-If you wired Nudge or other LITE hooks into ~/.claude/settings.json,
+    cat <<EOF
+If you wired Nudge or other LITE hooks into ${CLAUDE_DIR}/settings.json,
 remove those entries manually. The uninstaller can't safely edit
 your settings.json — JSON parsing of an arbitrary user file would
 be too fragile. A leftover Nudge hook entry points at a launcher
 that no longer exists, so it shows a hook error on every prompt.
 
 To purge the backup folder and your Nudge alerts:
-  rm -rf ~/.claude/.clayworks-lite-backup ~/.claude/clayworks-lite
 EOF
+    printf "  rm -rf '%s'\n" "$BACKUP_ROOT"
+    if [[ -n "${CLAYWORKS_NUDGE_DB:-}" ]]; then
+        # With an override, the DB dir may be a shared dir, so I name only
+        # the files Nudge owns there, plus the default dir under this root.
+        printf "  rm -f '%s'\n" "$NUDGE_DB"
+        printf "  rm -rf '%s'\n" "$NUDGE_IMPORT_DIR" "${CLAUDE_DIR}/clayworks-lite"
+    else
+        printf "  rm -rf '%s'\n" "$NUDGE_DB_DIR"
+    fi
     echo
     if [[ $DRY_RUN -eq 1 ]]; then
         echo "${C_CYAN}DRY RUN - nothing removed.${C_RESET}"
@@ -553,8 +584,23 @@ fi
 # Supply-chain check: refuse to proceed if the source tree contains symlinks.
 reject_symlinks_in_source "$REPO_ROOT"
 
-# Move a pre-1.1.0 Nudge DB out of the skill dir before replacing that dir.
-migrate_legacy_nudge_db
+section "Nudge alerts database"
+# I always create the default Nudge dir: the runtime treats it as the sign
+# that this root holds a script install.
+if [[ -d "$NUDGE_MARKER_DIR" ]]; then
+    skip "${NUDGE_MARKER_DIR}: already present"
+elif [[ $DRY_RUN -eq 1 ]]; then
+    added "would create ${NUDGE_MARKER_DIR}"
+else
+    make_private_dir "$NUDGE_MARKER_DIR"
+    added "created ${NUDGE_MARKER_DIR}"
+fi
+# Hand a pre-1.1.0 DB to the runtime before I replace the skill dir.
+if [[ -f "${CLAUDE_DIR}/skills/clayworks-lite-nudge/${LEGACY_DB_IN_SKILL}" ]]; then
+    stash_legacy_nudge_db "${CLAUDE_DIR}/skills/clayworks-lite-nudge"
+else
+    skip "nothing to migrate (alerts live in ${NUDGE_DB})"
+fi
 
 # --- Install items -----------------------------------------------------------
 

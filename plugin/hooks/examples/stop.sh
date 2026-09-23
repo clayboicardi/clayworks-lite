@@ -48,7 +48,8 @@ try:
     print(d.get('session_id', '<unknown>'),
           str(bool(d.get('stop_hook_active', False))).lower(),
           sep='\x1f', end='')
-except Exception:
+except Exception as exc:
+    print(f'stop.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', 'false', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SESSION_ID STOP_HOOK_ACTIVE <<< "$FIELDS"

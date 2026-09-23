@@ -223,6 +223,11 @@ jobs:
         # into the skill dir and trip the check below.
         run: python -c "import ast, sys; [ast.parse(open(f, encoding='utf-8').read(), f) for f in sys.argv[1:]]" plugin/skills/clayworks-lite-nudge/scripts/*.py
 
+      - name: DB resolver and legacy-merge scenarios
+        # Plugin-cache, custom-root, import-dir, and CLAUDE_CONFIG_DIR layouts
+        # in throwaway dirs; the test clears CLAYWORKS_NUDGE_DB per scenario.
+        run: python -B tools/test-nudge-db.py
+
       - name: add -> check -> ack -> check, through the plugin hook command
         run: |
           S=plugin/skills/clayworks-lite-nudge/scripts

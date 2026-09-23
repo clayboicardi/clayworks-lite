@@ -50,11 +50,10 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/ack_alert.py" <id>
 ## Viewing pending nudges
 
 ```bash
-sqlite3 ~/.claude/clayworks-lite/nudge/alerts.db \
-  "SELECT id, due_at, message FROM alerts WHERE acknowledged = 0 ORDER BY due_at"
+python3 "${CLAUDE_SKILL_DIR}/scripts/nudge_db.py" --list
 ```
 
-If the user set `CLAYWORKS_NUDGE_DB`, query that path instead. A script install into a custom `--claude-dir` keeps the DB at `<that dir>/clayworks-lite/nudge/alerts.db`.
+`--list` resolves the DB the same way the other scripts do (`CLAYWORKS_NUDGE_DB`, a custom `--claude-dir` install root, `CLAUDE_CONFIG_DIR`, then `~/.claude`), so it always reads the store the hook reads. `--path` prints that location if the user wants to open it in another tool.
 
 ## Message format
 
@@ -83,7 +82,7 @@ Due nudges reach Claude's context alongside the next prompt the user submits aft
 
 ## Hook wiring (required for nudges to fire)
 
-How the hook gets wired depends on how you installed LITE:
+How you wire the hook depends on how you installed LITE:
 
 - **Plugin install** (`/plugin install clayworks-lite@clayworks-lite`): the plugin registers the UserPromptSubmit hook for you in its `hooks/hooks.json`. Nothing to add.
 - **Script install** (`install.sh` / `install.ps1`): add the hook to `~/.claude/settings.json` yourself:

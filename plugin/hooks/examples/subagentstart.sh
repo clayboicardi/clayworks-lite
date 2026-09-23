@@ -37,7 +37,8 @@ import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('agent_type', '<unknown>'), d.get('agent_id', '<unknown>'), sep='\x1f', end='')
-except Exception:
+except Exception as exc:
+    print(f'subagentstart.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', '<unknown>', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r AGENT_TYPE AGENT_ID <<< "$FIELDS"

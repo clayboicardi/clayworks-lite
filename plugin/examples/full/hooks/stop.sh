@@ -22,7 +22,8 @@ import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('session_id', '<unknown>'), end='')
-except Exception:
+except Exception as exc:
+    print(f'stop.sh: could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', end='')
 ")
 
