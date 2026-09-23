@@ -155,10 +155,13 @@ jobs:
       run:
         # Git Bash on Windows: the same shell Claude Code uses to run hooks.
         shell: bash
-    env:
-      CLAYWORKS_NUDGE_DB: ${{ runner.temp }}/nudge-ci/alerts.db
     steps:
       - uses: actions/checkout@v7
+
+      - name: Point Nudge at a throwaway DB
+        # The runner context isn't available in a job-level env block, so I
+        # export the path from a step instead.
+        run: echo "CLAYWORKS_NUDGE_DB=$RUNNER_TEMP/nudge-ci/alerts.db" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v6
         with:
