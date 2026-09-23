@@ -1,0 +1,3 @@
+# I pin the manifest to LF so install.sh can match its lines byte-for-byte,
+# even in a Windows checkout with core.autocrlf.
+*.txt text eol=lf

@@ -57,7 +57,7 @@ Each question is binary, terminating, and answers from the user's natural langua
 
 ## The "your user-modeling layer of choice" framing
 
-Honcho is named in the skill, but the skill explicitly says:
+I name Honcho in the skill, but the skill explicitly says:
 
 > Honcho is one user-modeling layer; not the only one. If you use a different system (a hand-maintained `USER.md`, a separate vector store, a custom service), the routing principles still apply. Honcho's slot in the decision tree is just "your user-modeling layer of choice."
 

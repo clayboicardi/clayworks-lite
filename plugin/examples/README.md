@@ -38,5 +38,5 @@ Demonstrates the LITE skills + hook examples composed into a working heartbeat-s
 ## What these examples are NOT
 
 - **Not a substitute for reading the skills' SKILL.md docs.** The skills explain the *why*; these examples show *what an assembled outcome looks like*.
-- **Not exhaustive.** LITE's hook scaffolding covers eight events; the `full/` example wires 3. The 5 unwired ones (`PreToolUse`, `PostToolUse`, `SubagentStart`, `SubagentStop`, `SessionEnd`) are documented in `hooks/examples/` for users to compose as their setup matures.
+- **Not exhaustive.** LITE's hook scaffolding covers eight events; the `full/` example wires 3. The 5 unwired ones (`PreToolUse`, `PostToolUse`, `SubagentStart`, `SubagentStop`, `SessionEnd`) live in `hooks/examples/`, where I document each one so you can compose it in as your setup matures.
 - **Not "Sam's actual config"** — there is no Sam. The persona's placeholder values are illustrative shape, nothing more.

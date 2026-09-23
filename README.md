@@ -84,7 +84,7 @@ Three small Python scripts (`add_alert.py`, `ack_alert.py`, `check_alerts.py`), 
 
 ### 4. Hook scaffolding examples
 
-[`plugin/hooks/examples/`](plugin/hooks/examples/README.md) — a minimal `.sh` example for each of the eight Claude Code hook events I reach for most (UserPromptSubmit, PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStart, SubagentStop). Claude Code documents many more; these cover the everyday ones. Each example is annotated with the event's contract, the real JSON payload shape, the exit-code behavior, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
+[`plugin/hooks/examples/`](plugin/hooks/examples/README.md) — a minimal `.sh` example for each of the eight Claude Code hook events I reach for most (UserPromptSubmit, PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStart, SubagentStop). Claude Code documents many more; these cover the everyday ones. I annotate each example with the event's contract, the real JSON payload shape, the exit-code behavior, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
 
 ### 5. Heartbeat framework concept doc
 

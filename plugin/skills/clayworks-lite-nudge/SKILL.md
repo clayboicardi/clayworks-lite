@@ -54,7 +54,7 @@ sqlite3 ~/.claude/clayworks-lite/nudge/alerts.db \
   "SELECT id, due_at, message FROM alerts WHERE acknowledged = 0 ORDER BY due_at"
 ```
 
-If the user set `CLAYWORKS_NUDGE_DB`, query that path instead.
+If the user set `CLAYWORKS_NUDGE_DB`, query that path instead. A script install into a custom `--claude-dir` keeps the DB at `<that dir>/clayworks-lite/nudge/alerts.db`.
 
 ## Message format
 

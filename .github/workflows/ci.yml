@@ -17,14 +17,28 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history + tags: the manifest check walks every commit, and
+          # the upgrade test installs v1.0.1 from a worktree.
+          fetch-depth: 0
 
       - name: Install shellcheck (macOS)
         if: runner.os == 'macOS'
         run: brew install shellcheck
 
-      - name: ShellCheck install.sh + hook examples + Nudge launcher
+      - name: Shipped-hashes manifest is current
+        if: runner.os == 'Linux'
+        run: |
+          python3 tools/gen-shipped-hashes.py
+          if ! git diff --exit-code .installer/shipped-hashes.txt; then
+            echo "ERROR: .installer/shipped-hashes.txt is stale; run python3 tools/gen-shipped-hashes.py and commit the result" >&2
+            exit 1
+          fi
+
+      - name: ShellCheck install.sh + tools + hook examples + Nudge launcher
         run: |
           shellcheck install.sh
+          shellcheck tools/*.sh
           shellcheck plugin/hooks/examples/*.sh
           shellcheck plugin/examples/full/hooks/*.sh
           shellcheck plugin/skills/clayworks-lite-nudge/scripts/*.sh
@@ -58,11 +72,26 @@ jobs:
           ls /tmp/clayworks-test/CLAUDE.md.clayworks-template
           ls /tmp/clayworks-test/settings.example.json
 
+      - name: Uninstall after install -> nothing left
+        run: |
+          bash install.sh --uninstall --claude-dir /tmp/clayworks-test | tee out.log
+          grep -q "Uninstall complete." out.log
+          if [ -n "$(find /tmp/clayworks-test/skills /tmp/clayworks-test/hooks -type f)" ]; then
+            echo "ERROR: uninstall left LITE files behind" >&2
+            exit 1
+          fi
+
+      - name: Upgrade-uninstall from v1.0.1
+        run: bash tools/test-upgrade-uninstall.sh v1.0.1
+
   ps-analyze-and-installer-windows:
     name: PSScriptAnalyzer + installer (windows-latest)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history + tags: the upgrade test installs v1.0.1 from a worktree.
+          fetch-depth: 0
 
       - name: PSScriptAnalyzer
         shell: pwsh
@@ -72,9 +101,12 @@ jobs:
           # user-facing CLI installer that needs colored output.
           # Write-Output writes to the success stream (pollutes pipelines);
           # Write-Information doesn't natively support -ForegroundColor.
-          $issues = Invoke-ScriptAnalyzer -Path install.ps1 `
-            -Severity Error,Warning `
-            -ExcludeRule PSAvoidUsingWriteHost
+          $issues = @('install.ps1', 'tools/test-upgrade-uninstall.ps1') |
+            ForEach-Object {
+              Invoke-ScriptAnalyzer -Path $_ `
+                -Severity Error,Warning `
+                -ExcludeRule PSAvoidUsingWriteHost
+            }
           if ($issues) {
             $issues | Format-List
             throw "PSScriptAnalyzer found $($issues.Count) issue(s)"
@@ -119,6 +151,25 @@ jobs:
                 throw "Expected file missing after install: $_"
               }
             }
+
+      - name: Uninstall after install -> nothing left
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:TEMP "clayworks-test"
+          $out = .\install.ps1 -Uninstall -ClaudeDir $target *>&1 | Out-String
+          if ($out -notmatch "Uninstall complete\.") { throw "Uninstall kept items: $out" }
+          $left = Get-ChildItem -LiteralPath "$target\skills", "$target\hooks" -Recurse -File -Force
+          if ($left) { throw "Uninstall left LITE files behind: $($left.FullName -join ', ')" }
+
+      # I run the upgrade test under both PowerShell 7 and Windows
+      # PowerShell 5.1, the oldest version install.ps1 supports.
+      - name: Upgrade-uninstall from v1.0.1 (pwsh)
+        shell: pwsh
+        run: ./tools/test-upgrade-uninstall.ps1 -OldRef v1.0.1
+
+      - name: Upgrade-uninstall from v1.0.1 (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./tools/test-upgrade-uninstall.ps1 -OldRef v1.0.1
 
   plugin-validate:
     name: claude plugin validate --strict

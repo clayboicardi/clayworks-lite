@@ -31,6 +31,7 @@ sys.dont_write_bytecode = True  # keep __pycache__ out of the skill dir
 from nudge_db import open_db  # noqa: E402
 
 ACK_SCRIPT = Path(__file__).resolve().parent / "ack_alert.py"
+LAUNCHER = Path(__file__).resolve().parent / "run-python.sh"
 
 
 def check_alerts() -> list[tuple[int, str, str]]:
@@ -61,7 +62,10 @@ def main() -> None:
         print("ALERTS DUE:")
         for alert_id, due_at, message in alerts:
             print(f"  [{alert_id}] {due_at}: {message}")
-        print(f'(Dismiss with: python3 "{ACK_SCRIPT.as_posix()}" <id>)')
+        # Route the dismiss command through the bundled launcher: on Windows
+        # machines with only `python` or `py -3`, a bare `python3` fails and
+        # the alert would repeat on every prompt.
+        print(f'(Dismiss with: bash "{LAUNCHER.as_posix()}" "{ACK_SCRIPT.as_posix()}" <id>)')
 
 
 if __name__ == "__main__":
