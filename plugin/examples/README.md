@@ -32,7 +32,7 @@ Demonstrates the LITE skills + hook examples composed into a working heartbeat-s
 1. **Copy** the parts you want from `examples/<flavor>/` into the equivalent paths under `~/.claude/`.
 2. **Merge** `settings.json` if you already have one. The LITE settings live inside `hooks.*` arrays you append to, not replace.
 3. **Customize** the CLAUDE.md (placeholders, project paths, your preferences). Don't ship someone else's persona as your own.
-4. **Check it loaded.** Claude Code watches `settings.json` and applies hook changes to a running session, so no restart is needed. Run `/hooks` to confirm the entries and where each one came from.
+4. **Check it loaded.** Claude Code watches `settings.json` and applies hook changes to a running session, so you don't need to restart it. Run `/hooks` to confirm the entries and where each one came from.
 5. **Verify** with `./install.sh --verify` from the LITE repo and an actual time-based natural-language prompt (e.g. *"stop me at 5pm to wrap up"*).
 
 ## What these examples are NOT

@@ -7,8 +7,8 @@
 .DESCRIPTION
     I install that release with ITS install.ps1, use it like a 1.0.x user
     would, then run the current install.ps1 over it. I check that every
-    untouched artifact goes away, that a legacy Nudge DB lands in the import
-    dir (where the runtime merges it) instead of in a backup or the bin, and
+    untouched artifact goes away, that a legacy Nudge DB lands in
+    nudge-import/ (where the runtime merges it) instead of in a backup or the bin, and
     that anything you edited or added stays put.
 
     Needs the old ref in local history (CI: actions/checkout fetch-depth: 0).
@@ -47,7 +47,7 @@ function Invoke-Current {
 }
 
 function Get-ImportedContent {
-    # The content of the single legacy-*.db in an import dir, or $null.
+    # The content of the single legacy-*.db in a nudge-import dir, or $null.
     param([string]$Dir)
     $found = @(Get-ChildItem -LiteralPath $Dir -Filter "legacy-*.db" -File -ErrorAction SilentlyContinue)
     if ($found.Count -ne 1) {
@@ -69,7 +69,7 @@ try {
 
     # (a) + (e) A 1.0.x user ran Nudge (DB + __pycache__ in the skill dir)
     # and edited one hook example. Uninstall removes everything else, hands
-    # the DB to the import dir, and names this root in the purge text.
+    # the DB to nudge-import/, and names this root in the purge text.
     $a = Join-Path $Work "claude-a"
     & $oldInstaller -ClaudeDir $a *>&1 | Out-Null
     $nudgeScripts = Join-Path $a "skills/clayworks-lite-nudge/scripts"
@@ -87,17 +87,17 @@ try {
     $stop = Join-Path $a "hooks/examples/stop.sh"
     Assert-Present $stop
     if (-not "$(Read-Text $stop)".Contains("# my edit")) { Add-Failure "user edit to stop.sh lost" }
-    if ((Get-ImportedContent (Join-Path $a "clayworks-lite/nudge/import")) -ne "legacy-db-bytes") {
-        Add-Failure "(a) legacy DB did not land in the import dir"
+    if ((Get-ImportedContent (Join-Path $a "clayworks-lite/nudge/nudge-import")) -ne "legacy-db-bytes") {
+        Add-Failure "(a) legacy DB did not land in nudge-import/"
     }
     if ($outA -notmatch "Uninstall finished; 1 item\(s\) kept") { Add-Failure "(a) wrong closing line" }
     $backupLine = "Remove-Item -Recurse -Force '$(Join-Path $a '.clayworks-lite-backup')'"
-    $nudgeLine  = "Remove-Item -Recurse -Force '$(Join-Path $a 'clayworks-lite/nudge')'"
+    $nudgeLine  = "Remove-Item -Recurse -Force '$(Join-Path $a 'clayworks-lite')'"
     # Join-Path and Split-Path disagree on / vs \ across PowerShell versions,
     # so I compare with the separators normalized.
     $normA = $outA.Replace('/', '\')
     if (-not $normA.Contains($backupLine.Replace('/', '\'))) { Add-Failure "(e) purge text lacks this root's backup dir" }
-    if (-not $normA.Contains($nudgeLine.Replace('/', '\')))  { Add-Failure "(e) purge text lacks this root's Nudge dir" }
+    if (-not $normA.Contains($nudgeLine.Replace('/', '\')))  { Add-Failure "(e) purge text lacks this root's clayworks-lite dir" }
     if ($outA.Contains("~/.claude"))      { Add-Failure "(e) uninstall output still names ~/.claude" }
 
     # (b) You customized the Nudge skill and added a file to another skill.
@@ -114,7 +114,7 @@ try {
     $outB = Invoke-Current $b -Uninstall
     Assert-Present $notes
     if ((Read-Text $legacyB) -ne "legacy") { Add-Failure "(b) alerts.db left the kept Nudge skill" }
-    Assert-Gone (Join-Path $b "clayworks-lite/nudge/import")
+    Assert-Gone (Join-Path $b "clayworks-lite/nudge/nudge-import")
     Assert-Gone (Join-Path $b "skills/clayworks-lite-heartbeat-concept")
     Assert-Gone (Join-Path $b "hooks/examples")
     if ($outB -notmatch "Uninstall finished; 2 item\(s\) kept") { Add-Failure "(b) wrong closing line" }
@@ -127,7 +127,7 @@ try {
     }
 
     # (d) An install over a 1.0.x skill whose stable DB already exists: the
-    # legacy DB lands in import/, not in the backup, and the stable DB is
+    # legacy DB lands in nudge-import/, not in the backup, and the stable DB is
     # intact.
     $d = Join-Path $Work "claude-d"
     & $oldInstaller -ClaudeDir $d *>&1 | Out-Null
@@ -136,14 +136,14 @@ try {
     $stableD = Join-Path $d "clayworks-lite/nudge/alerts.db"
     [System.IO.File]::WriteAllText($stableD, "stable")
     Invoke-Current $d | Out-Null
-    if ((Get-ImportedContent (Join-Path $d "clayworks-lite/nudge/import")) -ne "legacy-d") {
-        Add-Failure "(d) legacy DB did not land in import/"
+    if ((Get-ImportedContent (Join-Path $d "clayworks-lite/nudge/nudge-import")) -ne "legacy-d") {
+        Add-Failure "(d) legacy DB did not land in nudge-import/"
     }
     if ((Read-Text $stableD) -ne "stable") { Add-Failure "(d) stable DB changed" }
     $backedUpDb = Get-ChildItem -LiteralPath (Join-Path $d ".clayworks-lite-backup") -Recurse -Filter "alerts.db" -ErrorAction SilentlyContinue
     if ($backedUpDb) { Add-Failure "(d) legacy DB ended up in the backup folder" }
 
-    # CLAYWORKS_NUDGE_DB points into an existing shared dir. The import dir
+    # CLAYWORKS_NUDGE_DB points into an existing shared dir. The nudge-import dir
     # goes next to that DB, and the purge text names only Nudge's own files
     # there.
     $f = Join-Path $Work "claude-f"
@@ -154,13 +154,48 @@ try {
     $sharedDb = Join-Path $shared "alerts.db"
     $env:CLAYWORKS_NUDGE_DB = $sharedDb
     try { $outF = Invoke-Current $f -Uninstall } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
-    if ((Get-ImportedContent (Join-Path $shared "import")) -ne "legacy-f") {
-        Add-Failure "(override) legacy DB not in the shared import dir"
+    if ((Get-ImportedContent (Join-Path $shared "nudge-import")) -ne "legacy-f") {
+        Add-Failure "(override) legacy DB not in the shared nudge-import dir"
     }
     Assert-Gone (Join-Path $f "skills/clayworks-lite-nudge")
     $normF = $outF.Replace('/', '\')
     if (-not $normF.Contains("Remove-Item -Force '$sharedDb'".Replace('/', '\'))) { Add-Failure "(override) purge text lacks the DB file" }
-    if ($normF.Contains("Remove-Item -Recurse -Force '$shared'".Replace('/', '\'))) { Add-Failure "(override) purge text would delete the shared dir" }
+    if (-not $normF.Contains("Remove-Item -Recurse -Force '$(Join-Path $shared 'nudge-import')'".Replace('/', '\'))) {
+        Add-Failure "(override) purge text lacks the nudge-import dir"
+    }
+    foreach ($bad in @("'$shared'", "'$(Join-Path $shared 'import')'")) {
+        if ($normF.Contains("Remove-Item -Recurse -Force $bad".Replace('/', '\'))) {
+            Add-Failure "(override) purge text names the shared dir or a generic import/"
+        }
+    }
+
+    # CLAYWORKS_NUDGE_DB points at the 1.0.x DB inside the skill dir itself.
+    # The nudge-import dir next to it would go down with the skill dir, so
+    # both uninstall and install-over must fall back to
+    # <root>/clayworks-lite/nudge/ and warn, and the alerts must survive there.
+    $g = Join-Path $Work "claude-g"
+    & $oldInstaller -ClaudeDir $g *>&1 | Out-Null
+    $dbG = Join-Path $g "skills/clayworks-lite-nudge/scripts/alerts.db"
+    [System.IO.File]::WriteAllText($dbG, "legacy-g")
+    $env:CLAYWORKS_NUDGE_DB = $dbG
+    try { $outG = Invoke-Current $g -Uninstall } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
+    Assert-Gone (Join-Path $g "skills/clayworks-lite-nudge")
+    if ((Get-ImportedContent (Join-Path $g "clayworks-lite/nudge/nudge-import")) -ne "legacy-g") {
+        Add-Failure "(db-in-skill uninstall) alerts lost"
+    }
+    if ($outG -notmatch "WARNING: CLAYWORKS_NUDGE_DB") { Add-Failure "(db-in-skill uninstall) no warning" }
+
+    $h = Join-Path $Work "claude-h"
+    & $oldInstaller -ClaudeDir $h *>&1 | Out-Null
+    $dbH = Join-Path $h "skills/clayworks-lite-nudge/scripts/alerts.db"
+    [System.IO.File]::WriteAllText($dbH, "legacy-h")
+    $env:CLAYWORKS_NUDGE_DB = $dbH
+    try { $outH = Invoke-Current $h } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
+    if ((Get-ImportedContent (Join-Path $h "clayworks-lite/nudge/nudge-import")) -ne "legacy-h") {
+        Add-Failure "(db-in-skill install) alerts lost"
+    }
+    Assert-Gone (Join-Path $h "skills/clayworks-lite-nudge/scripts/nudge-import")
+    if ($outH -notmatch "WARNING: CLAYWORKS_NUDGE_DB") { Add-Failure "(db-in-skill install) no warning" }
 } finally {
     # Cleanup is best-effort; a leftover temp dir must not mask the result.
     $ErrorActionPreference = "Continue"

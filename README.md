@@ -241,7 +241,7 @@ If you wired Nudge or other LITE hooks into `~/.claude/settings.json`, you'll ne
 
 ### No telemetry
 
-LITE is shell scripts + markdown + a handful of small Python scripts. No analytics, no phone-home, no usage tracking. The installer touches only paths under `~/.claude/` (configurable via `--claude-dir`). The Nudge SQLite database stays on your machine at `~/.claude/clayworks-lite/nudge/alerts.db`.
+LITE is shell scripts + markdown + a handful of small Python scripts. No analytics, no phone-home, no usage tracking. The installer touches only paths under `~/.claude/` (configurable via `--claude-dir`), with one exception you opt into: if you set `CLAYWORKS_NUDGE_DB` to a file outside that directory, the installer creates a `nudge-import/` folder next to that file to hand over any pre-1.1 alerts. The Nudge SQLite database stays on your machine, at `~/.claude/clayworks-lite/nudge/alerts.db` by default.
 
 ### Verify the install
 

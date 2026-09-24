@@ -4,7 +4,7 @@
 # then run the current install.sh over it.
 #
 # I check that every untouched artifact goes away, that a legacy Nudge DB
-# lands in the import dir (where the runtime merges it) instead of in a
+# lands in nudge-import/ (where the runtime merges it) instead of in a
 # backup or the bin, and that anything you edited or added stays put.
 #
 # Usage: tools/test-upgrade-uninstall.sh [old-ref]   (default: v1.0.1)
@@ -38,7 +38,7 @@ old_install() { bash "${OLD_TREE}/install.sh" --claude-dir "$1" >/dev/null; }
 new_install() { bash "${REPO_ROOT}/install.sh" --claude-dir "$1"; }
 new_uninstall() { bash "${REPO_ROOT}/install.sh" --uninstall --claude-dir "$1"; }
 
-# Print the content of the single legacy-*.db in an import dir, or fail.
+# Print the content of the single legacy-*.db in a nudge-import dir, or fail.
 imported_content() {
     local dir="$1" found=()
     local f
@@ -54,7 +54,7 @@ imported_content() {
 
 # (a) + (e) A 1.0.x user ran Nudge (DB + __pycache__ in the skill dir) and
 # edited one hook example. Uninstall removes everything else, hands the DB to
-# the import dir, and names this root in the purge instructions.
+# nudge-import/, and names this root in the purge instructions.
 A="${WORK}/claude-a"
 old_install "$A"
 nudge_scripts="${A}/skills/clayworks-lite-nudge/scripts"
@@ -72,11 +72,11 @@ want_gone "${A}/CLAUDE.md.clayworks-template"
 want_gone "${A}/settings.example.json"
 want_present "${A}/hooks/examples/stop.sh"
 grep -q '^# my edit$' "${A}/hooks/examples/stop.sh" || fail "user edit to stop.sh lost"
-[[ "$(imported_content "${A}/clayworks-lite/nudge/import")" == "legacy-db-bytes" ]] \
-    || fail "(a) legacy DB did not land in ${A}/clayworks-lite/nudge/import"
+[[ "$(imported_content "${A}/clayworks-lite/nudge/nudge-import")" == "legacy-db-bytes" ]] \
+    || fail "(a) legacy DB did not land in ${A}/clayworks-lite/nudge/nudge-import"
 grep -q "Uninstall finished; 1 item(s) kept" <<< "$out_a" || fail "(a) wrong closing line"
 grep -qF "rm -rf '${A}/.clayworks-lite-backup'" <<< "$out_a" || fail "(e) purge text lacks this root's backup dir"
-grep -qF "rm -rf '${A}/clayworks-lite/nudge'" <<< "$out_a" || fail "(e) purge text lacks this root's Nudge dir"
+grep -qF "rm -rf '${A}/clayworks-lite'" <<< "$out_a" || fail "(e) purge text lacks this root's clayworks-lite dir"
 if grep -q '[~]/[.]claude' <<< "$out_a"; then fail "(e) uninstall output still names ~/.claude"; fi
 
 # (b) You customized the Nudge skill and added a file to another skill. Both
@@ -92,7 +92,7 @@ echo "$out_b"
 want_present "${B}/skills/clayworks-lite-memory-routing/my-notes.md"
 [[ "$(cat "${B}/skills/clayworks-lite-nudge/scripts/alerts.db" 2>/dev/null)" == "legacy" ]] \
     || fail "(b) alerts.db left the kept Nudge skill"
-want_gone "${B}/clayworks-lite/nudge/import"
+want_gone "${B}/clayworks-lite/nudge/nudge-import"
 want_gone "${B}/skills/clayworks-lite-heartbeat-concept"
 want_gone "${B}/hooks/examples"
 grep -q "Uninstall finished; 2 item(s) kept" <<< "$out_b" || fail "(b) wrong closing line"
@@ -103,21 +103,21 @@ new_install "$C" >/dev/null
 [[ -d "${C}/clayworks-lite/nudge" ]] || fail "(c) fresh install did not create ${C}/clayworks-lite/nudge"
 
 # (d) An install over a 1.0.x skill whose stable DB already exists: the
-# legacy DB lands in import/, not in the backup, and the stable DB is intact.
+# legacy DB lands in nudge-import/, not in the backup, and the stable DB is intact.
 D="${WORK}/claude-d"
 old_install "$D"
 printf 'legacy-d\n' > "${D}/skills/clayworks-lite-nudge/scripts/alerts.db"
 mkdir -p "${D}/clayworks-lite/nudge"
 printf 'stable\n' > "${D}/clayworks-lite/nudge/alerts.db"
 new_install "$D" >/dev/null
-[[ "$(imported_content "${D}/clayworks-lite/nudge/import")" == "legacy-d" ]] \
-    || fail "(d) legacy DB did not land in import/"
+[[ "$(imported_content "${D}/clayworks-lite/nudge/nudge-import")" == "legacy-d" ]] \
+    || fail "(d) legacy DB did not land in nudge-import/"
 [[ "$(cat "${D}/clayworks-lite/nudge/alerts.db")" == "stable" ]] || fail "(d) stable DB changed"
 if [[ -n "$(find "${D}/.clayworks-lite-backup" -name alerts.db 2>/dev/null)" ]]; then
     fail "(d) legacy DB ended up in the backup folder"
 fi
 
-# CLAYWORKS_NUDGE_DB points into an existing shared dir. The import dir goes
+# CLAYWORKS_NUDGE_DB points into an existing shared dir. The nudge-import dir goes
 # next to that DB, the shared dir keeps its permissions (Git Bash ignores
 # chmod, so that part only bites on macOS / Linux), and the purge text names
 # only Nudge's own files there.
@@ -128,11 +128,34 @@ printf 'legacy-f\n' > "${F}/skills/clayworks-lite-nudge/scripts/alerts.db"
 mkdir -p "$shared"
 chmod 755 "$shared"
 out_f="$(CLAYWORKS_NUDGE_DB="${shared}/alerts.db" new_uninstall "$F")"
-[[ "$(imported_content "${shared}/import")" == "legacy-f" ]] || fail "(override) legacy DB not in ${shared}/import"
+[[ "$(imported_content "${shared}/nudge-import")" == "legacy-f" ]] || fail "(override) legacy DB not in ${shared}/nudge-import"
 [[ -n "$(find "$shared" -maxdepth 0 -perm 755)" ]] || fail "(override) installer changed the shared dir's permissions"
 want_gone "${F}/skills/clayworks-lite-nudge"
 grep -qF "rm -f '${shared}/alerts.db'" <<< "$out_f" || fail "(override) purge text lacks the DB file"
-if grep -qF "rm -rf '${shared}'" <<< "$out_f"; then fail "(override) purge text would delete the shared dir"; fi
+grep -qF "rm -rf '${shared}/nudge-import'" <<< "$out_f" || fail "(override) purge text lacks the nudge-import dir"
+if grep -qE "rm -rf '${shared}(/import)?'" <<< "$out_f"; then fail "(override) purge text names the shared dir or a generic import/"; fi
+
+# CLAYWORKS_NUDGE_DB points at the 1.0.x DB inside the skill dir itself. The
+# nudge-import dir next to it would go down with the skill dir, so both
+# uninstall and install-over must fall back to <root>/clayworks-lite/nudge/
+# and warn, and the alerts must survive there.
+G="${WORK}/claude-g"
+old_install "$G"
+printf 'legacy-g\n' > "${G}/skills/clayworks-lite-nudge/scripts/alerts.db"
+out_g="$(CLAYWORKS_NUDGE_DB="${G}/skills/clayworks-lite-nudge/scripts/alerts.db" new_uninstall "$G")"
+want_gone "${G}/skills/clayworks-lite-nudge"
+[[ "$(imported_content "${G}/clayworks-lite/nudge/nudge-import")" == "legacy-g" ]] \
+    || fail "(db-in-skill uninstall) alerts lost"
+grep -q "WARNING: CLAYWORKS_NUDGE_DB" <<< "$out_g" || fail "(db-in-skill uninstall) no warning"
+
+H="${WORK}/claude-h"
+old_install "$H"
+printf 'legacy-h\n' > "${H}/skills/clayworks-lite-nudge/scripts/alerts.db"
+out_h="$(CLAYWORKS_NUDGE_DB="${H}/skills/clayworks-lite-nudge/scripts/alerts.db" new_install "$H")"
+[[ "$(imported_content "${H}/clayworks-lite/nudge/nudge-import")" == "legacy-h" ]] \
+    || fail "(db-in-skill install) alerts lost"
+want_gone "${H}/skills/clayworks-lite-nudge/scripts/nudge-import"
+grep -q "WARNING: CLAYWORKS_NUDGE_DB" <<< "$out_h" || fail "(db-in-skill install) no warning"
 
 if [[ $FAILS -gt 0 ]]; then
     echo "upgrade tests from ${OLD_REF}: ${FAILS} failure(s)" >&2

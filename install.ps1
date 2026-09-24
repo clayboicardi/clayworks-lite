@@ -60,10 +60,32 @@ $BackupRoot = Join-Path $ClaudeDir ".clayworks-lite-backup"
 $Timestamp  = "$(Get-Date -Format 'yyyyMMdd-HHmmss')-$PID"
 $BackupDir  = Join-Path $BackupRoot $Timestamp
 
+# Absolute, normalized form of a path that may not exist yet, for comparing
+# paths. I resolve relative paths against the PowerShell location, not the
+# process working dir, which can differ.
+function Get-NormalizedPath {
+    param([string]$Path)
+    $full = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    return [System.IO.Path]::GetFullPath($full).TrimEnd('\', '/')
+}
+
+function Test-PathWithin {
+    # True if Path is Dir or lies inside it. Windows paths compare
+    # case-insensitively.
+    param([string]$Path, [string]$Dir)
+    $p = Get-NormalizedPath $Path
+    $d = Get-NormalizedPath $Dir
+    $cmp = [System.StringComparison]::Ordinal
+    if ([System.Environment]::OSVersion.Platform -eq 'Win32NT') {
+        $cmp = [System.StringComparison]::OrdinalIgnoreCase
+    }
+    return $p.Equals($d, $cmp) -or $p.StartsWith($d + [System.IO.Path]::DirectorySeparatorChar, $cmp)
+}
+
 # Nudge alerts: the same DB path nudge_db.py resolves for a script install
 # into ClaudeDir, with a leading ~ expanded the way nudge_db.py does it. The
-# runtime merges every *.db in the import dir next to the DB on its next run,
-# so I hand a legacy DB over by dropping it there; I never merge myself.
+# runtime merges every *.db in the nudge-import dir next to the DB on its next
+# run, so I hand a legacy DB over by dropping it there; I never merge myself.
 # NudgeMarkerDir is always under ClaudeDir, even with an override: the
 # runtime uses it to recognize a script-install root.
 if ($env:CLAYWORKS_NUDGE_DB) {
@@ -76,10 +98,25 @@ if ($NudgeDb -eq '~' -or $NudgeDb -match '^~[\\/]') {
 }
 $NudgeDbDir = Split-Path -Parent $NudgeDb
 if (-not $NudgeDbDir) { $NudgeDbDir = "." }
-$NudgeImportDir = Join-Path $NudgeDbDir "import"
 $NudgeMarkerDir = Join-Path $ClaudeDir "clayworks-lite/nudge"
+$NudgeSkillDir  = Join-Path $ClaudeDir "skills/clayworks-lite-nudge"
+$NudgeImportDir = Join-Path $NudgeDbDir "nudge-import"
 # Where 1.0.x kept the DB, relative to the Nudge skill dir.
 $LegacyDbInSkill = "scripts/alerts.db"
+# If CLAYWORKS_NUDGE_DB points inside the Nudge skill dir, which install
+# replaces and uninstall removes, a nudge-import dir next to it would go down
+# with that dir. I fall back to the default Nudge dir and warn.
+$NudgeDbInSkill = (Test-PathWithin $NudgeDb $NudgeSkillDir) -or (Test-PathWithin $NudgeImportDir $NudgeSkillDir)
+if ($NudgeDbInSkill) {
+    $NudgeImportDir = Join-Path $NudgeMarkerDir "nudge-import"
+}
+
+function Write-NudgeDbWarning {
+    if (-not $NudgeDbInSkill) { return }
+    Write-Host "  WARNING: CLAYWORKS_NUDGE_DB ($NudgeDb) points inside $NudgeSkillDir," -ForegroundColor Yellow
+    Write-Host "  which install replaces and uninstall removes. I hand its alerts to" -ForegroundColor Yellow
+    Write-Host "  $NudgeImportDir instead. Point CLAYWORKS_NUDGE_DB somewhere else." -ForegroundColor Yellow
+}
 
 # .installer/shipped-hashes.txt lists "<installed-relpath><TAB><sha256>" for
 # every version of every file LITE ever shipped (tools/gen-shipped-hashes.py
@@ -256,7 +293,7 @@ function Install-LiteItem {
 
 # --- Nudge alerts DB: hand a pre-1.1.0 DB to the runtime --------------------
 # Before 1.1.0 the Nudge DB lived inside the skill dir, which install replaces
-# wholesale and uninstall removes. I move that legacy DB into the import dir
+# wholesale and uninstall removes. I move that legacy DB into nudge-import/
 # before either one touches the skill dir, and the runtime merges it into the
 # stable DB on its next run. I never merge, and I never skip the move because
 # the stable DB already exists: a legacy DB left behind would end up in a
@@ -265,7 +302,7 @@ function Install-LiteItem {
 # shared dir that CLAYWORKS_NUDGE_DB points into keeps its owner's settings.
 
 function Move-LegacyNudgeDb {
-    # Move <SkillDir>/scripts/alerts.db to import/legacy-<timestamp>-<pid>.db.
+    # Move <SkillDir>/scripts/alerts.db to nudge-import/legacy-<timestamp>-<pid>.db.
     param([string]$SkillDir)
     $legacy = Join-Path $SkillDir $LegacyDbInSkill
     if (-not (Test-Path -LiteralPath $legacy -PathType Leaf)) { return }
@@ -323,7 +360,7 @@ function Uninstall-LiteItem {
     # every file in it matches some shipped version. Otherwise keep it and
     # count it. IgnoreRel names a runtime file inside DestPath (the Nudge
     # legacy DB) that I leave out of that decision. When DestPath goes, I
-    # hand that file to the Nudge import dir first; when DestPath stays, the
+    # hand that file to the nudge-import dir first; when DestPath stays, the
     # file stays with it, because the retained 1.0.x scripts still read it.
     param([string]$DestPath, [string]$SourcePath, [string]$Label, [string]$InstalledRel, [string]$IgnoreRel = "")
 
@@ -360,6 +397,7 @@ function Invoke-Uninstall {
     Write-Info "Install root : $ClaudeDir"
     if ($DryRun) { Write-Info "Mode         : DRY RUN (no changes written)" }
     else         { Write-Info "Mode         : LIVE" }
+    Write-NudgeDbWarning
 
     Write-Section "Removing LITE skills"
     $skillsSrc = Join-Path $RepoRoot "plugin/skills"
@@ -412,7 +450,7 @@ function Invoke-Uninstall {
     Write-Info "  $(Join-Path $ClaudeDir 'CLAUDE.md') (your live config)"
     Write-Info "  $(Join-Path $ClaudeDir 'settings.json') (your live config)"
     Write-Info "  $(Join-Path $ClaudeDir 'hooks/')  (excluding examples/ subdir)"
-    Write-Info "  $NudgeDbDir (your Nudge alerts DB -- remove manually if desired)"
+    Write-Info "  $NudgeDb and $NudgeImportDir (your Nudge alerts -- remove manually if desired)"
     Write-Info "  $BackupRoot (your backups -- remove manually)"
 
     Write-Section "Next steps"
@@ -425,15 +463,16 @@ that no longer exists, so it shows a hook error on every prompt.
 
 To purge the backup folder and your Nudge alerts:
 "@ | Write-Host
+    # I list only paths LITE owns. An override's DB may sit in a shared dir,
+    # so I name the DB file and the nudge-import dir, never their parent.
+    $liteDir = Join-Path $ClaudeDir "clayworks-lite"
     Write-Host "  Remove-Item -Recurse -Force '$BackupRoot'"
-    if ($env:CLAYWORKS_NUDGE_DB) {
-        # With an override, the DB dir may be a shared dir, so I name only
-        # the files Nudge owns there, plus the default dir under this root.
+    Write-Host "  Remove-Item -Recurse -Force '$liteDir'"
+    if (-not (Test-PathWithin $NudgeDb $liteDir)) {
         Write-Host "  Remove-Item -Force '$NudgeDb'"
+    }
+    if (-not (Test-PathWithin $NudgeImportDir $liteDir)) {
         Write-Host "  Remove-Item -Recurse -Force '$NudgeImportDir'"
-        Write-Host "  Remove-Item -Recurse -Force '$(Join-Path $ClaudeDir 'clayworks-lite')'"
-    } else {
-        Write-Host "  Remove-Item -Recurse -Force '$NudgeDbDir'"
     }
 
     Write-Host ""
@@ -591,6 +630,7 @@ if (-not (Test-Path -LiteralPath $ClaudeDir)) {
 Test-NoSymlinksInSource -Path $RepoRoot
 
 Write-Section "Nudge alerts database"
+Write-NudgeDbWarning
 # I always create the default Nudge dir: the runtime treats it as the sign
 # that this root holds a script install.
 if (Test-Path -LiteralPath $NudgeMarkerDir -PathType Container) {
@@ -602,9 +642,8 @@ if (Test-Path -LiteralPath $NudgeMarkerDir -PathType Container) {
     Write-Added "created $NudgeMarkerDir"
 }
 # Hand a pre-1.1.0 DB to the runtime before I replace the skill dir.
-$nudgeSkillDir = Join-Path $ClaudeDir "skills/clayworks-lite-nudge"
-if (Test-Path -LiteralPath (Join-Path $nudgeSkillDir $LegacyDbInSkill) -PathType Leaf) {
-    Move-LegacyNudgeDb -SkillDir $nudgeSkillDir
+if (Test-Path -LiteralPath (Join-Path $NudgeSkillDir $LegacyDbInSkill) -PathType Leaf) {
+    Move-LegacyNudgeDb -SkillDir $NudgeSkillDir
 } else {
     Write-SkippedM "nothing to migrate (alerts live in $NudgeDb)"
 }

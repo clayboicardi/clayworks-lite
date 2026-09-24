@@ -16,14 +16,21 @@ Resolution order:
     4. ~/.claude/clayworks-lite/nudge/alerts.db
 
 Versions before 1.1.0 kept alerts.db next to the scripts. Every time I open
-the DB, I merge in any legacy store I can find and skip rows already present,
-so a merge is safe to repeat and a failed read just retries on the next run:
-    - files the installers dropped into <DB dir>/import/ (renamed *.merged after)
+the DB, I merge in any legacy store I can find. A `merged_rows` ledger records
+each (source, row id) I've copied, so a merge is safe to repeat, two distinct
+reminders never collapse into one, and a store I can't read yet (locked) just
+waits for the next run. Sources:
+    - files the installers dropped into a `nudge-import/` dir, either next to
+      the DB or, when the DB override points inside the skill folder, under
+      <root>/clayworks-lite/nudge/ (renamed *.merged after)
     - an alerts.db next to these scripts or in an older version of this
       plugin in the plugin cache (a plugin update runs from a new version dir
       and leaves the old one behind); renamed *.merged after
     - the script-install skill dir under the same root; left in place, since
       a retained 1.0.x install may still use it
+A store that is corrupt or isn't a Nudge DB gets a one-line diagnostic on
+stderr; when I own the file I rename it *.unmergeable so the data stays on
+disk and I stop retrying.
 """
 
 from __future__ import annotations
@@ -48,6 +55,15 @@ SCHEMA = """
         acknowledged INTEGER NOT NULL DEFAULT 0
     )
 """
+
+LEDGER_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS merged_rows (
+        source TEXT NOT NULL,
+        src_id INTEGER NOT NULL,
+        PRIMARY KEY (source, src_id)
+    )
+"""
+IMPORT_DIR_NAME = "nudge-import"
 
 
 SKILL_NAME = "clayworks-lite-nudge"
@@ -96,17 +112,18 @@ def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
 
     I only look inside the active root, never another profile's config dir.
     """
+    root = _install_root() or _config_root()
     found: list[tuple[Path, bool]] = []
-    import_dir = db_path.parent / "import"
-    if import_dir.is_dir():
-        found += [(p, True) for p in sorted(import_dir.glob("*.db"))]
+    for import_dir in (db_path.parent / IMPORT_DIR_NAME,
+                       root / "clayworks-lite" / "nudge" / IMPORT_DIR_NAME):
+        if import_dir.is_dir():
+            found += [(p, True) for p in sorted(import_dir.glob("*.db"))]
     found.append((LEGACY_DB_PATH, True))
     # Plugin cache (<cache>/<marketplace>/<plugin>/<version>/skills/<skill>):
     # sibling version dirs of this plugin.
     ups = SCRIPTS_DIR.parent.parents
     if len(ups) >= 5 and ups[4].name == "cache":
         found += [(p, True) for p in ups[2].glob(f"*/skills/{SKILL_NAME}/scripts/alerts.db")]
-    root = _install_root() or _config_root()
     found.append((root / "skills" / SKILL_NAME / "scripts" / "alerts.db", False))
     unique: dict[str, tuple[Path, bool]] = {}
     for path, rename in found:
@@ -118,19 +135,47 @@ def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
     return list(unique.values())
 
 
+def _is_transient(exc: sqlite3.Error) -> bool:
+    """A lock, busy, or can't-open-yet error clears on its own; corruption won't."""
+    text = str(exc).lower()
+    return isinstance(exc, sqlite3.OperationalError) and any(
+        word in text for word in ("locked", "busy", "unable to open"))
+
+
+def _set_aside(src: Path, rename: bool, reason: str) -> None:
+    """Report a store I can't ever merge, and stop retrying it when I own it."""
+    if rename:
+        try:
+            src.replace(src.with_name(src.name + ".unmergeable"))
+            print(f"clayworks-lite-nudge: I couldn't import legacy alerts from {src} ({reason}); "
+                  f"I renamed it to {src.name}.unmergeable so the data stays on disk.",
+                  file=sys.stderr)
+            return
+        except OSError:
+            pass
+    print(f"clayworks-lite-nudge: I couldn't import legacy alerts from {src} ({reason}).",
+          file=sys.stderr)
+
+
 def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
-    """Merge rows from every legacy store into the open DB, skipping duplicates."""
+    """Copy every not-yet-merged row from each legacy store into the open DB."""
     for src, rename in _legacy_sources(db_path):
+        source = str(src.resolve())
         try:
             conn.execute("ATTACH DATABASE ? AS legacy", (str(src),))
-        except sqlite3.Error:
-            continue                     # locked or unreadable: retry next run
+        except sqlite3.Error as exc:
+            if not _is_transient(exc):
+                _set_aside(src, rename, str(exc))
+            continue                     # a transient failure retries next run
         merged = False
+        failure = ""                     # permanent problem, acted on after DETACH
         try:
             has_table = conn.execute(
                 "SELECT 1 FROM legacy.sqlite_master WHERE type = 'table' AND name = 'alerts'"
             ).fetchone()
-            if has_table:
+            if not has_table:
+                failure = "no alerts table"
+            else:
                 with conn:
                     conn.execute(
                         """
@@ -138,24 +183,36 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
                         SELECT l.due_at, l.message, l.created_at, l.acknowledged
                         FROM legacy.alerts AS l
                         WHERE NOT EXISTS (
-                            SELECT 1 FROM main.alerts AS m
-                            WHERE m.due_at = l.due_at AND m.message = l.message
-                              AND m.created_at = l.created_at)
-                        """
+                            SELECT 1 FROM main.merged_rows AS r
+                            WHERE r.source = ? AND r.src_id = l.id)
+                        ORDER BY l.id
+                        """,
+                        (source,),
+                    )
+                    conn.execute(
+                        "INSERT OR IGNORE INTO main.merged_rows (source, src_id) "
+                        "SELECT ?, id FROM legacy.alerts",
+                        (source,),
                     )
                 merged = True
-        except sqlite3.Error:
-            pass                         # not a Nudge DB, or mid-write: retry next run
+        except sqlite3.Error as exc:
+            if not _is_transient(exc):
+                failure = str(exc)
+            # a transient lock just waits for the next run
         finally:
             try:
                 conn.execute("DETACH DATABASE legacy")
             except sqlite3.Error:
                 pass
-        if merged and rename:
+        # Windows can't rename a file SQLite still has attached, so I act only
+        # after the DETACH above.
+        if failure:
+            _set_aside(src, rename, failure)
+        elif merged and rename:
             try:
                 src.replace(src.with_name(src.name + ".merged"))
             except OSError:
-                pass                     # read-only cache: the duplicate check covers reruns
+                pass                     # read-only cache: the ledger covers reruns
 
 
 def init_db() -> Path:
@@ -167,6 +224,7 @@ def init_db() -> Path:
     try:
         with conn:
             conn.execute(SCHEMA)
+            conn.execute(LEDGER_SCHEMA)
         _merge_legacy(conn, db_path)
     finally:
         conn.close()
