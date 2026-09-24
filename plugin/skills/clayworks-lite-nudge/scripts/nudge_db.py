@@ -135,11 +135,28 @@ def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
     return list(unique.values())
 
 
-def _is_transient(exc: sqlite3.Error) -> bool:
-    """A lock, busy, or can't-open-yet error clears on its own; corruption won't."""
+def _classify(exc: sqlite3.Error) -> str:
+    """How to treat a failed legacy read.
+
+    "wait": a lock or busy error that clears on its own; retry silently.
+    "retry": SQLite couldn't open the file (permissions, I/O). It may be
+        persistent, so I say so on stderr, but I keep the file where it is
+        and retry, since fixing the permissions is enough to recover.
+    "permanent": corruption or a non-Nudge DB; set it aside.
+    """
     text = str(exc).lower()
-    return isinstance(exc, sqlite3.OperationalError) and any(
-        word in text for word in ("locked", "busy", "unable to open"))
+    if isinstance(exc, sqlite3.OperationalError):
+        if "locked" in text or "busy" in text:
+            return "wait"
+        if "unable to open" in text:
+            return "retry"
+    return "permanent"
+
+
+def _report_retry(src: Path, reason: str) -> None:
+    print(f"clayworks-lite-nudge: I couldn't open legacy alerts at {src} ({reason}); "
+          f"I'll try again next time. Check that file's permissions if this repeats.",
+          file=sys.stderr)
 
 
 def _set_aside(src: Path, rename: bool, reason: str) -> None:
@@ -164,9 +181,12 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
         try:
             conn.execute("ATTACH DATABASE ? AS legacy", (str(src),))
         except sqlite3.Error as exc:
-            if not _is_transient(exc):
+            kind = _classify(exc)
+            if kind == "retry":
+                _report_retry(src, str(exc))
+            elif kind == "permanent":
                 _set_aside(src, rename, str(exc))
-            continue                     # a transient failure retries next run
+            continue                     # "wait" and "retry" try again next run
         merged = False
         failure = ""                     # permanent problem, acted on after DETACH
         try:
@@ -196,9 +216,12 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
                     )
                 merged = True
         except sqlite3.Error as exc:
-            if not _is_transient(exc):
+            kind = _classify(exc)
+            if kind == "retry":
+                _report_retry(src, str(exc))
+            elif kind == "permanent":
                 failure = str(exc)
-            # a transient lock just waits for the next run
+            # "wait" retries silently next run
         finally:
             try:
                 conn.execute("DETACH DATABASE legacy")

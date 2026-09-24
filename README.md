@@ -159,7 +159,7 @@ Inside any Claude Code session:
 
 Or in one step: `/plugin install clayworks-lite --marketplace clayboicardi/clayworks-lite` offers to add the marketplace for you, then installs.
 
-CC clones the marketplace to `~/.claude/plugins/marketplaces/clayworks-lite/` and copies the plugin into its cache at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/`. The plugin activates right away, no restart needed. What you get:
+CC clones the marketplace to `~/.claude/plugins/marketplaces/clayworks-lite/` and copies the plugin into its cache at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/`. The plugin activates right away, so you don't need to restart Claude Code. What you get:
 
 - **The three LITE skills**, namespaced under the plugin: `clayworks-lite:clayworks-lite-nudge`, `clayworks-lite:clayworks-lite-memory-routing`, `clayworks-lite:clayworks-lite-heartbeat-concept`. They trigger on their own when relevant, and you can also call them as slash commands (e.g. `/clayworks-lite:clayworks-lite-nudge`).
 - **The Nudge hook, already wired.** The plugin registers the UserPromptSubmit hook in its own `hooks/hooks.json`, so due reminders fire with nothing to add to `settings.json`.
@@ -249,7 +249,7 @@ LITE is shell scripts + markdown + a handful of small Python scripts. No analyti
 ls ~/.claude/skills/clayworks-lite-*/
 ```
 
-No restart needed: Claude Code picks up new skills in a running session. (If `~/.claude/skills/` didn't exist before the install, start a new session once so Claude Code can watch the new folder.) You should see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. The `clayworks-lite-` prefix is intentional. It keeps these distinguishable from your own skills.
+You don't need to restart Claude Code: it picks up new skills in a running session. (If `~/.claude/skills/` didn't exist before the install, start a new session once so Claude Code can watch the new folder.) You should see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. The `clayworks-lite-` prefix is intentional. It keeps these distinguishable from your own skills.
 
 The installer also dropped a starter `CLAUDE.md` template at `~/.claude/CLAUDE.md.clayworks-template`. To adopt it as your live `CLAUDE.md`, back up any existing one first and copy:
 
