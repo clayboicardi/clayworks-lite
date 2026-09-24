@@ -23,14 +23,15 @@ waits for the next run. Sources:
     - files the installers dropped into a `nudge-import/` dir, either next to
       the DB or, when the DB override points inside the skill folder, under
       <root>/clayworks-lite/nudge/ (renamed *.merged after)
-    - an alerts.db next to these scripts or in an older version of this
-      plugin in the plugin cache (a plugin update runs from a new version dir
-      and leaves the old one behind); renamed *.merged after
+    - an alerts.db next to these scripts (renamed *.merged after)
     - the script-install skill dir under the same root; left in place, since
       a retained 1.0.x install may still use it
+I don't scan old plugin-cache versions: 1.0.x Nudge never worked from a
+plugin install (its commands pointed at ~/.claude/skills/...), so no 1.0.x
+plugin cache holds reminders.
 A store that is corrupt or isn't a Nudge DB gets a one-line diagnostic on
-stderr; when I own the file I rename it *.unmergeable so the data stays on
-disk and I stop retrying.
+stderr; when I own the file I rename it *.unmergeable (never over an earlier
+one) so the data stays on disk and I stop retrying.
 """
 
 from __future__ import annotations
@@ -126,11 +127,6 @@ def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
         if import_dir.is_dir():
             found += [(p, True) for p in sorted(import_dir.glob("*.db"))]
     found.append((LEGACY_DB_PATH, True))
-    # Plugin cache (<cache>/<marketplace>/<plugin>/<version>/skills/<skill>):
-    # sibling version dirs of this plugin.
-    ups = SCRIPTS_DIR.parent.parents
-    if len(ups) >= 5 and ups[4].name == "cache":
-        found += [(p, True) for p in ups[2].glob(f"*/skills/{SKILL_NAME}/scripts/alerts.db")]
     found.append((root / "skills" / SKILL_NAME / "scripts" / "alerts.db", False))
     unique: dict[str, tuple[Path, bool]] = {}
     for path, rename in found:
@@ -166,13 +162,28 @@ def _report_retry(src: Path, reason: str) -> None:
           file=sys.stderr)
 
 
+def _rename_aside(src: Path, suffix: str) -> Path:
+    """Rename src to src<suffix>, or src<suffix>.1, .2, ... if that name is taken.
+
+    POSIX rename silently replaces an existing file, so I never reuse a name:
+    an earlier set-aside or merged copy stays intact.
+    """
+    target = src.with_name(src.name + suffix)
+    n = 1
+    while target.exists():
+        target = src.with_name(f"{src.name}{suffix}.{n}")
+        n += 1
+    src.rename(target)
+    return target
+
+
 def _set_aside(src: Path, rename: bool, reason: str) -> None:
     """Report a store I can't ever merge, and stop retrying it when I own it."""
     if rename:
         try:
-            src.replace(src.with_name(src.name + ".unmergeable"))
+            target = _rename_aside(src, ".unmergeable")
             print(f"clayworks-lite-nudge: I couldn't import legacy alerts from {src} ({reason}); "
-                  f"I renamed it to {src.name}.unmergeable so the data stays on disk.",
+                  f"I renamed it to {target.name} so the data stays on disk.",
                   file=sys.stderr)
             return
         except OSError:
@@ -252,7 +263,7 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
             continue
         if rename:
             try:
-                src.replace(src.with_name(src.name + ".merged"))
+                _rename_aside(src, ".merged")
             except OSError:
                 pass                     # read-only cache: the ledger covers reruns
 

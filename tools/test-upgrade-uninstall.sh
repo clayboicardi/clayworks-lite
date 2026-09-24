@@ -102,8 +102,37 @@ grep -q "Uninstall finished; 2 item(s) kept" <<< "$out_b" || fail "(b) wrong clo
 
 # (c) A fresh install creates the Nudge dir the runtime uses as its marker.
 C="${WORK}/claude-c"
-new_install "$C" >/dev/null
+out_c="$(new_install "$C")"
 [[ -d "${C}/clayworks-lite/nudge" ]] || fail "(c) fresh install did not create ${C}/clayworks-lite/nudge"
+# Its next steps name this root, shell-quoted, not ~/.claude.
+grep -qF "$(q "$C")/settings.example.json to $(q "$C")/settings.json" <<< "$out_c" \
+    || fail "(c) next steps do not name this root"
+if grep -q '[~]/[.]claude' <<< "$out_c"; then fail "(c) next steps still name ~/.claude"; fi
+
+# A symlinked (or, on Windows, junctioned) clayworks-lite/nudge that points
+# outside the root: install and uninstall must both refuse before writing
+# anything, and nothing may land outside the root.
+L="${WORK}/claude-l"
+outside="${WORK}/outside"
+mkdir -p "${L}/clayworks-lite" "$outside"
+case "${OSTYPE:-}" in
+    msys*|cygwin*)
+        cmd //c mklink //J "$(cygpath -w "${L}/clayworks-lite/nudge")" "$(cygpath -w "$outside")" >/dev/null ;;
+    *)
+        ln -s "$outside" "${L}/clayworks-lite/nudge" ;;
+esac
+if [[ -L "${L}/clayworks-lite/nudge" ]]; then
+    rc=0
+    new_install "$L" >/dev/null 2>&1 || rc=$?
+    [[ $rc -ne 0 ]] || fail "(symlink) install succeeded through a symlinked nudge dir"
+    rc=0
+    new_uninstall "$L" >/dev/null 2>&1 || rc=$?
+    [[ $rc -ne 0 ]] || fail "(symlink) uninstall succeeded through a symlinked nudge dir"
+    [[ -z "$(ls -A "$outside")" ]] || fail "(symlink) the installer wrote outside the root"
+    want_gone "${L}/skills"
+else
+    fail "(symlink) could not create a symlink or junction to test with"
+fi
 
 # (d) An install over a 1.0.x skill whose stable DB already exists: the
 # legacy DB lands in nudge-import/, not in the backup, and the stable DB is intact.
@@ -172,11 +201,14 @@ I="${WORK}/claude-i"
 old_install "$I"
 printf 'custom-i\n' > "${I}/skills/clayworks-lite-nudge/scripts/custom.db"
 printf 'wal-i\n' > "${I}/skills/clayworks-lite-nudge/scripts/custom.db-wal"
+printf 'journal-i\n' > "${I}/skills/clayworks-lite-nudge/scripts/custom.db-journal"
 out_i="$(CLAYWORKS_NUDGE_DB="${I}/skills/clayworks-lite-nudge/scripts/custom.db" new_install "$I")"
 [[ "$(imported_content "${I}/clayworks-lite/nudge/nudge-import")" == "custom-i" ]] \
     || fail "(custom-db install) store lost"
 [[ "$(cat "${I}"/clayworks-lite/nudge/nudge-import/legacy-*.db-wal 2>/dev/null)" == "wal-i" ]] \
     || fail "(custom-db install) WAL sidecar lost"
+[[ "$(cat "${I}"/clayworks-lite/nudge/nudge-import/legacy-*.db-journal 2>/dev/null)" == "journal-i" ]] \
+    || fail "(custom-db install) rollback journal did not move with the store"
 if [[ -n "$(find "${I}/.clayworks-lite-backup" -name 'custom.db*' 2>/dev/null)" ]]; then
     fail "(custom-db install) store ended up in the backup folder"
 fi

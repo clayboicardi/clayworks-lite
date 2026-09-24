@@ -84,15 +84,15 @@ function Test-PathWithin {
 
 function Test-NudgeStoreRel {
     # True if Rel (a /-separated relpath inside the Nudge skill dir) is one of
-    # NudgeStoreRels or its -wal / -shm sidecar. Windows paths compare
-    # case-insensitively.
+    # NudgeStoreRels or its -wal / -shm / -journal sidecar. Windows paths
+    # compare case-insensitively.
     param([string]$Rel)
     $cmp = [System.StringComparison]::Ordinal
     if ([System.Environment]::OSVersion.Platform -eq 'Win32NT') {
         $cmp = [System.StringComparison]::OrdinalIgnoreCase
     }
     foreach ($s in $NudgeStoreRels) {
-        foreach ($candidate in @($s, "$s-wal", "$s-shm")) {
+        foreach ($candidate in @($s, "$s-wal", "$s-shm", "$s-journal")) {
             if ($Rel.Equals($candidate, $cmp)) { return $true }
         }
     }
@@ -338,9 +338,40 @@ function Install-LiteItem {
 # I don't touch ACLs here: a new dir inherits them from its parent, and a
 # shared dir that CLAYWORKS_NUDGE_DB points into keeps its owner's settings.
 
+function Confirm-NoNudgeReparsePoint {
+    # Exit before writing anything if a path component between ClaudeDir and
+    # Path is a symlink or junction. A reparse-point clayworks-lite\ or
+    # nudge\ would send your reminders outside the install root. Paths
+    # outside ClaudeDir, like a CLAYWORKS_NUDGE_DB you chose, are yours to lay
+    # out, so I leave them alone.
+    param([string]$Path)
+    $root = Get-NormalizedPath $ClaudeDir
+    $full = Get-NormalizedPath $Path
+    if (-not (Test-PathWithin $full $root) -or $full.Length -le $root.Length) { return }
+    $p = $root
+    foreach ($part in ($full.Substring($root.Length) -split '[\\/]')) {
+        if (-not $part) { continue }
+        $p = Join-Path $p $part
+        $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+        if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+            Write-Host "ERROR: $p is a symlink or junction. I won't write Nudge data through" -ForegroundColor Red
+            Write-Host "it, because it can point outside $ClaudeDir. Replace it with a" -ForegroundColor Red
+            Write-Host "real directory, then re-run." -ForegroundColor Red
+            exit 5
+        }
+    }
+}
+
+function Confirm-NudgeDirSafety {
+    # Check every Nudge dir under ClaudeDir up front, before any write.
+    Confirm-NoNudgeReparsePoint (Join-Path $NudgeMarkerDir "nudge-import")
+    Confirm-NoNudgeReparsePoint $NudgeImportDir
+}
+
 function Move-NudgeStore {
-    # Move one alert store, plus its -wal / -shm sidecars, to
-    # nudge-import/legacy-<timestamp>-<pid>.db, where Nudge merges it.
+    # Move one alert store to nudge-import/legacy-<timestamp>-<pid>.db, where
+    # Nudge merges it. Its -wal / -shm / -journal sidecars move with it under
+    # the same new name, so SQLite still finds a hot journal after a crash.
     param([string]$StorePath, [string]$Label)
     $target = Join-Path $NudgeImportDir "legacy-$Timestamp.db"
     $n = 1
@@ -352,11 +383,12 @@ function Move-NudgeStore {
         Write-Updated "would move $Label -> $target (Nudge merges it on its next run)"
         return
     }
+    Confirm-NoNudgeReparsePoint $NudgeImportDir
     if (-not (Test-Path -LiteralPath $NudgeImportDir)) {
         New-Item -ItemType Directory -Path $NudgeImportDir -Force | Out-Null
     }
     Move-Item -LiteralPath $StorePath -Destination $target
-    foreach ($ext in @("-wal", "-shm")) {
+    foreach ($ext in @("-wal", "-shm", "-journal")) {
         if (Test-Path -LiteralPath "$StorePath$ext" -PathType Leaf) {
             Move-Item -LiteralPath "$StorePath$ext" -Destination "$target$ext"
         }
@@ -455,6 +487,7 @@ function Invoke-Uninstall {
     Write-Info "Install root : $ClaudeDir"
     if ($DryRun) { Write-Info "Mode         : DRY RUN (no changes written)" }
     else         { Write-Info "Mode         : LIVE" }
+    Confirm-NudgeDirSafety
     Write-NudgeDbWarning
 
     Write-Section "Removing LITE skills"
@@ -685,6 +718,9 @@ if (-not (Test-Path -LiteralPath $ClaudeDir)) {
 
 # Supply-chain check: refuse to proceed if the source tree contains symlinks.
 Test-NoSymlinksInSource -Path $RepoRoot
+# Refuse a symlinked or junctioned Nudge dir under the install root before
+# any write.
+Confirm-NudgeDirSafety
 
 Write-Section "Nudge alerts database"
 Write-NudgeDbWarning
@@ -775,22 +811,25 @@ if ($DryRun) {
 # --- Next steps --------------------------------------------------------------
 
 Write-Section "Next steps"
+# I print the chosen root as quoted PowerShell literals, so each command
+# pastes back as-is even for a -ClaudeDir with spaces or apostrophes.
+function Get-RootLiteral { param([string]$Child) ConvertTo-PSLiteral (Join-Path $ClaudeDir $Child) }
 @"
 1. Claude Code picks up new skills in a running session. If
-     ~/.claude/skills/ didn't exist before this install, start a new
+     $(Get-RootLiteral 'skills') didn't exist before this install, start a new
      session so Claude Code can watch the new directory.
 
 2. To use the CLAUDE.md starter template:
-     copy ~/.claude/CLAUDE.md.clayworks-template -> ~/.claude/CLAUDE.md
-     (back up any existing ~/.claude/CLAUDE.md first)
+     Copy-Item -LiteralPath $(Get-RootLiteral 'CLAUDE.md.clayworks-template') -Destination $(Get-RootLiteral 'CLAUDE.md')
+     (back up any existing $(Get-RootLiteral 'CLAUDE.md') first)
      then edit the <YOUR ...> placeholders.
 
 3. To use the nudge skill (if installed):
      the skill auto-triggers when you mention a time
      ("stop me at 5pm", "remind me about standup at 9:55").
      For nudges to actually fire, add the UserPromptSubmit hook from
-     ~/.claude/settings.example.json to ~/.claude/settings.json
-     (details in ~/.claude/skills/clayworks-lite-nudge/SKILL.md).
+     $(Get-RootLiteral 'settings.example.json') to $(Get-RootLiteral 'settings.json')
+     (details in $(Get-RootLiteral 'skills/clayworks-lite-nudge/SKILL.md')).
      The hook needs bash, which Git for Windows provides; Claude Code
      uses the same Git Bash to run hooks. Claude Code applies
      settings.json edits without a restart. Skip this if you also
@@ -798,12 +837,12 @@ Write-Section "Next steps"
      and you'd see every alert twice.
 
 4. To use a hook example:
-     copy ~/.claude/hooks/examples/<event>.sh -> ~/.claude/hooks/<name>.sh
-     customize, then register it in ~/.claude/settings.json (see the README
+     copy <event>.sh from $(Get-RootLiteral 'hooks/examples') into $(Get-RootLiteral 'hooks') as <name>.sh,
+     customize, then register it in $(Get-RootLiteral 'settings.json') (see the README
      inside the examples/ dir).
 
 Verify the install:
-     ls ~/.claude/skills/clayworks-lite-*/
+     Get-ChildItem -Path $(Get-RootLiteral 'skills/clayworks-lite-*')
 "@ | Write-Host
 
 Write-Host ""

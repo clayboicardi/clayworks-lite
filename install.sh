@@ -126,7 +126,7 @@ if path_within "$NUDGE_DB" "$NUDGE_SKILL_DIR" || path_within "$NUDGE_IMPORT_DIR"
 fi
 
 # True if relpath $1 inside the Nudge skill dir is one of NUDGE_STORE_RELS
-# or its -wal / -shm sidecar. norm_path lowercases on Git Bash, so I match
+# or its -wal / -shm / -journal sidecar. norm_path lowercases on Git Bash, so I match
 # case-insensitively there.
 is_nudge_store_rel() {
     local f="$1" s
@@ -134,7 +134,7 @@ is_nudge_store_rel() {
         msys*|cygwin*) f="$(printf '%s' "$f" | tr '[:upper:]' '[:lower:]')" ;;
     esac
     for s in "${NUDGE_STORE_RELS[@]}"; do
-        if [[ "$f" == "$s" || "$f" == "${s}-wal" || "$f" == "${s}-shm" ]]; then
+        if [[ "$f" == "$s" || "$f" == "${s}-wal" || "$f" == "${s}-shm" || "$f" == "${s}-journal" ]]; then
             return 0
         fi
     done
@@ -325,11 +325,39 @@ install_item() {
 # the stable DB already exists: a legacy DB left behind would end up in a
 # backup folder or deleted.
 
+# Exit before writing anything if a path component between CLAUDE_DIR and
+# $1 is a symlink (Git Bash reports a Windows junction as one too). A
+# symlinked clayworks-lite/ or nudge/ would send your reminders outside the
+# install root. Paths outside CLAUDE_DIR, like a CLAYWORKS_NUDGE_DB you chose,
+# are yours to lay out, so I leave them alone.
+refuse_symlink_under_root() {
+    local target="$1" p="$CLAUDE_DIR" part parts=()
+    [[ "$target" == "$CLAUDE_DIR"/* ]] || return 0
+    IFS=/ read -r -a parts <<< "${target#"$CLAUDE_DIR"/}"
+    for part in "${parts[@]}"; do
+        [[ -n "$part" ]] || continue
+        p="${p}/${part}"
+        if [[ -L "$p" ]]; then
+            echo "ERROR: ${p} is a symlink or junction. I won't write Nudge data through" >&2
+            echo "it, because it can point outside ${CLAUDE_DIR}. Replace it with a" >&2
+            echo "real directory, then re-run." >&2
+            exit 5
+        fi
+    done
+}
+
+# Check every Nudge dir under CLAUDE_DIR up front, before any write.
+refuse_nudge_symlinks() {
+    refuse_symlink_under_root "${NUDGE_MARKER_DIR}/nudge-import"
+    refuse_symlink_under_root "$NUDGE_IMPORT_DIR"
+}
+
 # mkdir -p that tightens to 700 only the dirs it actually creates. If
 # CLAYWORKS_NUDGE_DB points into an existing shared dir, its owner's
 # permissions stay as they are.
 make_private_dir() {
     local dir="$1" d="$1" created=()
+    refuse_symlink_under_root "$dir"
     while [[ ! -d "$d" ]]; do
         created+=("$d")
         d="$(dirname "$d")"
@@ -341,8 +369,9 @@ make_private_dir() {
     done
 }
 
-# Move one alert store, plus its -wal / -shm sidecars, to
-# nudge-import/legacy-<timestamp>-<pid>.db, where Nudge merges it.
+# Move one alert store to nudge-import/legacy-<timestamp>-<pid>.db, where
+# Nudge merges it. Its -wal / -shm / -journal sidecars move with it under
+# the same new name, so SQLite still finds a hot journal after a crash.
 stash_nudge_store() {
     local src="$1" label="$2"
     local base="${NUDGE_IMPORT_DIR}/legacy-${TIMESTAMP}" target n=1 ext
@@ -357,7 +386,7 @@ stash_nudge_store() {
     fi
     make_private_dir "$NUDGE_IMPORT_DIR"
     mv "$src" "$target"
-    for ext in -wal -shm; do
+    for ext in -wal -shm -journal; do
         if [[ -f "${src}${ext}" ]]; then
             mv "${src}${ext}" "${target}${ext}"
         fi
@@ -455,6 +484,7 @@ run_uninstall() {
     else
         info "Mode         : LIVE"
     fi
+    refuse_nudge_symlinks
     warn_nudge_db_in_skill
 
     section "Removing LITE skills"
@@ -675,6 +705,8 @@ fi
 
 # Supply-chain check: refuse to proceed if the source tree contains symlinks.
 reject_symlinks_in_source "$REPO_ROOT"
+# Refuse a symlinked Nudge dir under the install root before any write.
+refuse_nudge_symlinks
 
 section "Nudge alerts database"
 warn_nudge_db_in_skill
@@ -767,33 +799,36 @@ fi
 # --- Next steps --------------------------------------------------------------
 
 section "Next steps"
-cat <<'EOF'
+# I print the chosen root, shell-quoted, so each command pastes back as-is
+# even for a --claude-dir with spaces or quotes.
+R="$(printf '%q' "$CLAUDE_DIR")"
+cat <<EOF
 1. Claude Code picks up new skills in a running session. If
-     ~/.claude/skills/ didn't exist before this install, start a new
+     ${R}/skills/ didn't exist before this install, start a new
      session so Claude Code can watch the new directory.
 
 2. To use the CLAUDE.md starter template:
-     cp ~/.claude/CLAUDE.md.clayworks-template ~/.claude/CLAUDE.md
-     (back up any existing ~/.claude/CLAUDE.md first)
+     cp ${R}/CLAUDE.md.clayworks-template ${R}/CLAUDE.md
+     (back up any existing ${R}/CLAUDE.md first)
      then edit the <YOUR ...> placeholders.
 
 3. To use the nudge skill (if installed):
      the skill auto-triggers when you mention a time
      ("stop me at 5pm", "remind me about standup at 9:55").
      For nudges to actually fire, add the UserPromptSubmit hook from
-     ~/.claude/settings.example.json to ~/.claude/settings.json
-     (details in ~/.claude/skills/clayworks-lite-nudge/SKILL.md).
+     ${R}/settings.example.json to ${R}/settings.json
+     (details in ${R}/skills/clayworks-lite-nudge/SKILL.md).
      Claude Code applies settings.json edits without a restart.
      Skip this if you also installed LITE as a plugin: the plugin
      registers the same hook, and you'd see every alert twice.
 
 4. To use a hook example:
-     cp ~/.claude/hooks/examples/<event>.sh ~/.claude/hooks/<name>.sh
-     customize, then register it in ~/.claude/settings.json (see the README
+     cp ${R}/hooks/examples/<event>.sh ${R}/hooks/<name>.sh
+     customize, then register it in ${R}/settings.json (see the README
      inside the examples/ dir).
 
 Verify the install:
-     ls ~/.claude/skills/clayworks-lite-*/
+     ls ${R}/skills/clayworks-lite-*/
 EOF
 
 echo

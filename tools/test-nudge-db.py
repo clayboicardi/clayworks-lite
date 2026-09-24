@@ -45,31 +45,37 @@ with tempfile.TemporaryDirectory() as td:
     td = Path(td)
     home = td / "home"; home.mkdir()
 
-    # 1. Plugin cache: two older versions each hold a DB; the new version merges
-    #    both. Each version kept its own store, so the identical row in each is
-    #    two reminders the user created, and both must survive. A corrupt file
-    #    in nudge-import/ is set aside with a diagnostic, never fatal.
+    # 1. Plugin install: two stores the installers handed over in nudge-import/
+    #    both merge. Each kept its own reminders, so the identical row in each is
+    #    two reminders and both survive. A corrupt import is set aside with a
+    #    diagnostic, and a second corrupt one never overwrites the first. Old
+    #    plugin-cache versions are NOT scanned (1.0.x Nudge never ran there).
     root = td / "cfg"
     cache = root / "plugins" / "cache" / "clayworks-lite" / "clayworks-lite"
-    mkdb(cache / "1.0.0/skills/clayworks-lite-nudge/scripts/alerts.db", [A, B])
-    mkdb(cache / "1.0.1/skills/clayworks-lite-nudge/scripts/alerts.db", [A, C])
+    old_cache_db = cache / "1.0.1/skills/clayworks-lite-nudge/scripts/alerts.db"
+    mkdb(old_cache_db, [B])
     (cache / "1.1.0/skills").mkdir(parents=True)
     shutil.copytree(SRC, cache / "1.1.0/skills/clayworks-lite-nudge")
     new_scripts = cache / "1.1.0/skills/clayworks-lite-nudge/scripts"
     imp = root / "clayworks-lite/nudge/nudge-import"
-    imp.mkdir(parents=True)
+    mkdb(imp / "legacy-a.db", [A, B])
+    mkdb(imp / "legacy-b.db", [A, C])
     (imp / "broken.db").write_bytes(b"not a sqlite file" * 10)
     out, err = run(new_scripts, "--list", home=home)
     db = root / "clayworks-lite/nudge/alerts.db"
     assert len(rows(db)) == 4, rows(db)
-    assert (cache / "1.0.0/skills/clayworks-lite-nudge/scripts/alerts.db.merged").exists()
-    assert (cache / "1.0.1/skills/clayworks-lite-nudge/scripts/alerts.db.merged").exists()
+    assert (imp / "legacy-a.db.merged").exists() and (imp / "legacy-b.db.merged").exists()
+    assert old_cache_db.exists() and not old_cache_db.with_name("alerts.db.merged").exists()
     assert (imp / "broken.db.unmergeable").exists() and not (imp / "broken.db").exists()
     assert "couldn't import legacy alerts" in err and "broken.db" in err, err
     _, err2 = run(new_scripts, "--list", home=home)
     assert len(rows(db)) == 4, "rerun duplicated rows"
     assert err2 == "", f"set-aside file was retried: {err2}"
-    print("1 plugin-cache merge keeps distinct rows; corrupt store set aside: ok")
+    (imp / "broken.db").write_bytes(b"still not sqlite" * 10)
+    run(new_scripts, "--list", home=home)
+    assert (imp / "broken.db.unmergeable").read_bytes().startswith(b"not a sqlite file")
+    assert (imp / "broken.db.unmergeable.1").read_bytes().startswith(b"still not sqlite")
+    print("1 import merge keeps distinct rows; cache not scanned; set-asides never overwritten: ok")
 
     # 2. Custom script root recognized by its clayworks-lite/ dir alone; the
     #    default profile's legacy DB must NOT be pulled in.
@@ -127,14 +133,23 @@ with tempfile.TemporaryDirectory() as td:
     assert rows(override) == [(B[0], B[1], 0)]
     print("6 fallback nudge-import merged into an override DB: ok")
 
-    # 7. An old plugin process recreates its alerts.db after I merged it; the new
-    #    file restarts ids at 1. The different row 1 must still come across.
-    old = cache / "1.0.1/skills/clayworks-lite-nudge/scripts/alerts.db"
+    # 7. An old 1.0.x process recreates alerts.db next to the scripts after I
+    #    merged and renamed it; the new file restarts ids at 1. The different
+    #    row 1 must still come across, and the second rename must not replace
+    #    the first .merged copy.
+    root7 = td / "r7"
+    shutil.copytree(SRC, root7 / "skills/clayworks-lite-nudge")
+    (root7 / "clayworks-lite/nudge").mkdir(parents=True)
+    s7 = root7 / "skills/clayworks-lite-nudge/scripts"
+    mkdb(s7 / "alerts.db", [A])
+    run(s7, "--list", home=home)
     D = ("2026-01-04 09:00", "made-after-migration", "2026-01-01 08:00:00", 0)
-    mkdb(old, [D])                                      # same path, fresh ids
-    run(new_scripts, "--list", home=home)
-    assert (D[0], D[1], 0) in rows(db) and len(rows(db)) == 5, rows(db)
-    print("7 recreated legacy store merged despite reused ids: ok")
+    mkdb(s7 / "alerts.db", [D])                         # same path, fresh ids
+    run(s7, "--list", home=home)
+    db7 = root7 / "clayworks-lite/nudge/alerts.db"
+    assert rows(db7) == sorted([(A[0], A[1], 0), (D[0], D[1], 0)]), rows(db7)
+    assert (s7 / "alerts.db.merged").exists() and (s7 / "alerts.db.merged.1").exists()
+    print("7 recreated legacy store merged despite reused ids; renames never overwrite: ok")
 
     # 8. A stable DB I can't write (read-only) must not get the source set
     #    aside; once the DB is writable again the rows come across.

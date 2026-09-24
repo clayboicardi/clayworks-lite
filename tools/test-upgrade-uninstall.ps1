@@ -93,6 +93,12 @@ function Test-PurgeTarget {
     return $false
 }
 
+function ConvertTo-TestLiteral {
+    # The single-quoted literal install.ps1 prints for a path.
+    param([string]$Text)
+    return "'" + $Text.Replace("'", "''") + "'"
+}
+
 function Read-Text { param([string]$Path)
     if (Test-Path -LiteralPath $Path -PathType Leaf) { return [System.IO.File]::ReadAllText($Path) }
     return $null
@@ -156,10 +162,37 @@ try {
 
     # (c) A fresh install creates the Nudge dir the runtime uses as its marker.
     $c = Join-Path $Work "claude-c"
-    Invoke-Current $c | Out-Null
+    $outC = Invoke-Current $c
     if (-not (Test-Path -LiteralPath (Join-Path $c "clayworks-lite/nudge") -PathType Container)) {
         Add-Failure "(c) fresh install did not create clayworks-lite/nudge"
     }
+    # Its next steps name this root as quoted literals, not ~/.claude.
+    $settingsLit = ConvertTo-TestLiteral (Join-Path $c 'settings.json')
+    if (-not $outC.Replace('/', '\').Contains($settingsLit.Replace('/', '\'))) {
+        Add-Failure "(c) next steps do not name this root"
+    }
+    if ($outC.Contains("~/.claude")) { Add-Failure "(c) next steps still name ~/.claude" }
+
+    # A junctioned clayworks-lite\nudge that points outside the root: install
+    # and uninstall must both refuse before writing anything, and nothing may
+    # land outside the root. A junction needs no admin rights.
+    $l = Join-Path $Work "claude-l"
+    $outside = Join-Path $Work "outside"
+    New-Item -ItemType Directory -Path (Join-Path $l "clayworks-lite") -Force | Out-Null
+    New-Item -ItemType Directory -Path $outside -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $l "clayworks-lite/nudge") -Target $outside | Out-Null
+    # I check both the refusal message and exit code 5, so a stale
+    # LASTEXITCODE from an earlier command can't pass for a refusal.
+    foreach ($mode in @($false, $true)) {
+        $outL = (& $Current -Uninstall:$mode -ClaudeDir $l *>&1 | ForEach-Object { "$_" }) -join "`n"
+        if ($LASTEXITCODE -ne 5 -or $outL -notmatch "is a symlink or junction") {
+            Add-Failure "(junction) $(if ($mode) { 'uninstall' } else { 'install' }) went through a junctioned nudge dir"
+        }
+    }
+    if (Get-ChildItem -LiteralPath $outside -Force) { Add-Failure "(junction) the installer wrote outside the root" }
+    Assert-Gone (Join-Path $l "skills")
+    # Remove the junction itself so cleanup never walks through it.
+    [System.IO.Directory]::Delete((Join-Path $l "clayworks-lite/nudge"))
 
     # (d) An install over a 1.0.x skill whose stable DB already exists: the
     # legacy DB lands in nudge-import/, not in the backup, and the stable DB is
@@ -240,6 +273,7 @@ try {
     $dbI = Join-Path $i "skills/clayworks-lite-nudge/scripts/custom.db"
     [System.IO.File]::WriteAllText($dbI, "custom-i")
     [System.IO.File]::WriteAllText("$dbI-wal", "wal-i")
+    [System.IO.File]::WriteAllText("$dbI-journal", "journal-i")
     $env:CLAYWORKS_NUDGE_DB = $dbI
     try { $outI = Invoke-Current $i } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
     $importI = Join-Path $i "clayworks-lite/nudge/nudge-import"
@@ -247,6 +281,10 @@ try {
     $walI = @(Get-ChildItem -LiteralPath $importI -Filter "legacy-*.db-wal" -File -ErrorAction SilentlyContinue)
     if ($walI.Count -ne 1 -or [System.IO.File]::ReadAllText($walI[0].FullName) -ne "wal-i") {
         Add-Failure "(custom-db install) WAL sidecar lost"
+    }
+    $journalI = @(Get-ChildItem -LiteralPath $importI -Filter "legacy-*.db-journal" -File -ErrorAction SilentlyContinue)
+    if ($journalI.Count -ne 1 -or [System.IO.File]::ReadAllText($journalI[0].FullName) -ne "journal-i") {
+        Add-Failure "(custom-db install) rollback journal did not move with the store"
     }
     $backedUpI = Get-ChildItem -LiteralPath (Join-Path $i ".clayworks-lite-backup") -Recurse -Filter "custom.db*" -ErrorAction SilentlyContinue
     if ($backedUpI) { Add-Failure "(custom-db install) store ended up in the backup folder" }
