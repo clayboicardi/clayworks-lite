@@ -122,6 +122,12 @@ if ($NudgeDbOverride) {
 }
 if ($NudgeDb -eq '~' -or $NudgeDb -match '^~[\\/]') {
     $NudgeDb = $HOME + $NudgeDb.Substring(1)
+} elseif ($NudgeDb.StartsWith('~')) {
+    # ~alice\... means another user's home. Python expands it one way, and I
+    # can't match that reliably on every platform, so I refuse it rather than
+    # hand your alerts to a folder the runtime never scans.
+    Write-Host "ERROR: CLAYWORKS_NUDGE_DB ($NudgeDb) uses a ~user path. Set it to a full path instead." -ForegroundColor Red
+    exit 2
 }
 $NudgeDbDir = Split-Path -Parent $NudgeDb
 if (-not $NudgeDbDir) { $NudgeDbDir = "." }
@@ -378,6 +384,13 @@ function Confirm-NudgeDirSafety {
         Confirm-NoNudgeReparsePoint ($NudgeDb + $side)
     }
     Confirm-NoNudgeReparsePoint (Join-Path $NudgeSkillDir "scripts")
+    # Every legacy store I might stash, and its sidecars: a linked one would
+    # have me move the link and Nudge import an unrelated external database.
+    foreach ($s in $NudgeStoreRels) {
+        foreach ($side in @('', '-journal', '-wal', '-shm')) {
+            Confirm-NoNudgeReparsePoint ((Join-Path $NudgeSkillDir $s) + $side)
+        }
+    }
 }
 
 function Move-NudgeStore {

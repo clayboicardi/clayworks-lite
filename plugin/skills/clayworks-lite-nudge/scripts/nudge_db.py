@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import stat
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -305,6 +306,25 @@ def init_db() -> Path:
     db_path = resolve_db_path()
     # mode applies only to directories this call creates (and respects umask).
     db_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # Alert content can be sensitive (e.g. "standup at 9:30 about acquisition
+    # negotiation"), so the file is owner-only BEFORE any row lands in it: I
+    # create a new DB as 0600 myself, and strip group/other access from an
+    # existing one first. The
+    # directory may be shared (a CLAYWORKS_NUDGE_DB you chose). No-op
+    # semantics on Windows.
+    try:
+        fd = os.open(db_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(fd)
+    except FileExistsError:
+        pass
+    except OSError:
+        pass                             # sqlite3.connect below reports real problems
+    try:
+        # Strip group/other bits only; I never add a permission, so a DB you
+        # deliberately made read-only stays read-only.
+        db_path.chmod(stat.S_IMODE(db_path.stat().st_mode) & 0o700)
+    except OSError:
+        pass
     conn = sqlite3.connect(db_path)
     try:
         with conn:
@@ -313,13 +333,6 @@ def init_db() -> Path:
         _merge_legacy(conn, db_path)
     finally:
         conn.close()
-    # Best-effort: alert content can be sensitive (e.g. "standup at 9:30 about
-    # acquisition negotiation"). Tighten so it isn't world-readable on shared
-    # multi-user systems. No-op semantics on Windows.
-    try:
-        db_path.chmod(0o600)
-    except OSError:
-        pass
     return db_path
 
 

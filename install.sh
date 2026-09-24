@@ -102,6 +102,12 @@ NUDGE_DB_OVERRIDE="${NUDGE_DB_OVERRIDE%"${NUDGE_DB_OVERRIDE##*[![:space:]]}"}"
 NUDGE_DB="${NUDGE_DB_OVERRIDE:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
 if [[ $NUDGE_DB == \~ || $NUDGE_DB == \~/* ]]; then
     NUDGE_DB="${HOME}${NUDGE_DB:1}"
+elif [[ $NUDGE_DB == \~* ]]; then
+    # ~alice/... means another user's home. Python expands it one way, and I
+    # can't match that reliably on every platform, so I refuse it rather than
+    # hand your alerts to a folder the runtime never scans.
+    echo "ERROR: CLAYWORKS_NUDGE_DB (${NUDGE_DB}) uses a ~user path. Set it to a full path instead." >&2
+    exit 2
 fi
 # Git Bash passes a Windows-style override through verbatim (C:\Users\me\alerts.db),
 # and POSIX dirname can't split on backslashes, so it would put nudge-import/ in
@@ -369,6 +375,14 @@ refuse_nudge_symlinks() {
         refuse_symlink_under_root "${NUDGE_DB}${side}"
     done
     refuse_symlink_under_root "${NUDGE_SKILL_DIR}/scripts"
+    # Every legacy store I might stash, and its sidecars: a linked one would
+    # have me move the link and Nudge import an unrelated external database.
+    local s
+    for s in "${NUDGE_STORE_RELS[@]}"; do
+        for side in "" -journal -wal -shm; do
+            refuse_symlink_under_root "${NUDGE_SKILL_DIR}/${s}${side}"
+        done
+    done
 }
 
 # mkdir -p that tightens to 700 only the dirs it actually creates. If
