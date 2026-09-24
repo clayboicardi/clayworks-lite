@@ -100,6 +100,19 @@ want_gone "${B}/skills/clayworks-lite-heartbeat-concept"
 want_gone "${B}/hooks/examples"
 grep -q "Uninstall finished; 2 item(s) kept" <<< "$out_b" || fail "(b) wrong closing line"
 
+# A custom.pyc beside a skill's SKILL.md is yours, so that skill stays; a
+# .pyc inside __pycache__/ is Python's, so it doesn't hold its skill back.
+P="${WORK}/claude-p"
+old_install "$P"
+printf 'mine' > "${P}/skills/clayworks-lite-memory-routing/custom.pyc"
+mkdir -p "${P}/skills/clayworks-lite-heartbeat-concept/__pycache__"
+printf 'x' > "${P}/skills/clayworks-lite-heartbeat-concept/__pycache__/x.pyc"
+out_p="$(new_uninstall "$P")"
+want_present "${P}/skills/clayworks-lite-memory-routing/custom.pyc"
+want_gone "${P}/skills/clayworks-lite-heartbeat-concept"
+grep -q "skill: clayworks-lite-memory-routing: customized" <<< "$out_p" \
+    || fail "(pyc) custom.pyc beside SKILL.md did not mark the skill customized"
+
 # (c) A fresh install creates the Nudge dir the runtime uses as its marker.
 C="${WORK}/claude-c"
 out_c="$(new_install "$C")"

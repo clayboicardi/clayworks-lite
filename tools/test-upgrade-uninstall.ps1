@@ -173,6 +173,22 @@ try {
     Assert-Gone (Join-Path $b "hooks/examples")
     if ($outB -notmatch "Uninstall finished; 2 item\(s\) kept") { Add-Failure "(b) wrong closing line" }
 
+    # A custom.pyc beside a skill's SKILL.md is yours, so that skill stays; a
+    # .pyc inside __pycache__\ is Python's, so it doesn't hold its skill back.
+    $pRoot = Join-Path $Work "claude-p"
+    & $oldInstaller -ClaudeDir $pRoot *>&1 | Out-Null
+    $customPyc = Join-Path $pRoot "skills/clayworks-lite-memory-routing/custom.pyc"
+    [System.IO.File]::WriteAllText($customPyc, "mine")
+    $cacheDir = Join-Path $pRoot "skills/clayworks-lite-heartbeat-concept/__pycache__"
+    New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $cacheDir "x.pyc"), "x")
+    $outP = Invoke-Current $pRoot -Uninstall
+    Assert-Present $customPyc
+    Assert-Gone (Join-Path $pRoot "skills/clayworks-lite-heartbeat-concept")
+    if ($outP -notmatch "skill: clayworks-lite-memory-routing: customized") {
+        Add-Failure "(pyc) custom.pyc beside SKILL.md did not mark the skill customized"
+    }
+
     # (c) A fresh install creates the Nudge dir the runtime uses as its marker.
     $c = Join-Path $Work "claude-c"
     $outC = Invoke-Current $c

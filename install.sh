@@ -450,10 +450,11 @@ is_shipped_file() {
 }
 
 # True if dest holds nothing but files some LITE version shipped at the same
-# installed path, apart from the optional ignore relpath. I also skip
-# __pycache__/ and *.pyc, which 1.0.x left behind by running Python from
-# inside the skill dir. A symlink, an extra file, or an edited file means you
-# touched it, so the answer is no.
+# installed path, apart from the optional ignore relpath. I also skip *.pyc
+# files directly inside a __pycache__/ dir, which 1.0.x left behind by
+# running Python from inside the skill dir. A .pyc anywhere else is yours, so
+# it counts. A symlink, an extra file, or an edited file means you touched
+# it, so the answer is no.
 matches_shipped_version() {
     local dest="$1" rel="$2" ignore="${3:-}"
     [[ -n "$SHIPPED_LINES" && ! -L "$dest" ]] || return 1
@@ -463,12 +464,15 @@ matches_shipped_version() {
     fi
     [[ -d "$dest" ]] || return 1
     [[ -z "$(find "$dest" -type l -print -quit)" ]] || return 1
-    local f
+    local f parent
     while IFS= read -r -d '' f; do
         f="${f#./}"
+        parent="${f%/*}"
+        parent="${parent##*/}"
+        if [[ "$f" == */* && "$parent" == "__pycache__" && "$f" == *.pyc ]]; then continue; fi
         if [[ -n "$ignore" ]] && is_nudge_store_rel "$f"; then continue; fi
         is_shipped_file "${rel}/${f}" "$(sha_file "${dest}/${f}")" || return 1
-    done < <(cd "$dest" && find . -name __pycache__ -type d -prune -o -type f ! -name '*.pyc' -print0)
+    done < <(cd "$dest" && find . -type f -print0)
     return 0
 }
 

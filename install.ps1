@@ -443,8 +443,9 @@ $script:Kept = 0
 function Test-ShippedVersion {
     # True if DestPath holds nothing but files some LITE version shipped at
     # the same installed path, apart from the Nudge alert stores when
-    # SkipNudgeStores is set. I also skip __pycache__/ and *.pyc, which 1.0.x
-    # left behind by running Python from inside the skill dir. A symlink or
+    # SkipNudgeStores is set. I also skip *.pyc files directly inside a
+    # __pycache__/ dir, which 1.0.x left behind by running Python from inside
+    # the skill dir. A .pyc anywhere else is yours, so it counts. A symlink or
     # junction, an extra file, or an edited file means you touched it, so the
     # answer is no.
     param([string]$DestPath, [string]$InstalledRel, [switch]$SkipNudgeStores)
@@ -461,7 +462,7 @@ function Test-ShippedVersion {
     # -Name yields paths relative to DestPath (see Get-PathHash for why).
     foreach ($rel in (Get-ChildItem -LiteralPath $DestPath -Recurse -File -Force -Name)) {
         $relPosix = $rel.Replace('\', '/')
-        if ($relPosix -match '(^|/)__pycache__/' -or $relPosix.EndsWith('.pyc')) { continue }
+        if ($relPosix -match '(^|/)__pycache__/[^/]+\.pyc$') { continue }
         if ($SkipNudgeStores -and (Test-NudgeStoreRel $relPosix)) { continue }
         $hash = (Get-FileHash -LiteralPath (Join-Path $DestPath $rel) -Algorithm SHA256).Hash.ToLowerInvariant()
         if (-not $ShippedSet.Contains("$InstalledRel/$relPosix`t$hash")) { return $false }

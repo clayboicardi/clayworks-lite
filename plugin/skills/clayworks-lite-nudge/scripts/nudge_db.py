@@ -220,29 +220,67 @@ def _set_aside(src: Path, rename: bool, reason: str) -> None:
           file=sys.stderr)
 
 
-def _read_source(src: Path) -> list[tuple]:
-    """Every alert row in a legacy store, read through its own connection.
+def _open_source(src: Path, exclusive: bool) -> tuple[sqlite3.Connection, list[tuple]]:
+    """Open a legacy store and read every alert row; the caller closes it.
 
     Errors raised here come from the source file, so the caller can blame it
     safely; nothing here touches the stable DB. I open the source read-write
     (I only ever SELECT from it) because a store that crashed mid-write has a
     hot rollback journal, and SQLite must write to the file to roll that
     transaction back before it can read the committed alerts.
+
+    exclusive=True (for a store I'll rename once merged) holds an EXCLUSIVE
+    lock from this read until the caller closes the connection, so an old
+    1.0.x process can't commit a row between my read and the rename and
+    strand it in the renamed file.
     """
     # timeout=0: a store another process has locked must not stall the hook
     # (it has a short timeout of its own); I just retry it on the next prompt.
-    src_conn = sqlite3.connect(str(src), timeout=0)
+    src_conn = sqlite3.connect(str(src), timeout=0, isolation_level=None)
     try:
+        if exclusive:
+            src_conn.execute("BEGIN EXCLUSIVE")
         has_table = src_conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alerts'"
         ).fetchone()
         if not has_table:
             raise sqlite3.DatabaseError("no alerts table")
-        return src_conn.execute(
+        rows = src_conn.execute(
             "SELECT id, due_at, message, created_at, acknowledged FROM alerts ORDER BY id"
         ).fetchall()
-    finally:
-        src_conn.close()             # closed before any rename (Windows locks open files)
+    except BaseException:
+        src_conn.close()
+        raise
+    return src_conn, rows
+
+
+def _merge_rows(conn: sqlite3.Connection, source: str, src_rows: list[tuple]) -> None:
+    """Copy not-yet-merged rows into the stable DB, and carry acknowledgments."""
+    done = {(sid, fp): dest for sid, fp, dest in conn.execute(
+        "SELECT src_id, fingerprint, dest_id FROM merged_rows WHERE source = ?",
+        (source,))}
+    with conn:
+        for sid, due_at, message, created_at, acknowledged in src_rows:
+            fingerprint = f"{due_at}\x1f{message}\x1f{created_at}"
+            key = (sid, fingerprint)
+            if key in done:
+                # Already copied. Carry a later acknowledgment across; I never
+                # un-acknowledge a copy.
+                if acknowledged and done[key] is not None:
+                    conn.execute(
+                        "UPDATE alerts SET acknowledged = 1 "
+                        "WHERE id = ? AND acknowledged = 0", (done[key],))
+                continue
+            cur = conn.execute(
+                "INSERT INTO alerts (due_at, message, created_at, acknowledged) "
+                "VALUES (?, ?, ?, ?)",
+                (due_at, message, created_at, acknowledged),
+            )
+            conn.execute(
+                "INSERT INTO merged_rows (source, src_id, fingerprint, dest_id) "
+                "VALUES (?, ?, ?, ?)",
+                (source, sid, fingerprint, cur.lastrowid),
+            )
 
 
 def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
@@ -255,7 +293,7 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
     for src, rename in _legacy_sources(db_path):
         source = str(src.resolve())
         try:
-            src_rows = _read_source(src)
+            src_conn, src_rows = _open_source(src, exclusive=rename)
         except sqlite3.Error as exc:
             kind = _classify(exc)
             if kind == "retry":
@@ -263,42 +301,33 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
             elif kind == "permanent":
                 _set_aside(src, rename, str(exc))
             continue                     # "wait" and "retry" try again next run
+        renamed = False
         try:
-            done = {(sid, fp): dest for sid, fp, dest in conn.execute(
-                "SELECT src_id, fingerprint, dest_id FROM merged_rows WHERE source = ?",
-                (source,))}
-            with conn:
-                for sid, due_at, message, created_at, acknowledged in src_rows:
-                    fingerprint = f"{due_at}\x1f{message}\x1f{created_at}"
-                    key = (sid, fingerprint)
-                    if key in done:
-                        # Already copied. Carry a later acknowledgment across;
-                        # I never un-acknowledge a copy.
-                        if acknowledged and done[key] is not None:
-                            conn.execute(
-                                "UPDATE alerts SET acknowledged = 1 "
-                                "WHERE id = ? AND acknowledged = 0", (done[key],))
-                        continue
-                    cur = conn.execute(
-                        "INSERT INTO alerts (due_at, message, created_at, acknowledged) "
-                        "VALUES (?, ?, ?, ?)",
-                        (due_at, message, created_at, acknowledged),
-                    )
-                    conn.execute(
-                        "INSERT INTO merged_rows (source, src_id, fingerprint, dest_id) "
-                        "VALUES (?, ?, ?, ?)",
-                        (source, sid, fingerprint, cur.lastrowid),
-                    )
-        except sqlite3.Error as exc:
-            print(f"clayworks-lite-nudge: I couldn't write legacy alerts from {src} into "
-                  f"{db_path} ({exc}); I left the legacy file in place and I'll retry next time.",
-                  file=sys.stderr)
-            continue
-        if rename:
+            try:
+                _merge_rows(conn, source, src_rows)
+            except sqlite3.Error as exc:
+                print(f"clayworks-lite-nudge: I couldn't write legacy alerts from {src} into "
+                      f"{db_path} ({exc}); I left the legacy file in place and I'll retry "
+                      f"next time.", file=sys.stderr)
+                continue
+            # On POSIX I rename while I still hold the EXCLUSIVE lock, so no
+            # writer can slip a row in between my read and the rename.
+            # Windows won't rename an open file, so there I rename after
+            # closing (below); a writer that still has it open makes that
+            # rename fail, and the ledger picks up its new rows next run.
+            if rename and os.name != "nt":
+                try:
+                    _rename_aside(src, ".merged")
+                    renamed = True
+                except OSError:
+                    pass
+        finally:
+            src_conn.close()
+        if rename and not renamed and os.name == "nt":
             try:
                 _rename_aside(src, ".merged")
             except OSError:
-                pass                     # read-only cache: the ledger covers reruns
+                pass                     # still open elsewhere: the ledger covers reruns
 
 
 def init_db() -> Path:
