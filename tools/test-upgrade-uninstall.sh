@@ -112,27 +112,64 @@ if grep -q '[~]/[.]claude' <<< "$out_c"; then fail "(c) next steps still name ~/
 # A symlinked (or, on Windows, junctioned) clayworks-lite/nudge that points
 # outside the root: install and uninstall must both refuse before writing
 # anything, and nothing may land outside the root.
+# Link $2 to dir $1: a junction on Git Bash (no admin needed), else a symlink.
+make_link() {
+    case "${OSTYPE:-}" in
+        msys*|cygwin*) cmd //c mklink //J "$(cygpath -w "$2")" "$(cygpath -w "$1")" >/dev/null ;;
+        *) ln -s "$1" "$2" ;;
+    esac
+    [[ -L "$2" ]] || fail "could not create a symlink or junction at $2"
+}
+
+# Run install and uninstall against root $1; both must refuse with exit 5.
+want_refused() {
+    local root="$1" label="$2" rc
+    rc=0
+    new_install "$root" >/dev/null 2>&1 || rc=$?
+    [[ $rc -eq 5 ]] || fail "(${label}) install did not refuse (exit ${rc})"
+    rc=0
+    new_uninstall "$root" >/dev/null 2>&1 || rc=$?
+    [[ $rc -eq 5 ]] || fail "(${label}) uninstall did not refuse (exit ${rc})"
+}
+
 L="${WORK}/claude-l"
 outside="${WORK}/outside"
 mkdir -p "${L}/clayworks-lite" "$outside"
-case "${OSTYPE:-}" in
-    msys*|cygwin*)
-        cmd //c mklink //J "$(cygpath -w "${L}/clayworks-lite/nudge")" "$(cygpath -w "$outside")" >/dev/null ;;
-    *)
-        ln -s "$outside" "${L}/clayworks-lite/nudge" ;;
-esac
-if [[ -L "${L}/clayworks-lite/nudge" ]]; then
-    rc=0
-    new_install "$L" >/dev/null 2>&1 || rc=$?
-    [[ $rc -ne 0 ]] || fail "(symlink) install succeeded through a symlinked nudge dir"
-    rc=0
-    new_uninstall "$L" >/dev/null 2>&1 || rc=$?
-    [[ $rc -ne 0 ]] || fail "(symlink) uninstall succeeded through a symlinked nudge dir"
-    [[ -z "$(ls -A "$outside")" ]] || fail "(symlink) the installer wrote outside the root"
-    want_gone "${L}/skills"
-else
-    fail "(symlink) could not create a symlink or junction to test with"
-fi
+make_link "$outside" "${L}/clayworks-lite/nudge"
+want_refused "$L" "symlinked nudge dir"
+[[ -z "$(ls -A "$outside")" ]] || fail "(symlinked nudge dir) the installer wrote outside the root"
+want_gone "${L}/skills"
+
+# A symlinked (or junctioned) Nudge skill dir, and separately a symlinked
+# skills/, pointing at an unrelated folder that holds scripts/alerts.db:
+# install and uninstall must both refuse, and that DB must stay untouched.
+ext="${WORK}/external-skill"
+mkdir -p "${ext}/scripts"
+printf 'external-db\n' > "${ext}/scripts/alerts.db"
+M="${WORK}/claude-m"
+mkdir -p "${M}/skills"
+make_link "$ext" "${M}/skills/clayworks-lite-nudge"
+want_refused "$M" "symlinked skill dir"
+ext_skills="${WORK}/external-skills"
+mkdir -p "$ext_skills"
+make_link "$ext" "${ext_skills}/clayworks-lite-nudge"
+N="${WORK}/claude-n"
+mkdir -p "$N"
+make_link "$ext_skills" "${N}/skills"
+want_refused "$N" "symlinked skills dir"
+[[ "$(cat "${ext}/scripts/alerts.db" 2>/dev/null)" == "external-db" ]] \
+    || fail "(symlinked skill dir) the external alerts.db was moved or changed"
+[[ "$(ls -A "$ext")" == "scripts" && "$(ls -A "${ext}/scripts")" == "alerts.db" ]] \
+    || fail "(symlinked skill dir) the installer changed the external folder"
+
+# A symlinked install root itself is fine (dotfile setups): install and
+# uninstall through it work as usual.
+real_root="${WORK}/real-root"
+mkdir -p "$real_root"
+make_link "$real_root" "${WORK}/linked-root"
+new_install "${WORK}/linked-root" >/dev/null || fail "(symlinked root) install refused a symlinked root"
+[[ -f "${real_root}/skills/clayworks-lite-nudge/SKILL.md" ]] || fail "(symlinked root) skills missing"
+new_uninstall "${WORK}/linked-root" >/dev/null || fail "(symlinked root) uninstall refused a symlinked root"
 
 # (d) An install over a 1.0.x skill whose stable DB already exists: the
 # legacy DB lands in nudge-import/, not in the backup, and the stable DB is intact.

@@ -339,11 +339,14 @@ function Install-LiteItem {
 # shared dir that CLAYWORKS_NUDGE_DB points into keeps its owner's settings.
 
 function Confirm-NoNudgeReparsePoint {
-    # Exit before writing anything if a path component between ClaudeDir and
-    # Path is a symlink or junction. A reparse-point clayworks-lite\ or
-    # nudge\ would send your reminders outside the install root. Paths
-    # outside ClaudeDir, like a CLAYWORKS_NUDGE_DB you chose, are yours to lay
-    # out, so I leave them alone.
+    # Exit before touching anything if a path component below ClaudeDir, down
+    # to Path, is a symlink or junction. A reparse-point clayworks-lite\ or
+    # nudge\ would send your reminders outside the install root, and a
+    # reparse-point skills\ or skill dir would have me move or delete files in
+    # whatever folder it points at. ClaudeDir itself may be a link (dotfile
+    # setups do that), so I only check components under it. Paths outside
+    # ClaudeDir, like a CLAYWORKS_NUDGE_DB you chose, are yours to lay out, so
+    # I leave them alone.
     param([string]$Path)
     $root = Get-NormalizedPath $ClaudeDir
     $full = Get-NormalizedPath $Path
@@ -354,18 +357,21 @@ function Confirm-NoNudgeReparsePoint {
         $p = Join-Path $p $part
         $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
         if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
-            Write-Host "ERROR: $p is a symlink or junction. I won't write Nudge data through" -ForegroundColor Red
-            Write-Host "it, because it can point outside $ClaudeDir. Replace it with a" -ForegroundColor Red
-            Write-Host "real directory, then re-run." -ForegroundColor Red
+            Write-Host "ERROR: $p is a symlink or junction. I won't read, move, or write LITE" -ForegroundColor Red
+            Write-Host "files through it, because it can point outside $ClaudeDir. Replace" -ForegroundColor Red
+            Write-Host "it with a real directory, then re-run." -ForegroundColor Red
             exit 5
         }
     }
 }
 
 function Confirm-NudgeDirSafety {
-    # Check every Nudge dir under ClaudeDir up front, before any write.
+    # Check every Nudge path under ClaudeDir up front, before I read, move, or
+    # write anything: the data dirs, plus skills\, the Nudge skill dir, and
+    # its scripts\, where legacy stores live.
     Confirm-NoNudgeReparsePoint (Join-Path $NudgeMarkerDir "nudge-import")
     Confirm-NoNudgeReparsePoint $NudgeImportDir
+    Confirm-NoNudgeReparsePoint (Join-Path $NudgeSkillDir "scripts")
 }
 
 function Move-NudgeStore {

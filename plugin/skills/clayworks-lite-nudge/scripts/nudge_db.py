@@ -138,23 +138,35 @@ def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
     return list(unique.values())
 
 
+# Errors that prove the file itself will never merge: it isn't a SQLite DB,
+# its pages are corrupt, or it isn't a Nudge store. Everything else (I/O,
+# permissions, a read-only rollback) can clear on its own, so I retry it.
+_PERMANENT_MARKERS = (
+    "file is not a database",
+    "malformed",
+    "no such table",
+    "no such column",
+    "no alerts table",
+)
+
+
 def _classify(exc: sqlite3.Error) -> str:
     """How to treat a failed legacy read.
 
     "wait": a lock or busy error that clears on its own; retry silently.
-    "retry": SQLite couldn't open the file (permissions, I/O), or couldn't
-        roll back its hot journal because the file or folder is read-only.
-        It may be persistent, so I say so on stderr, but I keep the file
-        where it is and retry, since fixing the permissions is enough.
-    "permanent": corruption or a non-Nudge DB; set it aside.
+    "permanent": proof the file can't ever merge (see _PERMANENT_MARKERS);
+        I set it aside.
+    "retry": anything else, such as a disk I/O error, a permissions problem,
+        or a read-only rollback. It may be persistent, so I say so on stderr,
+        but I keep the file where it is and retry, since nothing proves the
+        data is bad.
     """
     text = str(exc).lower()
-    if isinstance(exc, sqlite3.OperationalError):
-        if "locked" in text or "busy" in text:
-            return "wait"
-        if "unable to open" in text or "readonly" in text or "read-only" in text:
-            return "retry"
-    return "permanent"
+    if "locked" in text or "busy" in text:
+        return "wait"
+    if any(marker in text for marker in _PERMANENT_MARKERS):
+        return "permanent"
+    return "retry"
 
 
 def _report_retry(src: Path, reason: str) -> None:
@@ -216,7 +228,9 @@ def _read_source(src: Path) -> list[tuple]:
     hot rollback journal, and SQLite must write to the file to roll that
     transaction back before it can read the committed alerts.
     """
-    src_conn = sqlite3.connect(str(src))
+    # timeout=0: a store another process has locked must not stall the hook
+    # (it has a short timeout of its own); I just retry it on the next prompt.
+    src_conn = sqlite3.connect(str(src), timeout=0)
     try:
         has_table = src_conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alerts'"

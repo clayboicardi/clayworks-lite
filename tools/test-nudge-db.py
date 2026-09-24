@@ -228,4 +228,33 @@ with tempfile.TemporaryDirectory() as td:
     assert rows(root11 / "clayworks-lite/nudge/alerts.db") == [(A[0], A[1], 0)], err11
     assert not (imp11 / "legacy-hot.db.unmergeable").exists(), err11
     print("11 hot rollback journal recovered before merge: ok")
+
+    # 12. A legacy store another process holds an exclusive lock on must not
+    #     stall the hook (it has a short timeout); I skip it quietly and merge
+    #     it on a later run once the lock is gone.
+    import time
+    root12 = td / "r12"
+    shutil.copytree(SRC, root12 / "skills/clayworks-lite-nudge")
+    locked = root12 / "clayworks-lite/nudge/nudge-import/legacy-locked.db"
+    mkdb(locked, [B])
+    holder = subprocess.Popen(
+        [sys.executable, "-c",
+         "import sqlite3, sys, time\n"
+         "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+         "c.execute('BEGIN EXCLUSIVE'); print('locked', flush=True); time.sleep(30)\n",
+         str(locked)],
+        stdout=subprocess.PIPE, text=True)
+    try:
+        assert holder.stdout is not None and holder.stdout.readline().strip() == "locked"
+        s12 = root12 / "skills/clayworks-lite-nudge/scripts"
+        t0 = time.monotonic()
+        _, err12 = run(s12, "--list", home=home)
+        elapsed = time.monotonic() - t0
+        assert elapsed < 3, f"hook stalled {elapsed:.1f}s on a locked store"
+        assert locked.exists() and err12 == "", err12       # quiet skip, not set aside
+    finally:
+        holder.kill(); holder.wait()
+    run(s12, "--list", home=home)
+    assert rows(root12 / "clayworks-lite/nudge/alerts.db") == [(B[0], B[1], 0)]
+    print(f"12 locked store skipped in {elapsed:.1f}s, merged after release: ok")
 print("ALL OK")

@@ -93,6 +93,19 @@ function Test-PurgeTarget {
     return $false
 }
 
+function Assert-Refused {
+    # Install and uninstall against Root must both refuse. I check both the
+    # refusal message and exit code 5, so a stale LASTEXITCODE from an
+    # earlier command can't pass for a refusal.
+    param([string]$Root, [string]$Label)
+    foreach ($mode in @($false, $true)) {
+        $out = (& $Current -Uninstall:$mode -ClaudeDir $Root *>&1 | ForEach-Object { "$_" }) -join "`n"
+        if ($LASTEXITCODE -ne 5 -or $out -notmatch "is a symlink or junction") {
+            Add-Failure "($Label) $(if ($mode) { 'uninstall' } else { 'install' }) did not refuse"
+        }
+    }
+}
+
 function ConvertTo-TestLiteral {
     # The single-quoted literal install.ps1 prints for a path.
     param([string]$Text)
@@ -181,18 +194,52 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $l "clayworks-lite") -Force | Out-Null
     New-Item -ItemType Directory -Path $outside -Force | Out-Null
     New-Item -ItemType Junction -Path (Join-Path $l "clayworks-lite/nudge") -Target $outside | Out-Null
-    # I check both the refusal message and exit code 5, so a stale
-    # LASTEXITCODE from an earlier command can't pass for a refusal.
-    foreach ($mode in @($false, $true)) {
-        $outL = (& $Current -Uninstall:$mode -ClaudeDir $l *>&1 | ForEach-Object { "$_" }) -join "`n"
-        if ($LASTEXITCODE -ne 5 -or $outL -notmatch "is a symlink or junction") {
-            Add-Failure "(junction) $(if ($mode) { 'uninstall' } else { 'install' }) went through a junctioned nudge dir"
-        }
-    }
+    Assert-Refused $l "junctioned nudge dir"
     if (Get-ChildItem -LiteralPath $outside -Force) { Add-Failure "(junction) the installer wrote outside the root" }
     Assert-Gone (Join-Path $l "skills")
-    # Remove the junction itself so cleanup never walks through it.
-    [System.IO.Directory]::Delete((Join-Path $l "clayworks-lite/nudge"))
+
+    # A junctioned Nudge skill dir, and separately a junctioned skills\,
+    # pointing at an unrelated folder that holds scripts\alerts.db: install
+    # and uninstall must both refuse, and that DB must stay untouched.
+    $ext = Join-Path $Work "external-skill"
+    New-Item -ItemType Directory -Path (Join-Path $ext "scripts") -Force | Out-Null
+    $extDb = Join-Path $ext "scripts/alerts.db"
+    [System.IO.File]::WriteAllText($extDb, "external-db")
+    $m = Join-Path $Work "claude-m"
+    New-Item -ItemType Directory -Path (Join-Path $m "skills") -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $m "skills/clayworks-lite-nudge") -Target $ext | Out-Null
+    Assert-Refused $m "junctioned skill dir"
+    $extSkills = Join-Path $Work "external-skills"
+    New-Item -ItemType Directory -Path $extSkills -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $extSkills "clayworks-lite-nudge") -Target $ext | Out-Null
+    $nRoot = Join-Path $Work "claude-n"
+    New-Item -ItemType Directory -Path $nRoot -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $nRoot "skills") -Target $extSkills | Out-Null
+    Assert-Refused $nRoot "junctioned skills dir"
+    if ((Read-Text $extDb) -ne "external-db") { Add-Failure "(junctioned skill dir) the external alerts.db was moved or changed" }
+    $extItems = @(Get-ChildItem -LiteralPath $ext -Recurse -Force | ForEach-Object { $_.Name })
+    if (($extItems -join ',') -ne 'scripts,alerts.db') {
+        Add-Failure "(junctioned skill dir) the installer changed the external folder: $($extItems -join ',')"
+    }
+
+    # A junctioned install root itself is fine (dotfile setups): install and
+    # uninstall through it work as usual.
+    $realRoot = Join-Path $Work "real-root"
+    New-Item -ItemType Directory -Path $realRoot -Force | Out-Null
+    $linkedRoot = Join-Path $Work "linked-root"
+    New-Item -ItemType Junction -Path $linkedRoot -Target $realRoot | Out-Null
+    $outRoot = Invoke-Current $linkedRoot
+    if (-not (Test-Path -LiteralPath (Join-Path $realRoot "skills/clayworks-lite-nudge/SKILL.md"))) {
+        Add-Failure "(junctioned root) install refused or skipped a junctioned root: $outRoot"
+    }
+    $outRoot = Invoke-Current $linkedRoot -Uninstall
+    if ($outRoot -notmatch "Uninstall complete") { Add-Failure "(junctioned root) uninstall refused a junctioned root" }
+
+    # Remove the junctions themselves so cleanup never walks through them.
+    foreach ($j in @((Join-Path $l "clayworks-lite/nudge"), (Join-Path $m "skills/clayworks-lite-nudge"),
+                     (Join-Path $nRoot "skills"), (Join-Path $extSkills "clayworks-lite-nudge"), $linkedRoot)) {
+        [System.IO.Directory]::Delete($j)
+    }
 
     # (d) An install over a 1.0.x skill whose stable DB already exists: the
     # legacy DB lands in nudge-import/, not in the backup, and the stable DB is

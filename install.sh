@@ -332,11 +332,14 @@ install_item() {
 # the stable DB already exists: a legacy DB left behind would end up in a
 # backup folder or deleted.
 
-# Exit before writing anything if a path component between CLAUDE_DIR and
-# $1 is a symlink (Git Bash reports a Windows junction as one too). A
+# Exit before touching anything if a path component below CLAUDE_DIR, down to
+# $1, is a symlink (Git Bash reports a Windows junction as one too). A
 # symlinked clayworks-lite/ or nudge/ would send your reminders outside the
-# install root. Paths outside CLAUDE_DIR, like a CLAYWORKS_NUDGE_DB you chose,
-# are yours to lay out, so I leave them alone.
+# install root, and a symlinked skills/ or skill dir would have me move or
+# delete files in whatever folder it points at. CLAUDE_DIR itself may be a
+# symlink (dotfile setups do that), so I only check components under it.
+# Paths outside CLAUDE_DIR, like a CLAYWORKS_NUDGE_DB you chose, are yours to
+# lay out, so I leave them alone.
 refuse_symlink_under_root() {
     local target="$1" p="$CLAUDE_DIR" part parts=()
     [[ "$target" == "$CLAUDE_DIR"/* ]] || return 0
@@ -345,18 +348,21 @@ refuse_symlink_under_root() {
         [[ -n "$part" ]] || continue
         p="${p}/${part}"
         if [[ -L "$p" ]]; then
-            echo "ERROR: ${p} is a symlink or junction. I won't write Nudge data through" >&2
-            echo "it, because it can point outside ${CLAUDE_DIR}. Replace it with a" >&2
-            echo "real directory, then re-run." >&2
+            echo "ERROR: ${p} is a symlink or junction. I won't read, move, or write LITE" >&2
+            echo "files through it, because it can point outside ${CLAUDE_DIR}. Replace" >&2
+            echo "it with a real directory, then re-run." >&2
             exit 5
         fi
     done
 }
 
-# Check every Nudge dir under CLAUDE_DIR up front, before any write.
+# Check every Nudge path under CLAUDE_DIR up front, before I read, move, or
+# write anything: the data dirs, plus skills/, the Nudge skill dir, and its
+# scripts/, where legacy stores live.
 refuse_nudge_symlinks() {
     refuse_symlink_under_root "${NUDGE_MARKER_DIR}/nudge-import"
     refuse_symlink_under_root "$NUDGE_IMPORT_DIR"
+    refuse_symlink_under_root "${NUDGE_SKILL_DIR}/scripts"
 }
 
 # mkdir -p that tightens to 700 only the dirs it actually creates. If
