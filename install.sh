@@ -362,13 +362,34 @@ refuse_symlink_under_root() {
     done
 }
 
-# Check every Nudge path under CLAUDE_DIR up front, before I read, move, or
-# write anything: the data dirs, the alerts DB file itself and its SQLite
-# sidecars (a symlinked alerts.db would have Nudge write reminders into
-# whatever it points at), plus skills/, the Nudge skill dir, and its
-# scripts/, where legacy stores live.
-refuse_nudge_symlinks() {
-    local side
+# Every skill name LITE installs or removes: the ones the current tree ships,
+# plus any an older version shipped.
+lite_skill_names() {
+    {
+        if [[ -d "${REPO_ROOT}/plugin/skills" ]]; then
+            find "${REPO_ROOT}/plugin/skills" -mindepth 1 -maxdepth 1 -type d -name "clayworks-lite-*" | sed 's|.*/||'
+        fi
+        printf '%s' "$SHIPPED_LINES" | awk -F'[/\t]' '$1 == "skills" && $2 ~ /^clayworks-lite-/ { print $2 }'
+    } | LC_ALL=C sort -u
+}
+
+# Check every path LITE installs to or removes under CLAUDE_DIR up front,
+# before I read, write, move, or remove anything. That covers skills/ and
+# each LITE skill, hooks/ and hooks/examples, the two root templates, the
+# backup root, and the Nudge paths: the data dirs, the alerts DB file itself
+# and its SQLite sidecars (a symlinked alerts.db would have Nudge write
+# reminders into whatever it points at), and the Nudge skill's scripts/,
+# where legacy stores live.
+refuse_linked_install_paths() {
+    local side name
+    refuse_symlink_under_root "${CLAUDE_DIR}/hooks/examples"
+    refuse_symlink_under_root "${CLAUDE_DIR}/CLAUDE.md.clayworks-template"
+    refuse_symlink_under_root "${CLAUDE_DIR}/settings.example.json"
+    refuse_symlink_under_root "$BACKUP_ROOT"
+    refuse_symlink_under_root "${CLAUDE_DIR}/skills"
+    while IFS= read -r name; do
+        [[ -n "$name" ]] && refuse_symlink_under_root "${CLAUDE_DIR}/skills/${name}"
+    done < <(lite_skill_names)
     refuse_symlink_under_root "${NUDGE_MARKER_DIR}/nudge-import"
     refuse_symlink_under_root "$NUDGE_IMPORT_DIR"
     for side in "" -journal -wal -shm; do
@@ -491,6 +512,14 @@ uninstall_item() {
     fi
 
     local how
+    # path_hash skips symlinks, so a link you added inside an otherwise
+    # unchanged dir would slip past the fast path. Any symlink (or, on Git
+    # Bash, junction) in dest makes it yours.
+    if [[ -d "$dest" && -n "$(find "$dest" -type l -print -quit)" ]]; then
+        upd "${label}: customized (holds a symlink you added) — SKIPPING; remove manually if you want"
+        KEPT=$((KEPT+1))
+        return
+    fi
     if [[ -e "$src" && "$(path_hash "$src" "$ignore")" == "$(path_hash "$dest" "$ignore")" ]]; then
         how="removed"
     elif matches_shipped_version "$dest" "$rel" "$ignore"; then
@@ -521,7 +550,7 @@ run_uninstall() {
     else
         info "Mode         : LIVE"
     fi
-    refuse_nudge_symlinks
+    refuse_linked_install_paths
     warn_nudge_db_in_skill
 
     section "Removing LITE skills"
@@ -536,14 +565,7 @@ run_uninstall() {
         ignore=""
         [[ "$name" == "clayworks-lite-nudge" ]] && ignore="nudge-stores"
         uninstall_item "${skills_dest}/${name}" "${skills_src}/${name}" "skill: ${name}" "skills/${name}" "$ignore"
-    done < <(
-        {
-            if [[ -d "$skills_src" ]]; then
-                find "$skills_src" -mindepth 1 -maxdepth 1 -type d -name "clayworks-lite-*" | sed 's|.*/||'
-            fi
-            printf '%s' "$SHIPPED_LINES" | awk -F'[/\t]' '$1 == "skills" && $2 ~ /^clayworks-lite-/ { print $2 }'
-        } | LC_ALL=C sort -u
-    )
+    done < <(lite_skill_names)
 
     section "Removing hook examples"
     uninstall_item "${CLAUDE_DIR}/hooks/examples" "${REPO_ROOT}/plugin/hooks/examples" "hooks/examples" "hooks/examples"
@@ -742,8 +764,8 @@ fi
 
 # Supply-chain check: refuse to proceed if the source tree contains symlinks.
 reject_symlinks_in_source "$REPO_ROOT"
-# Refuse a symlinked Nudge dir under the install root before any write.
-refuse_nudge_symlinks
+# Refuse a symlinked path LITE installs to under the root before any write.
+refuse_linked_install_paths
 
 section "Nudge alerts database"
 warn_nudge_db_in_skill

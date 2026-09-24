@@ -175,6 +175,33 @@ want_refused "$N" "symlinked skills dir"
 [[ "$(ls -A "$ext")" == "scripts" && "$(ls -A "${ext}/scripts")" == "alerts.db" ]] \
     || fail "(symlinked skill dir) the installer changed the external folder"
 
+# A symlinked hooks/ pointing at an external dir that holds examples/: install
+# and uninstall must both refuse, and the external dir must stay intact.
+ext_hooks="${WORK}/external-hooks"
+mkdir -p "${ext_hooks}/examples"
+printf 'theirs\n' > "${ext_hooks}/examples/stop.sh"
+Q="${WORK}/claude-q"
+mkdir -p "$Q"
+make_link "$ext_hooks" "${Q}/hooks"
+want_refused "$Q" "symlinked hooks dir"
+[[ "$(cat "${ext_hooks}/examples/stop.sh" 2>/dev/null)" == "theirs" && "$(ls -A "${ext_hooks}/examples")" == "stop.sh" ]] \
+    || fail "(symlinked hooks dir) the external examples/ changed"
+want_gone "${Q}/skills"
+
+# A symlink you added inside an otherwise unchanged skill: uninstall keeps
+# that skill (and your link) and removes the rest.
+R="${WORK}/claude-r"
+new_install "$R" >/dev/null
+link_target="${WORK}/link-target"
+mkdir -p "$link_target"
+make_link "$link_target" "${R}/skills/clayworks-lite-memory-routing/mine-link"
+out_r="$(new_uninstall "$R")"
+[[ -L "${R}/skills/clayworks-lite-memory-routing/mine-link" ]] || fail "(inner symlink) your link was removed"
+want_present "${R}/skills/clayworks-lite-memory-routing/SKILL.md"
+want_gone "${R}/skills/clayworks-lite-heartbeat-concept"
+grep -q "skill: clayworks-lite-memory-routing: customized" <<< "$out_r" \
+    || fail "(inner symlink) the skill holding your link was not kept as customized"
+
 # A symlinked install root itself is fine (dotfile setups): install and
 # uninstall through it work as usual.
 real_root="${WORK}/real-root"

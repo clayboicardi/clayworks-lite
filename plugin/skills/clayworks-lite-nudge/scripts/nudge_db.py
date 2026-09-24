@@ -255,10 +255,17 @@ def _open_source(src: Path, exclusive: bool) -> tuple[sqlite3.Connection, list[t
 
 
 def _merge_rows(conn: sqlite3.Connection, source: str, src_rows: list[tuple]) -> None:
-    """Copy not-yet-merged rows into the stable DB, and carry acknowledgments."""
+    """Copy not-yet-merged rows into the stable DB, and carry acknowledgments.
+
+    I recognize a row I've already copied by (row id, content), whatever path
+    it came from: the installers relocate a store I merged earlier (say, when
+    you switch from the plugin back to a script install), and a path-based
+    identity would import every row a second time. Two genuinely separate
+    stores would need the same row id AND the same due time, message, and
+    creation second to collide, which in practice means a copy of one store.
+    """
     done = {(sid, fp): dest for sid, fp, dest in conn.execute(
-        "SELECT src_id, fingerprint, dest_id FROM merged_rows WHERE source = ?",
-        (source,))}
+        "SELECT src_id, fingerprint, dest_id FROM merged_rows")}
     with conn:
         for sid, due_at, message, created_at, acknowledged in src_rows:
             fingerprint = f"{due_at}\x1f{message}\x1f{created_at}"
@@ -290,7 +297,10 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
     writing the stable DB (disk full, read-only) never gets blamed on the
     source: the source stays put and I retry next run.
     """
+    stop = False
     for src, rename in _legacy_sources(db_path):
+        if stop:
+            break
         source = str(src.resolve())
         try:
             src_conn, src_rows = _open_source(src, exclusive=rename)
@@ -309,6 +319,11 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
                 print(f"clayworks-lite-nudge: I couldn't write legacy alerts from {src} into "
                       f"{db_path} ({exc}); I left the legacy file in place and I'll retry "
                       f"next time.", file=sys.stderr)
+                if _classify(exc) == "wait":
+                    # Another process holds the stable DB. Waiting again for
+                    # each remaining store could run past the hook's timeout,
+                    # so I stop and let the next prompt finish the merge.
+                    stop = True
                 continue
             # On POSIX I rename while I still hold the EXCLUSIVE lock, so no
             # writer can slip a row in between my read and the rename.
@@ -354,7 +369,10 @@ def init_db() -> Path:
         db_path.chmod(stat.S_IMODE(db_path.stat().st_mode) & 0o700)
     except OSError:
         pass
-    conn = sqlite3.connect(db_path)
+    # A short busy timeout: if another process is writing the stable DB, the
+    # merge waits at most a second (once, see _merge_legacy) so the hook still
+    # has time to read and show your alerts.
+    conn = sqlite3.connect(db_path, timeout=1)
     try:
         with conn:
             conn.execute(SCHEMA)

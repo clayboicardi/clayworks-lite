@@ -46,8 +46,8 @@ with tempfile.TemporaryDirectory() as td:
     home = td / "home"; home.mkdir()
 
     # 1. Plugin install: two stores the installers handed over in nudge-import/
-    #    both merge. Each kept its own reminders, so the identical row in each is
-    #    two reminders and both survive. A corrupt import is set aside with a
+    #    both merge. The same text created at different times is two reminders,
+    #    and both survive. A corrupt import is set aside with a
     #    diagnostic, and a second corrupt one never overwrites the first. Old
     #    plugin-cache versions are NOT scanned (1.0.x Nudge never ran there).
     root = td / "cfg"
@@ -59,7 +59,8 @@ with tempfile.TemporaryDirectory() as td:
     new_scripts = cache / "1.1.0/skills/clayworks-lite-nudge/scripts"
     imp = root / "clayworks-lite/nudge/nudge-import"
     mkdb(imp / "legacy-a.db", [A, B])
-    mkdb(imp / "legacy-b.db", [A, C])
+    A2 = (A[0], A[1], "2025-12-31 10:05:00", 0)          # same text, created later
+    mkdb(imp / "legacy-b.db", [A2, C])
     (imp / "broken.db").write_bytes(b"not a sqlite file" * 10)
     out, err = run(new_scripts, "--list", home=home)
     db = root / "clayworks-lite/nudge/alerts.db"
@@ -257,4 +258,51 @@ with tempfile.TemporaryDirectory() as td:
     run(s12, "--list", home=home)
     assert rows(root12 / "clayworks-lite/nudge/alerts.db") == [(B[0], B[1], 0)]
     print(f"12 locked store skipped in {elapsed:.1f}s, merged after release: ok")
+    # 13. A store I merged in place (a retained script install) that an installer
+    #     later relocates into nudge-import/ must not import its rows twice: I
+    #     recognize rows by id and content, not by the path they came from.
+    root13 = td / "r13"
+    c13 = root13 / "plugins/cache/clayworks-lite/clayworks-lite/1.1.0/skills"
+    c13.mkdir(parents=True)
+    shutil.copytree(SRC, c13 / "clayworks-lite-nudge")
+    s13 = c13 / "clayworks-lite-nudge/scripts"
+    legacy13 = root13 / "skills/clayworks-lite-nudge/scripts/alerts.db"
+    mkdb(legacy13, [A, B])
+    run(s13, "--list", home=home)                        # merged in place, left there
+    imp13 = root13 / "clayworks-lite/nudge/nudge-import"
+    imp13.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(legacy13), str(imp13 / "legacy-20260101-000000-1.db"))   # installer relocates it
+    run(s13, "--list", home=home)
+    assert len(rows(root13 / "clayworks-lite/nudge/alerts.db")) == 2, rows(root13 / "clayworks-lite/nudge/alerts.db")
+    print("13 relocated store not imported twice: ok")
+    # 14. Another process holds a write lock on the stable DB while two stores
+    #     wait to merge: I wait about a second once, stop, and let the next
+    #     prompt finish, so the hook stays well under its 10-second timeout.
+    root14 = td / "r14"
+    shutil.copytree(SRC, root14 / "skills/clayworks-lite-nudge")
+    s14 = root14 / "skills/clayworks-lite-nudge/scripts"
+    (root14 / "clayworks-lite/nudge").mkdir(parents=True)
+    run(s14, "--list", home=home)                         # create the stable DB
+    stable14 = root14 / "clayworks-lite/nudge/alerts.db"
+    imp14 = root14 / "clayworks-lite/nudge/nudge-import"
+    mkdb(imp14 / "one.db", [B]); mkdb(imp14 / "two.db", [C])
+    writer = subprocess.Popen(
+        [sys.executable, "-c",
+         "import sqlite3, sys, time\n"
+         "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+         "c.execute('BEGIN IMMEDIATE'); print('locked', flush=True); time.sleep(30)\n",
+         str(stable14)],
+        stdout=subprocess.PIPE, text=True)
+    try:
+        assert writer.stdout is not None and writer.stdout.readline().strip() == "locked"
+        t0 = time.monotonic()
+        _, err14 = run(s14, "--list", home=home)
+        took = time.monotonic() - t0
+        assert took < 4, f"hook took {took:.1f}s behind a locked stable DB"
+        assert "couldn't write legacy alerts" in err14, err14
+    finally:
+        writer.kill(); writer.wait()
+    run(s14, "--list", home=home)
+    assert len(rows(stable14)) == 2, rows(stable14)
+    print(f"14 locked stable DB: one short wait ({took:.1f}s), merged next run: ok")
 print("ALL OK")

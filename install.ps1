@@ -344,7 +344,7 @@ function Install-LiteItem {
 # I don't touch ACLs here: a new dir inherits them from its parent, and a
 # shared dir that CLAYWORKS_NUDGE_DB points into keeps its owner's settings.
 
-function Confirm-NoNudgeReparsePoint {
+function Confirm-NoReparsePoint {
     # Exit before touching anything if a path component below ClaudeDir, down
     # to Path, is a symlink or junction. A reparse-point clayworks-lite\ or
     # nudge\ would send your reminders outside the install root, and a
@@ -371,24 +371,49 @@ function Confirm-NoNudgeReparsePoint {
     }
 }
 
-function Confirm-NudgeDirSafety {
-    # Check every Nudge path under ClaudeDir up front, before I read, move, or
-    # write anything: the data dirs, the alerts DB file and its sidecars,
-    # plus skills\, the Nudge skill dir, and its scripts\, where legacy
-    # stores live.
-    Confirm-NoNudgeReparsePoint (Join-Path $NudgeMarkerDir "nudge-import")
-    Confirm-NoNudgeReparsePoint $NudgeImportDir
+function Get-LiteSkillName {
+    # Every skill name LITE installs or removes: the ones the current tree
+    # ships, plus any an older version shipped.
+    $names = [System.Collections.Generic.SortedSet[string]]::new([System.StringComparer]::Ordinal)
+    $skillsSrc = Join-Path $RepoRoot "plugin/skills"
+    if (Test-Path -LiteralPath $skillsSrc) {
+        Get-ChildItem -LiteralPath $skillsSrc -Directory |
+            Where-Object { $_.Name -like "clayworks-lite-*" } |
+            ForEach-Object { [void]$names.Add($_.Name) }
+    }
+    foreach ($entry in $ShippedSet) {
+        if ($entry -match '^skills/(clayworks-lite-[^/\t]+)/') { [void]$names.Add($Matches[1]) }
+    }
+    return ,$names
+}
+
+function Confirm-InstallPathSafety {
+    # Check every path LITE installs to or removes under ClaudeDir up front,
+    # before I read, write, move, or remove anything. That covers skills\ and
+    # each LITE skill, hooks\ and hooks\examples, the two root templates, the
+    # backup root, and the Nudge paths: the data dirs, the alerts DB file and
+    # its sidecars, and the Nudge skill's scripts\, where legacy stores live.
+    Confirm-NoReparsePoint (Join-Path $ClaudeDir "hooks/examples")
+    Confirm-NoReparsePoint (Join-Path $ClaudeDir "CLAUDE.md.clayworks-template")
+    Confirm-NoReparsePoint (Join-Path $ClaudeDir "settings.example.json")
+    Confirm-NoReparsePoint $BackupRoot
+    Confirm-NoReparsePoint (Join-Path $ClaudeDir "skills")
+    foreach ($name in (Get-LiteSkillName)) {
+        Confirm-NoReparsePoint (Join-Path $ClaudeDir "skills/$name")
+    }
+    Confirm-NoReparsePoint (Join-Path $NudgeMarkerDir "nudge-import")
+    Confirm-NoReparsePoint $NudgeImportDir
     # The alerts DB file itself and its SQLite sidecars: a linked alerts.db
     # would have Nudge write reminders into whatever it points at.
     foreach ($side in @('', '-journal', '-wal', '-shm')) {
-        Confirm-NoNudgeReparsePoint ($NudgeDb + $side)
+        Confirm-NoReparsePoint ($NudgeDb + $side)
     }
-    Confirm-NoNudgeReparsePoint (Join-Path $NudgeSkillDir "scripts")
+    Confirm-NoReparsePoint (Join-Path $NudgeSkillDir "scripts")
     # Every legacy store I might stash, and its sidecars: a linked one would
     # have me move the link and Nudge import an unrelated external database.
     foreach ($s in $NudgeStoreRels) {
         foreach ($side in @('', '-journal', '-wal', '-shm')) {
-            Confirm-NoNudgeReparsePoint ((Join-Path $NudgeSkillDir $s) + $side)
+            Confirm-NoReparsePoint ((Join-Path $NudgeSkillDir $s) + $side)
         }
     }
 }
@@ -408,7 +433,7 @@ function Move-NudgeStore {
         Write-Updated "would move $Label -> $target (Nudge merges it on its next run)"
         return
     }
-    Confirm-NoNudgeReparsePoint $NudgeImportDir
+    Confirm-NoReparsePoint $NudgeImportDir
     if (-not (Test-Path -LiteralPath $NudgeImportDir)) {
         New-Item -ItemType Directory -Path $NudgeImportDir -Force | Out-Null
     }
@@ -456,9 +481,7 @@ function Test-ShippedVersion {
         $hash = (Get-FileHash -LiteralPath $DestPath -Algorithm SHA256).Hash.ToLowerInvariant()
         return $ShippedSet.Contains("$InstalledRel`t$hash")
     }
-    $links = Get-ChildItem -LiteralPath $DestPath -Recurse -Force -ErrorAction SilentlyContinue |
-        Where-Object { $_.LinkType }
-    if ($links) { return $false }
+    if (Test-HasReparsePoint $DestPath) { return $false }
     # -Name yields paths relative to DestPath (see Get-PathHash for why).
     foreach ($rel in (Get-ChildItem -LiteralPath $DestPath -Recurse -File -Force -Name)) {
         $relPosix = $rel.Replace('\', '/')
@@ -468,6 +491,22 @@ function Test-ShippedVersion {
         if (-not $ShippedSet.Contains("$InstalledRel/$relPosix`t$hash")) { return $false }
     }
     return $true
+}
+
+function Test-HasReparsePoint {
+    # True if anything under Path is a symlink or junction. I walk the tree
+    # myself so I never descend into a link: Windows PowerShell 5.1's
+    # Get-ChildItem -Recurse follows junctions.
+    param([string]$Path)
+    $pending = [System.Collections.Generic.Stack[string]]::new()
+    $pending.Push($Path)
+    while ($pending.Count -gt 0) {
+        foreach ($child in (Get-ChildItem -LiteralPath $pending.Pop() -Force -ErrorAction SilentlyContinue)) {
+            if ($child.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { return $true }
+            if ($child.PSIsContainer) { $pending.Push($child.FullName) }
+        }
+    }
+    return $false
 }
 
 function Uninstall-LiteItem {
@@ -481,6 +520,15 @@ function Uninstall-LiteItem {
 
     if (-not (Test-Path -LiteralPath $DestPath)) {
         Write-SkippedM "${Label}: not present (already uninstalled)"
+        return
+    }
+
+    # Get-PathHash skips links, so a symlink or junction you added inside an
+    # otherwise unchanged dir would slip past the fast path. Any link in
+    # DestPath makes it yours.
+    if ((Test-Path -LiteralPath $DestPath -PathType Container) -and (Test-HasReparsePoint $DestPath)) {
+        Write-Updated "${Label}: customized (holds a symlink or junction you added) -- SKIPPING; remove manually if you want"
+        $script:Kept++
         return
     }
 
@@ -513,23 +561,13 @@ function Invoke-Uninstall {
     Write-Info "Install root : $ClaudeDir"
     if ($DryRun) { Write-Info "Mode         : DRY RUN (no changes written)" }
     else         { Write-Info "Mode         : LIVE" }
-    Confirm-NudgeDirSafety
+    Confirm-InstallPathSafety
     Write-NudgeDbWarning
 
     Write-Section "Removing LITE skills"
     $skillsSrc = Join-Path $RepoRoot "plugin/skills"
     $skillsDest = Join-Path $ClaudeDir "skills"
-    # Every skill the current tree ships, plus any an older version shipped.
-    $skillNames = [System.Collections.Generic.SortedSet[string]]::new([System.StringComparer]::Ordinal)
-    if (Test-Path -LiteralPath $skillsSrc) {
-        Get-ChildItem -LiteralPath $skillsSrc -Directory |
-            Where-Object { $_.Name -like "clayworks-lite-*" } |
-            ForEach-Object { [void]$skillNames.Add($_.Name) }
-    }
-    foreach ($entry in $ShippedSet) {
-        if ($entry -match '^skills/(clayworks-lite-[^/\t]+)/') { [void]$skillNames.Add($Matches[1]) }
-    }
-    foreach ($name in $skillNames) {
+    foreach ($name in (Get-LiteSkillName)) {
         # A Nudge skill dir may still hold alert stores, which I leave out of
         # the keep-or-remove decision.
         Uninstall-LiteItem `
@@ -746,7 +784,7 @@ if (-not (Test-Path -LiteralPath $ClaudeDir)) {
 Test-NoSymlinksInSource -Path $RepoRoot
 # Refuse a symlinked or junctioned Nudge dir under the install root before
 # any write.
-Confirm-NudgeDirSafety
+Confirm-InstallPathSafety
 
 Write-Section "Nudge alerts database"
 Write-NudgeDbWarning

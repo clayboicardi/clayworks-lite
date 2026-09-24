@@ -251,10 +251,44 @@ try {
     $outRoot = Invoke-Current $linkedRoot -Uninstall
     if ($outRoot -notmatch "Uninstall complete") { Add-Failure "(junctioned root) uninstall refused a junctioned root" }
 
+    # A junctioned hooks\ pointing at an external dir that holds examples\:
+    # install and uninstall must both refuse, and the external dir must stay
+    # intact.
+    $extHooks = Join-Path $Work "external-hooks"
+    New-Item -ItemType Directory -Path (Join-Path $extHooks "examples") -Force | Out-Null
+    $extStop = Join-Path $extHooks "examples/stop.sh"
+    [System.IO.File]::WriteAllText($extStop, "theirs")
+    $q = Join-Path $Work "claude-q"
+    New-Item -ItemType Directory -Path $q -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $q "hooks") -Target $extHooks | Out-Null
+    Assert-Refused $q "junctioned hooks dir"
+    $extHookItems = @(Get-ChildItem -LiteralPath (Join-Path $extHooks "examples") -Force | ForEach-Object { $_.Name })
+    if ((Read-Text $extStop) -ne "theirs" -or ($extHookItems -join ',') -ne 'stop.sh') {
+        Add-Failure "(junctioned hooks dir) the external examples\ changed"
+    }
+    Assert-Gone (Join-Path $q "skills")
+
+    # A link you added inside an otherwise unchanged skill: uninstall keeps
+    # that skill (and your link) and removes the rest.
+    $r = Join-Path $Work "claude-r"
+    Invoke-Current $r | Out-Null
+    $linkTarget = Join-Path $Work "link-target"
+    New-Item -ItemType Directory -Path $linkTarget -Force | Out-Null
+    $mineLink = Join-Path $r "skills/clayworks-lite-memory-routing/mine-link"
+    New-Item -ItemType Junction -Path $mineLink -Target $linkTarget | Out-Null
+    $outR = Invoke-Current $r -Uninstall
+    if (-not (Test-Path -LiteralPath $mineLink)) { Add-Failure "(inner link) your link was removed" }
+    Assert-Present (Join-Path $r "skills/clayworks-lite-memory-routing/SKILL.md")
+    Assert-Gone (Join-Path $r "skills/clayworks-lite-heartbeat-concept")
+    if ($outR -notmatch "skill: clayworks-lite-memory-routing: customized") {
+        Add-Failure "(inner link) the skill holding your link was not kept as customized"
+    }
+
     # Remove the junctions themselves so cleanup never walks through them.
     foreach ($j in @((Join-Path $l "clayworks-lite/nudge"), (Join-Path $m "skills/clayworks-lite-nudge"),
-                     (Join-Path $nRoot "skills"), (Join-Path $extSkills "clayworks-lite-nudge"), $linkedRoot)) {
-        [System.IO.Directory]::Delete($j)
+                     (Join-Path $nRoot "skills"), (Join-Path $extSkills "clayworks-lite-nudge"), $linkedRoot,
+                     (Join-Path $q "hooks"), $mineLink)) {
+        if (Test-Path -LiteralPath $j) { [System.IO.Directory]::Delete($j) }
     }
 
     # (d) An install over a 1.0.x skill whose stable DB already exists: the
