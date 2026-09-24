@@ -345,9 +345,29 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
                 pass                     # still open elsewhere: the ledger covers reruns
 
 
+def _refuse_linked_default(db_path: Path) -> None:
+    """Refuse a symlinked default DB path before I touch it.
+
+    The installers check this for a script install, but a plugin install runs
+    these scripts with no installer preflight. A link at the default
+    location (the nudge/ folder, alerts.db, or a SQLite sidecar) would have me
+    chmod and write reminders into whatever it points at. A CLAYWORKS_NUDGE_DB
+    you set yourself is your layout to choose, so I only guard the default.
+    """
+    if os.environ.get(ENV_OVERRIDE, "").strip():
+        return
+    candidates = [db_path.parent.parent, db_path.parent, db_path]
+    candidates += [db_path.with_name(db_path.name + side) for side in SIDECARS]
+    for candidate in candidates:
+        if candidate.is_symlink():
+            raise OSError(f"I won't use {candidate}: it's a symlink, and it could point "
+                          f"outside your Claude folder. Replace it with a real file or folder.")
+
+
 def init_db() -> Path:
     """Create the DB dir + table if needed, merge legacy stores, tighten perms."""
     db_path = resolve_db_path()
+    _refuse_linked_default(db_path)
     # mode applies only to directories this call creates (and respects umask).
     db_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     # Alert content can be sensitive (e.g. "standup at 9:30 about acquisition

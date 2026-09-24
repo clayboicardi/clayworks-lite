@@ -305,4 +305,27 @@ with tempfile.TemporaryDirectory() as td:
     run(s14, "--list", home=home)
     assert len(rows(stable14)) == 2, rows(stable14)
     print(f"14 locked stable DB: one short wait ({took:.1f}s), merged next run: ok")
+
+    # 15. A plugin install runs with no installer preflight, so the runtime itself
+    #     must refuse a symlinked default alerts.db instead of chmod-ing and
+    #     writing through it. (Needs symlink rights; skipped where the OS denies them.)
+    root15 = td / "r15"
+    c15 = root15 / "plugins/cache/clayworks-lite/clayworks-lite/1.1.0/skills"
+    c15.mkdir(parents=True)
+    shutil.copytree(SRC, c15 / "clayworks-lite-nudge")
+    (root15 / "clayworks-lite/nudge").mkdir(parents=True)
+    outside = td / "outside.db"
+    outside.write_bytes(b"not yours")
+    try:
+        os.symlink(outside, root15 / "clayworks-lite/nudge/alerts.db")
+    except (OSError, NotImplementedError):
+        print("15 linked default DB refused: skipped (no symlink rights here)")
+    else:
+        env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CONFIG_DIR", "CLAYWORKS_NUDGE_DB")}
+        env.update(HOME=str(home), USERPROFILE=str(home), PYTHONDONTWRITEBYTECODE="1")
+        r15 = subprocess.run([sys.executable, "-B", str(c15 / "clayworks-lite-nudge/scripts/nudge_db.py"), "--list"],
+                             capture_output=True, text=True, env=env)
+        assert r15.returncode != 0 and "symlink" in r15.stderr, (r15.returncode, r15.stderr)
+        assert outside.read_bytes() == b"not yours"
+        print("15 linked default DB refused, target untouched: ok")
 print("ALL OK")
