@@ -359,7 +359,7 @@ function Confirm-NoNudgeReparsePoint {
         if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
             Write-Host "ERROR: $p is a symlink or junction. I won't read, move, or write LITE" -ForegroundColor Red
             Write-Host "files through it, because it can point outside $ClaudeDir. Replace" -ForegroundColor Red
-            Write-Host "it with a real directory, then re-run." -ForegroundColor Red
+            Write-Host "it with a real directory or file, then re-run." -ForegroundColor Red
             exit 5
         }
     }
@@ -367,10 +367,16 @@ function Confirm-NoNudgeReparsePoint {
 
 function Confirm-NudgeDirSafety {
     # Check every Nudge path under ClaudeDir up front, before I read, move, or
-    # write anything: the data dirs, plus skills\, the Nudge skill dir, and
-    # its scripts\, where legacy stores live.
+    # write anything: the data dirs, the alerts DB file and its sidecars,
+    # plus skills\, the Nudge skill dir, and its scripts\, where legacy
+    # stores live.
     Confirm-NoNudgeReparsePoint (Join-Path $NudgeMarkerDir "nudge-import")
     Confirm-NoNudgeReparsePoint $NudgeImportDir
+    # The alerts DB file itself and its SQLite sidecars: a linked alerts.db
+    # would have Nudge write reminders into whatever it points at.
+    foreach ($side in @('', '-journal', '-wal', '-shm')) {
+        Confirm-NoNudgeReparsePoint ($NudgeDb + $side)
+    }
     Confirm-NoNudgeReparsePoint (Join-Path $NudgeSkillDir "scripts")
 }
 

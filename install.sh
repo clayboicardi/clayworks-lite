@@ -350,18 +350,24 @@ refuse_symlink_under_root() {
         if [[ -L "$p" ]]; then
             echo "ERROR: ${p} is a symlink or junction. I won't read, move, or write LITE" >&2
             echo "files through it, because it can point outside ${CLAUDE_DIR}. Replace" >&2
-            echo "it with a real directory, then re-run." >&2
+            echo "it with a real directory or file, then re-run." >&2
             exit 5
         fi
     done
 }
 
 # Check every Nudge path under CLAUDE_DIR up front, before I read, move, or
-# write anything: the data dirs, plus skills/, the Nudge skill dir, and its
+# write anything: the data dirs, the alerts DB file itself and its SQLite
+# sidecars (a symlinked alerts.db would have Nudge write reminders into
+# whatever it points at), plus skills/, the Nudge skill dir, and its
 # scripts/, where legacy stores live.
 refuse_nudge_symlinks() {
+    local side
     refuse_symlink_under_root "${NUDGE_MARKER_DIR}/nudge-import"
     refuse_symlink_under_root "$NUDGE_IMPORT_DIR"
+    for side in "" -journal -wal -shm; do
+        refuse_symlink_under_root "${NUDGE_DB}${side}"
+    done
     refuse_symlink_under_root "${NUDGE_SKILL_DIR}/scripts"
 }
 
