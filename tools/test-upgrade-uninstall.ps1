@@ -57,6 +57,42 @@ function Get-ImportedContent {
     return [System.IO.File]::ReadAllText($found[0].FullName)
 }
 
+function Get-PurgeTarget {
+    # The paths the printed Remove-Item purge commands name, decoded by the
+    # PowerShell parser exactly as it would read them if you pasted them.
+    param([string]$Output)
+    $targets = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in ($Output -split "`n")) {
+        if ($line -notmatch '^\s+Remove-Item .*-LiteralPath ') { continue }
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($line.Trim(), [ref]$tokens, [ref]$errors)
+        if ($errors.Count -gt 0) {
+            Add-Failure "(quoting) purge line does not parse: $line"
+            continue
+        }
+        $cmd = $ast.Find({ param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true)
+        $els = $cmd.CommandElements
+        for ($i = 0; $i -lt $els.Count - 1; $i++) {
+            if ($els[$i] -is [System.Management.Automation.Language.CommandParameterAst] -and
+                $els[$i].ParameterName -eq 'LiteralPath') {
+                $targets.Add([string]$els[$i + 1].SafeGetValue())
+            }
+        }
+    }
+    return ,$targets
+}
+
+function Test-PurgeTarget {
+    # True if one of the printed purge commands names Path.
+    param([string]$Output, [string]$Path)
+    $want = [System.IO.Path]::GetFullPath($Path)
+    foreach ($t in (Get-PurgeTarget $Output)) {
+        if ([System.IO.Path]::GetFullPath($t) -eq $want) { return $true }
+    }
+    return $false
+}
+
 function Read-Text { param([string]$Path)
     if (Test-Path -LiteralPath $Path -PathType Leaf) { return [System.IO.File]::ReadAllText($Path) }
     return $null
@@ -91,13 +127,12 @@ try {
         Add-Failure "(a) legacy DB did not land in nudge-import/"
     }
     if ($outA -notmatch "Uninstall finished; 1 item\(s\) kept") { Add-Failure "(a) wrong closing line" }
-    $backupLine = "Remove-Item -Recurse -Force '$(Join-Path $a '.clayworks-lite-backup')'"
-    $nudgeLine  = "Remove-Item -Recurse -Force '$(Join-Path $a 'clayworks-lite')'"
-    # Join-Path and Split-Path disagree on / vs \ across PowerShell versions,
-    # so I compare with the separators normalized.
-    $normA = $outA.Replace('/', '\')
-    if (-not $normA.Contains($backupLine.Replace('/', '\'))) { Add-Failure "(e) purge text lacks this root's backup dir" }
-    if (-not $normA.Contains($nudgeLine.Replace('/', '\')))  { Add-Failure "(e) purge text lacks this root's clayworks-lite dir" }
+    if (-not (Test-PurgeTarget $outA (Join-Path $a '.clayworks-lite-backup'))) {
+        Add-Failure "(e) purge text lacks this root's backup dir"
+    }
+    if (-not (Test-PurgeTarget $outA (Join-Path $a 'clayworks-lite'))) {
+        Add-Failure "(e) purge text lacks this root's clayworks-lite dir"
+    }
     if ($outA.Contains("~/.claude"))      { Add-Failure "(e) uninstall output still names ~/.claude" }
 
     # (b) You customized the Nudge skill and added a file to another skill.
@@ -158,13 +193,12 @@ try {
         Add-Failure "(override) legacy DB not in the shared nudge-import dir"
     }
     Assert-Gone (Join-Path $f "skills/clayworks-lite-nudge")
-    $normF = $outF.Replace('/', '\')
-    if (-not $normF.Contains("Remove-Item -Force '$sharedDb'".Replace('/', '\'))) { Add-Failure "(override) purge text lacks the DB file" }
-    if (-not $normF.Contains("Remove-Item -Recurse -Force '$(Join-Path $shared 'nudge-import')'".Replace('/', '\'))) {
+    if (-not (Test-PurgeTarget $outF $sharedDb)) { Add-Failure "(override) purge text lacks the DB file" }
+    if (-not (Test-PurgeTarget $outF (Join-Path $shared 'nudge-import'))) {
         Add-Failure "(override) purge text lacks the nudge-import dir"
     }
-    foreach ($bad in @("'$shared'", "'$(Join-Path $shared 'import')'")) {
-        if ($normF.Contains("Remove-Item -Recurse -Force $bad".Replace('/', '\'))) {
+    foreach ($bad in @($shared, (Join-Path $shared 'import'))) {
+        if (Test-PurgeTarget $outF $bad) {
             Add-Failure "(override) purge text names the shared dir or a generic import/"
         }
     }
@@ -196,6 +230,49 @@ try {
     }
     Assert-Gone (Join-Path $h "skills/clayworks-lite-nudge/scripts/nudge-import")
     if ($outH -notmatch "WARNING: CLAYWORKS_NUDGE_DB") { Add-Failure "(db-in-skill install) no warning" }
+
+    # CLAYWORKS_NUDGE_DB names some other file inside the skill dir, with a
+    # WAL sidecar. Install-over and uninstall must both hand that store (and
+    # its sidecar) to the fallback nudge-import/ before the skill dir goes,
+    # and keep it out of the backup.
+    $i = Join-Path $Work "claude-i"
+    & $oldInstaller -ClaudeDir $i *>&1 | Out-Null
+    $dbI = Join-Path $i "skills/clayworks-lite-nudge/scripts/custom.db"
+    [System.IO.File]::WriteAllText($dbI, "custom-i")
+    [System.IO.File]::WriteAllText("$dbI-wal", "wal-i")
+    $env:CLAYWORKS_NUDGE_DB = $dbI
+    try { $outI = Invoke-Current $i } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
+    $importI = Join-Path $i "clayworks-lite/nudge/nudge-import"
+    if ((Get-ImportedContent $importI) -ne "custom-i") { Add-Failure "(custom-db install) store lost" }
+    $walI = @(Get-ChildItem -LiteralPath $importI -Filter "legacy-*.db-wal" -File -ErrorAction SilentlyContinue)
+    if ($walI.Count -ne 1 -or [System.IO.File]::ReadAllText($walI[0].FullName) -ne "wal-i") {
+        Add-Failure "(custom-db install) WAL sidecar lost"
+    }
+    $backedUpI = Get-ChildItem -LiteralPath (Join-Path $i ".clayworks-lite-backup") -Recurse -Filter "custom.db*" -ErrorAction SilentlyContinue
+    if ($backedUpI) { Add-Failure "(custom-db install) store ended up in the backup folder" }
+    if ($outI -notmatch "WARNING: CLAYWORKS_NUDGE_DB") { Add-Failure "(custom-db install) no warning" }
+
+    $j = Join-Path $Work "claude-j"
+    & $oldInstaller -ClaudeDir $j *>&1 | Out-Null
+    $dbJ = Join-Path $j "skills/clayworks-lite-nudge/scripts/custom.db"
+    [System.IO.File]::WriteAllText($dbJ, "custom-j")
+    $env:CLAYWORKS_NUDGE_DB = $dbJ
+    try { $outJ = Invoke-Current $j -Uninstall } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
+    Assert-Gone (Join-Path $j "skills/clayworks-lite-nudge")
+    if ((Get-ImportedContent (Join-Path $j "clayworks-lite/nudge/nudge-import")) -ne "custom-j") {
+        Add-Failure "(custom-db uninstall) store lost"
+    }
+    if ($outJ -notmatch "WARNING: CLAYWORKS_NUDGE_DB") { Add-Failure "(custom-db uninstall) no warning" }
+
+    # A claude dir with an apostrophe and a space. The PowerShell parser must
+    # read each printed purge command back as the right path.
+    $k = Join-Path $Work "O'Brien root"
+    Invoke-Current $k | Out-Null
+    $outK = Invoke-Current $k -Uninstall
+    foreach ($want in @((Join-Path $k '.clayworks-lite-backup'), (Join-Path $k 'clayworks-lite'))) {
+        if (-not (Test-PurgeTarget $outK $want)) { Add-Failure "(quoting) no purge command for $want" }
+    }
+    if (-not $outK.Contains("O''Brien root")) { Add-Failure "(quoting) apostrophe not doubled in the purge text" }
 } finally {
     # Cleanup is best-effort; a leftover temp dir must not mask the result.
     $ErrorActionPreference = "Continue"

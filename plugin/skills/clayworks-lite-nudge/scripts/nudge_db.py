@@ -56,11 +56,15 @@ SCHEMA = """
     )
 """
 
+# One row per legacy row I've copied. The key includes the row's content, not
+# just its id: an old plugin process can recreate its alerts.db after I merged
+# it, and the new file restarts ids at 1.
 LEDGER_SCHEMA = """
     CREATE TABLE IF NOT EXISTS merged_rows (
         source TEXT NOT NULL,
         src_id INTEGER NOT NULL,
-        PRIMARY KEY (source, src_id)
+        fingerprint TEXT NOT NULL,
+        PRIMARY KEY (source, src_id, fingerprint)
     )
 """
 IMPORT_DIR_NAME = "nudge-import"
@@ -174,12 +178,37 @@ def _set_aside(src: Path, rename: bool, reason: str) -> None:
           file=sys.stderr)
 
 
+def _read_source(src: Path) -> list[tuple]:
+    """Every alert row in a legacy store, read through its own read-only connection.
+
+    Errors raised here come from the source file, so the caller can blame it
+    safely; nothing here touches the stable DB.
+    """
+    src_conn = sqlite3.connect(f"{src.resolve().as_uri()}?mode=ro", uri=True)
+    try:
+        has_table = src_conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alerts'"
+        ).fetchone()
+        if not has_table:
+            raise sqlite3.DatabaseError("no alerts table")
+        return src_conn.execute(
+            "SELECT id, due_at, message, created_at, acknowledged FROM alerts ORDER BY id"
+        ).fetchall()
+    finally:
+        src_conn.close()             # closed before any rename (Windows locks open files)
+
+
 def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
-    """Copy every not-yet-merged row from each legacy store into the open DB."""
+    """Copy every not-yet-merged row from each legacy store into the open DB.
+
+    I read the source and write the stable DB in separate steps, so a failure
+    writing the stable DB (disk full, read-only) never gets blamed on the
+    source: the source stays put and I retry next run.
+    """
     for src, rename in _legacy_sources(db_path):
         source = str(src.resolve())
         try:
-            conn.execute("ATTACH DATABASE ? AS legacy", (str(src),))
+            src_rows = _read_source(src)
         except sqlite3.Error as exc:
             kind = _classify(exc)
             if kind == "retry":
@@ -187,51 +216,29 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
             elif kind == "permanent":
                 _set_aside(src, rename, str(exc))
             continue                     # "wait" and "retry" try again next run
-        merged = False
-        failure = ""                     # permanent problem, acted on after DETACH
         try:
-            has_table = conn.execute(
-                "SELECT 1 FROM legacy.sqlite_master WHERE type = 'table' AND name = 'alerts'"
-            ).fetchone()
-            if not has_table:
-                failure = "no alerts table"
-            else:
-                with conn:
+            done = {(sid, fp) for sid, fp in conn.execute(
+                "SELECT src_id, fingerprint FROM merged_rows WHERE source = ?", (source,))}
+            with conn:
+                for sid, due_at, message, created_at, acknowledged in src_rows:
+                    fingerprint = f"{due_at}\x1f{message}\x1f{created_at}"
+                    if (sid, fingerprint) in done:
+                        continue
                     conn.execute(
-                        """
-                        INSERT INTO main.alerts (due_at, message, created_at, acknowledged)
-                        SELECT l.due_at, l.message, l.created_at, l.acknowledged
-                        FROM legacy.alerts AS l
-                        WHERE NOT EXISTS (
-                            SELECT 1 FROM main.merged_rows AS r
-                            WHERE r.source = ? AND r.src_id = l.id)
-                        ORDER BY l.id
-                        """,
-                        (source,),
+                        "INSERT INTO alerts (due_at, message, created_at, acknowledged) "
+                        "VALUES (?, ?, ?, ?)",
+                        (due_at, message, created_at, acknowledged),
                     )
                     conn.execute(
-                        "INSERT OR IGNORE INTO main.merged_rows (source, src_id) "
-                        "SELECT ?, id FROM legacy.alerts",
-                        (source,),
+                        "INSERT INTO merged_rows (source, src_id, fingerprint) VALUES (?, ?, ?)",
+                        (source, sid, fingerprint),
                     )
-                merged = True
         except sqlite3.Error as exc:
-            kind = _classify(exc)
-            if kind == "retry":
-                _report_retry(src, str(exc))
-            elif kind == "permanent":
-                failure = str(exc)
-            # "wait" retries silently next run
-        finally:
-            try:
-                conn.execute("DETACH DATABASE legacy")
-            except sqlite3.Error:
-                pass
-        # Windows can't rename a file SQLite still has attached, so I act only
-        # after the DETACH above.
-        if failure:
-            _set_aside(src, rename, failure)
-        elif merged and rename:
+            print(f"clayworks-lite-nudge: I couldn't write legacy alerts from {src} into "
+                  f"{db_path} ({exc}); I left the legacy file in place and I'll retry next time.",
+                  file=sys.stderr)
+            continue
+        if rename:
             try:
                 src.replace(src.with_name(src.name + ".merged"))
             except OSError:

@@ -126,4 +126,38 @@ with tempfile.TemporaryDirectory() as td:
         extra_env={"CLAYWORKS_NUDGE_DB": str(override)})
     assert rows(override) == [(B[0], B[1], 0)]
     print("6 fallback nudge-import merged into an override DB: ok")
+
+    # 7. An old plugin process recreates its alerts.db after I merged it; the new
+    #    file restarts ids at 1. The different row 1 must still come across.
+    old = cache / "1.0.1/skills/clayworks-lite-nudge/scripts/alerts.db"
+    D = ("2026-01-04 09:00", "made-after-migration", "2026-01-01 08:00:00", 0)
+    mkdb(old, [D])                                      # same path, fresh ids
+    run(new_scripts, "--list", home=home)
+    assert (D[0], D[1], 0) in rows(db) and len(rows(db)) == 5, rows(db)
+    print("7 recreated legacy store merged despite reused ids: ok")
+
+    # 8. A stable DB I can't write (read-only) must not get the source set
+    #    aside; once the DB is writable again the rows come across.
+    root8 = td / "r8"
+    shutil.copytree(SRC, root8 / "skills/clayworks-lite-nudge")
+    s8 = root8 / "skills/clayworks-lite-nudge/scripts"
+    (root8 / "clayworks-lite/nudge").mkdir(parents=True)
+    run(s8, "--list", home=home)                        # create the stable DB
+    db8 = root8 / "clayworks-lite/nudge/alerts.db"
+    src8 = root8 / "clayworks-lite/nudge/nudge-import/legacy-9.db"
+    mkdb(src8, [C])
+    os.chmod(db8, 0o444)
+    try:
+        env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CONFIG_DIR", "CLAYWORKS_NUDGE_DB")}
+        env.update(HOME=str(home), USERPROFILE=str(home))
+        r = subprocess.run([sys.executable, "-B", str(s8 / "nudge_db.py"), "--list"],
+                           capture_output=True, text=True, env=env)
+        assert src8.exists(), "source was moved even though the write failed"
+        assert not src8.with_name(src8.name + ".unmergeable").exists()
+        assert "couldn't write legacy alerts" in r.stderr, r.stderr
+    finally:
+        os.chmod(db8, 0o644)
+    run(s8, "--list", home=home)
+    assert rows(db8) == [(C[0], C[1], 0)] and src8.with_name(src8.name + ".merged").exists()
+    print("8 read-only destination retries without blaming the source: ok")
 print("ALL OK")

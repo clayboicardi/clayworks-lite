@@ -82,6 +82,30 @@ function Test-PathWithin {
     return $p.Equals($d, $cmp) -or $p.StartsWith($d + [System.IO.Path]::DirectorySeparatorChar, $cmp)
 }
 
+function Test-NudgeStoreRel {
+    # True if Rel (a /-separated relpath inside the Nudge skill dir) is one of
+    # NudgeStoreRels or its -wal / -shm sidecar. Windows paths compare
+    # case-insensitively.
+    param([string]$Rel)
+    $cmp = [System.StringComparison]::Ordinal
+    if ([System.Environment]::OSVersion.Platform -eq 'Win32NT') {
+        $cmp = [System.StringComparison]::OrdinalIgnoreCase
+    }
+    foreach ($s in $NudgeStoreRels) {
+        foreach ($candidate in @($s, "$s-wal", "$s-shm")) {
+            if ($Rel.Equals($candidate, $cmp)) { return $true }
+        }
+    }
+    return $false
+}
+
+function ConvertTo-PSLiteral {
+    # A single-quoted PowerShell literal for Text, so a path like O'Brien
+    # pastes back safely.
+    param([string]$Text)
+    return "'" + $Text.Replace("'", "''") + "'"
+}
+
 # Nudge alerts: the same DB path nudge_db.py resolves for a script install
 # into ClaudeDir, with a leading ~ expanded the way nudge_db.py does it. The
 # runtime merges every *.db in the nudge-import dir next to the DB on its next
@@ -101,14 +125,24 @@ if (-not $NudgeDbDir) { $NudgeDbDir = "." }
 $NudgeMarkerDir = Join-Path $ClaudeDir "clayworks-lite/nudge"
 $NudgeSkillDir  = Join-Path $ClaudeDir "skills/clayworks-lite-nudge"
 $NudgeImportDir = Join-Path $NudgeDbDir "nudge-import"
-# Where 1.0.x kept the DB, relative to the Nudge skill dir.
-$LegacyDbInSkill = "scripts/alerts.db"
-# If CLAYWORKS_NUDGE_DB points inside the Nudge skill dir, which install
-# replaces and uninstall removes, a nudge-import dir next to it would go down
-# with that dir. I fall back to the default Nudge dir and warn.
+# Alert stores that live inside the Nudge skill dir, as relpaths from it:
+# where 1.0.x kept the DB, plus the CLAYWORKS_NUDGE_DB file when it points in
+# there. Install replaces that dir and uninstall removes it, so I hand every
+# one of them to nudge-import/ first.
+$NudgeStoreRels = [System.Collections.Generic.List[string]]::new()
+$NudgeStoreRels.Add("scripts/alerts.db")
+# If CLAYWORKS_NUDGE_DB points inside the Nudge skill dir, a nudge-import dir
+# next to it would go down with that dir. I fall back to the default Nudge
+# dir and warn.
 $NudgeDbInSkill = (Test-PathWithin $NudgeDb $NudgeSkillDir) -or (Test-PathWithin $NudgeImportDir $NudgeSkillDir)
 if ($NudgeDbInSkill) {
     $NudgeImportDir = Join-Path $NudgeMarkerDir "nudge-import"
+    $dbNorm    = Get-NormalizedPath $NudgeDb
+    $skillNorm = Get-NormalizedPath $NudgeSkillDir
+    if ($dbNorm.Length -gt $skillNorm.Length + 1 -and (Test-PathWithin $NudgeDb $NudgeSkillDir)) {
+        $dbRel = $dbNorm.Substring($skillNorm.Length + 1).Replace('\', '/')
+        if (-not (Test-NudgeStoreRel $dbRel)) { $NudgeStoreRels.Add($dbRel) }
+    }
 }
 
 function Write-NudgeDbWarning {
@@ -184,8 +218,8 @@ function Find-Python {
 # --- Hashing -----------------------------------------------------------------
 
 function Get-PathHash {
-    # IgnoreRel names one relpath inside a directory to leave out.
-    param([string]$Path, [string]$IgnoreRel = "")
+    # SkipNudgeStores leaves the Nudge alert stores out (see Test-NudgeStoreRel).
+    param([string]$Path, [switch]$SkipNudgeStores)
     if (-not (Test-Path -LiteralPath $Path)) { return $null }
     if (Test-Path -LiteralPath $Path -PathType Leaf) {
         return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
@@ -197,7 +231,7 @@ function Get-PathHash {
     $entries = [System.Collections.Generic.List[string]]::new()
     Get-ChildItem -LiteralPath $Path -Recurse -File -Name | Sort-Object | ForEach-Object {
         $rel = $_.Replace('\','/')
-        if ($IgnoreRel -and $rel -eq $IgnoreRel) { return }
+        if ($SkipNudgeStores -and (Test-NudgeStoreRel $rel)) { return }
         $h   = (Get-FileHash -LiteralPath (Join-Path $Path $_) -Algorithm SHA256).Hash
         $entries.Add("${rel}:${h}")
     }
@@ -301,11 +335,10 @@ function Install-LiteItem {
 # I don't touch ACLs here: a new dir inherits them from its parent, and a
 # shared dir that CLAYWORKS_NUDGE_DB points into keeps its owner's settings.
 
-function Move-LegacyNudgeDb {
-    # Move <SkillDir>/scripts/alerts.db to nudge-import/legacy-<timestamp>-<pid>.db.
-    param([string]$SkillDir)
-    $legacy = Join-Path $SkillDir $LegacyDbInSkill
-    if (-not (Test-Path -LiteralPath $legacy -PathType Leaf)) { return }
+function Move-NudgeStore {
+    # Move one alert store, plus its -wal / -shm sidecars, to
+    # nudge-import/legacy-<timestamp>-<pid>.db, where Nudge merges it.
+    param([string]$StorePath, [string]$Label)
     $target = Join-Path $NudgeImportDir "legacy-$Timestamp.db"
     $n = 1
     while (Test-Path -LiteralPath $target) {
@@ -313,14 +346,34 @@ function Move-LegacyNudgeDb {
         $n++
     }
     if ($DryRun) {
-        Write-Updated "would move legacy alerts.db -> $target (Nudge merges it on its next run)"
+        Write-Updated "would move $Label -> $target (Nudge merges it on its next run)"
         return
     }
     if (-not (Test-Path -LiteralPath $NudgeImportDir)) {
         New-Item -ItemType Directory -Path $NudgeImportDir -Force | Out-Null
     }
-    Move-Item -LiteralPath $legacy -Destination $target
-    Write-Updated "moved legacy alerts.db -> $target (Nudge merges it on its next run)"
+    Move-Item -LiteralPath $StorePath -Destination $target
+    foreach ($ext in @("-wal", "-shm")) {
+        if (Test-Path -LiteralPath "$StorePath$ext" -PathType Leaf) {
+            Move-Item -LiteralPath "$StorePath$ext" -Destination "$target$ext"
+        }
+    }
+    Write-Updated "moved $Label -> $target (Nudge merges it on its next run)"
+}
+
+function Move-NudgeStoreSet {
+    # Hand every alert store inside SkillDir to nudge-import/. Returns $false
+    # if there was none.
+    param([string]$SkillDir)
+    $found = $false
+    foreach ($s in $NudgeStoreRels) {
+        $storePath = Join-Path $SkillDir $s
+        if (Test-Path -LiteralPath $storePath -PathType Leaf) {
+            Move-NudgeStore -StorePath $storePath -Label $s
+            $found = $true
+        }
+    }
+    return $found
 }
 
 # --- Uninstall + Verify -----------------------------------------------------
@@ -329,11 +382,12 @@ $script:Kept = 0
 
 function Test-ShippedVersion {
     # True if DestPath holds nothing but files some LITE version shipped at
-    # the same installed path, apart from the optional IgnoreRel. I also skip
-    # __pycache__/ and *.pyc, which 1.0.x left behind by running Python from
-    # inside the skill dir. A symlink or junction, an extra file, or an
-    # edited file means you touched it, so the answer is no.
-    param([string]$DestPath, [string]$InstalledRel, [string]$IgnoreRel = "")
+    # the same installed path, apart from the Nudge alert stores when
+    # SkipNudgeStores is set. I also skip __pycache__/ and *.pyc, which 1.0.x
+    # left behind by running Python from inside the skill dir. A symlink or
+    # junction, an extra file, or an edited file means you touched it, so the
+    # answer is no.
+    param([string]$DestPath, [string]$InstalledRel, [switch]$SkipNudgeStores)
     if ($ShippedSet.Count -eq 0) { return $false }
     $item = Get-Item -LiteralPath $DestPath -Force
     if ($item.LinkType) { return $false }
@@ -348,7 +402,7 @@ function Test-ShippedVersion {
     foreach ($rel in (Get-ChildItem -LiteralPath $DestPath -Recurse -File -Force -Name)) {
         $relPosix = $rel.Replace('\', '/')
         if ($relPosix -match '(^|/)__pycache__/' -or $relPosix.EndsWith('.pyc')) { continue }
-        if ($IgnoreRel -and $relPosix -eq $IgnoreRel) { continue }
+        if ($SkipNudgeStores -and (Test-NudgeStoreRel $relPosix)) { continue }
         $hash = (Get-FileHash -LiteralPath (Join-Path $DestPath $rel) -Algorithm SHA256).Hash.ToLowerInvariant()
         if (-not $ShippedSet.Contains("$InstalledRel/$relPosix`t$hash")) { return $false }
     }
@@ -358,11 +412,11 @@ function Test-ShippedVersion {
 function Uninstall-LiteItem {
     # Remove DestPath if it matches the current source, or failing that, if
     # every file in it matches some shipped version. Otherwise keep it and
-    # count it. IgnoreRel names a runtime file inside DestPath (the Nudge
-    # legacy DB) that I leave out of that decision. When DestPath goes, I
-    # hand that file to the nudge-import dir first; when DestPath stays, the
-    # file stays with it, because the retained 1.0.x scripts still read it.
-    param([string]$DestPath, [string]$SourcePath, [string]$Label, [string]$InstalledRel, [string]$IgnoreRel = "")
+    # count it. SkipNudgeStores marks the Nudge skill dir: I leave its alert
+    # stores (NudgeStoreRels) out of that decision. When DestPath goes, I
+    # hand them to the nudge-import dir first; when DestPath stays, they stay
+    # with it, because the retained 1.0.x scripts still read them there.
+    param([string]$DestPath, [string]$SourcePath, [string]$Label, [string]$InstalledRel, [switch]$SkipNudgeStores)
 
     if (-not (Test-Path -LiteralPath $DestPath)) {
         Write-SkippedM "${Label}: not present (already uninstalled)"
@@ -370,9 +424,10 @@ function Uninstall-LiteItem {
     }
 
     if ((Test-Path -LiteralPath $SourcePath) -and
-        ((Get-PathHash $SourcePath $IgnoreRel) -eq (Get-PathHash $DestPath $IgnoreRel))) {
+        ((Get-PathHash $SourcePath -SkipNudgeStores:$SkipNudgeStores) -eq
+         (Get-PathHash $DestPath -SkipNudgeStores:$SkipNudgeStores))) {
         $how = "removed"
-    } elseif (Test-ShippedVersion -DestPath $DestPath -InstalledRel $InstalledRel -IgnoreRel $IgnoreRel) {
+    } elseif (Test-ShippedVersion -DestPath $DestPath -InstalledRel $InstalledRel -SkipNudgeStores:$SkipNudgeStores) {
         $how = "removed (matches a shipped LITE version)"
     } else {
         Write-Updated "${Label}: customized (differs from every shipped version) -- SKIPPING; remove manually if you want"
@@ -380,8 +435,8 @@ function Uninstall-LiteItem {
         return
     }
 
-    if ($IgnoreRel -eq $LegacyDbInSkill) {
-        Move-LegacyNudgeDb -SkillDir $DestPath
+    if ($SkipNudgeStores) {
+        [void](Move-NudgeStoreSet -SkillDir $DestPath)
     }
     if (-not $DryRun) {
         Remove-Item -LiteralPath $DestPath -Recurse -Force
@@ -413,16 +468,14 @@ function Invoke-Uninstall {
         if ($entry -match '^skills/(clayworks-lite-[^/\t]+)/') { [void]$skillNames.Add($Matches[1]) }
     }
     foreach ($name in $skillNames) {
-        # A 1.0.x Nudge skill dir still holds its runtime DB, which I leave
-        # out of the keep-or-remove decision.
-        $ignore = ""
-        if ($name -eq "clayworks-lite-nudge") { $ignore = $LegacyDbInSkill }
+        # A Nudge skill dir may still hold alert stores, which I leave out of
+        # the keep-or-remove decision.
         Uninstall-LiteItem `
-            -DestPath     (Join-Path $skillsDest $name) `
-            -SourcePath   (Join-Path $skillsSrc $name) `
-            -Label        "skill: $name" `
-            -InstalledRel "skills/$name" `
-            -IgnoreRel    $ignore
+            -DestPath        (Join-Path $skillsDest $name) `
+            -SourcePath      (Join-Path $skillsSrc $name) `
+            -Label           "skill: $name" `
+            -InstalledRel    "skills/$name" `
+            -SkipNudgeStores:($name -eq "clayworks-lite-nudge")
     }
 
     Write-Section "Removing hook examples"
@@ -465,14 +518,15 @@ To purge the backup folder and your Nudge alerts:
 "@ | Write-Host
     # I list only paths LITE owns. An override's DB may sit in a shared dir,
     # so I name the DB file and the nudge-import dir, never their parent.
+    # -LiteralPath keeps [ ] in a path from acting as a wildcard.
     $liteDir = Join-Path $ClaudeDir "clayworks-lite"
-    Write-Host "  Remove-Item -Recurse -Force '$BackupRoot'"
-    Write-Host "  Remove-Item -Recurse -Force '$liteDir'"
+    Write-Host "  Remove-Item -Recurse -Force -LiteralPath $(ConvertTo-PSLiteral $BackupRoot)"
+    Write-Host "  Remove-Item -Recurse -Force -LiteralPath $(ConvertTo-PSLiteral $liteDir)"
     if (-not (Test-PathWithin $NudgeDb $liteDir)) {
-        Write-Host "  Remove-Item -Force '$NudgeDb'"
+        Write-Host "  Remove-Item -Force -LiteralPath $(ConvertTo-PSLiteral $NudgeDb)"
     }
     if (-not (Test-PathWithin $NudgeImportDir $liteDir)) {
-        Write-Host "  Remove-Item -Recurse -Force '$NudgeImportDir'"
+        Write-Host "  Remove-Item -Recurse -Force -LiteralPath $(ConvertTo-PSLiteral $NudgeImportDir)"
     }
 
     Write-Host ""
@@ -641,10 +695,8 @@ if (Test-Path -LiteralPath $NudgeMarkerDir -PathType Container) {
     New-Item -ItemType Directory -Path $NudgeMarkerDir -Force | Out-Null
     Write-Added "created $NudgeMarkerDir"
 }
-# Hand a pre-1.1.0 DB to the runtime before I replace the skill dir.
-if (Test-Path -LiteralPath (Join-Path $NudgeSkillDir $LegacyDbInSkill) -PathType Leaf) {
-    Move-LegacyNudgeDb -SkillDir $NudgeSkillDir
-} else {
+# Hand every alert store in the skill dir to the runtime before I replace it.
+if (-not (Move-NudgeStoreSet -SkillDir $NudgeSkillDir)) {
     Write-SkippedM "nothing to migrate (alerts live in $NudgeDb)"
 }
 

@@ -101,16 +101,40 @@ fi
 NUDGE_MARKER_DIR="${CLAUDE_DIR}/clayworks-lite/nudge"
 NUDGE_SKILL_DIR="${CLAUDE_DIR}/skills/clayworks-lite-nudge"
 NUDGE_IMPORT_DIR="$(dirname "$NUDGE_DB")/nudge-import"
-# Where 1.0.x kept the DB, relative to the Nudge skill dir.
-LEGACY_DB_IN_SKILL="scripts/alerts.db"
-# If CLAYWORKS_NUDGE_DB points inside the Nudge skill dir, which install
-# replaces and uninstall removes, a nudge-import dir next to it would go down
-# with that dir. I fall back to the default Nudge dir and warn.
+# Alert stores that live inside the Nudge skill dir, as relpaths from it:
+# where 1.0.x kept the DB, plus the CLAYWORKS_NUDGE_DB file when it points in
+# there. Install replaces that dir and uninstall removes it, so I hand every
+# one of them to nudge-import/ first.
+NUDGE_STORE_RELS=("scripts/alerts.db")
+# If CLAYWORKS_NUDGE_DB points inside the Nudge skill dir, a nudge-import dir
+# next to it would go down with that dir. I fall back to the default Nudge
+# dir and warn.
 NUDGE_DB_IN_SKILL=0
 if path_within "$NUDGE_DB" "$NUDGE_SKILL_DIR" || path_within "$NUDGE_IMPORT_DIR" "$NUDGE_SKILL_DIR"; then
     NUDGE_DB_IN_SKILL=1
     NUDGE_IMPORT_DIR="${NUDGE_MARKER_DIR}/nudge-import"
+    nudge_db_norm="$(norm_path "$NUDGE_DB")"
+    nudge_skill_norm="$(norm_path "$NUDGE_SKILL_DIR")"
+    if [[ "$nudge_db_norm" == "$nudge_skill_norm"/* && "${nudge_db_norm#"$nudge_skill_norm"/}" != "scripts/alerts.db" ]]; then
+        NUDGE_STORE_RELS+=("${nudge_db_norm#"$nudge_skill_norm"/}")
+    fi
 fi
+
+# True if relpath $1 inside the Nudge skill dir is one of NUDGE_STORE_RELS
+# or its -wal / -shm sidecar. norm_path lowercases on Git Bash, so I match
+# case-insensitively there.
+is_nudge_store_rel() {
+    local f="$1" s
+    case "${OSTYPE:-}" in
+        msys*|cygwin*) f="$(printf '%s' "$f" | tr '[:upper:]' '[:lower:]')" ;;
+    esac
+    for s in "${NUDGE_STORE_RELS[@]}"; do
+        if [[ "$f" == "$s" || "$f" == "${s}-wal" || "$f" == "${s}-shm" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 warn_nudge_db_in_skill() {
     [[ $NUDGE_DB_IN_SKILL -eq 1 ]] || return 0
@@ -149,7 +173,8 @@ fi
 # Hash a file (sha256) or a directory (sha256 over sorted "relpath:filehash" lines).
 # Excludes symlinks from the directory walk so the hash is deterministic against
 # an attacker that might swap a symlink's target between hash and copy (TOCTOU).
-# An optional second argument names one relpath inside the dir to leave out.
+# A non-empty second argument leaves out the Nudge alert stores (see
+# is_nudge_store_rel).
 path_hash() {
     local path="$1" ignore="${2:-}"
     if [[ ! -e "$path" ]]; then echo ""; return; fi
@@ -158,7 +183,7 @@ path_hash() {
         (
             cd "$path"
             find . -type f -not -type l -print0 | LC_ALL=C sort -z | while IFS= read -r -d '' f; do
-                [[ -n "$ignore" && "${f#./}" == "$ignore" ]] && continue
+                if [[ -n "$ignore" ]] && is_nudge_store_rel "${f#./}"; then continue; fi
                 printf '%s:%s\n' "${f#./}" "$(sha_file "$f")"
             done
         ) | sha_stdin
@@ -311,22 +336,41 @@ make_private_dir() {
     done
 }
 
-# Move <skill_dir>/scripts/alerts.db to nudge-import/legacy-<timestamp>-<pid>.db.
-stash_legacy_nudge_db() {
-    local legacy="$1/${LEGACY_DB_IN_SKILL}"
-    [[ -f "$legacy" ]] || return 0
-    local target="${NUDGE_IMPORT_DIR}/legacy-${TIMESTAMP}.db" n=1
+# Move one alert store, plus its -wal / -shm sidecars, to
+# nudge-import/legacy-<timestamp>-<pid>.db, where Nudge merges it.
+stash_nudge_store() {
+    local src="$1" label="$2"
+    local base="${NUDGE_IMPORT_DIR}/legacy-${TIMESTAMP}" target n=1 ext
+    target="${base}.db"
     while [[ -e "$target" ]]; do
-        target="${NUDGE_IMPORT_DIR}/legacy-${TIMESTAMP}-${n}.db"
+        target="${base}-${n}.db"
         n=$((n+1))
     done
     if [[ $DRY_RUN -eq 1 ]]; then
-        upd "would move legacy alerts.db -> ${target} (Nudge merges it on its next run)"
+        upd "would move ${label} -> ${target} (Nudge merges it on its next run)"
         return 0
     fi
     make_private_dir "$NUDGE_IMPORT_DIR"
-    mv "$legacy" "$target"
-    upd "moved legacy alerts.db -> ${target} (Nudge merges it on its next run)"
+    mv "$src" "$target"
+    for ext in -wal -shm; do
+        if [[ -f "${src}${ext}" ]]; then
+            mv "${src}${ext}" "${target}${ext}"
+        fi
+    done
+    upd "moved ${label} -> ${target} (Nudge merges it on its next run)"
+}
+
+# Hand every alert store inside skill dir $1 to nudge-import/. Returns 1 if
+# there was none.
+stash_nudge_stores() {
+    local s found=1
+    for s in "${NUDGE_STORE_RELS[@]}"; do
+        if [[ -f "$1/$s" ]]; then
+            stash_nudge_store "$1/$s" "$s"
+            found=0
+        fi
+    done
+    return $found
 }
 
 # --- Uninstall operation -----------------------------------------------------
@@ -355,7 +399,7 @@ matches_shipped_version() {
     local f
     while IFS= read -r -d '' f; do
         f="${f#./}"
-        [[ -n "$ignore" && "$f" == "$ignore" ]] && continue
+        if [[ -n "$ignore" ]] && is_nudge_store_rel "$f"; then continue; fi
         is_shipped_file "${rel}/${f}" "$(sha_file "${dest}/${f}")" || return 1
     done < <(cd "$dest" && find . -name __pycache__ -type d -prune -o -type f ! -name '*.pyc' -print0)
     return 0
@@ -363,10 +407,10 @@ matches_shipped_version() {
 
 # Remove dest if it matches the current source, or failing that, if every
 # file in it matches some shipped version. Otherwise keep it and count it.
-# The optional fifth argument names a runtime file inside dest (the Nudge
-# legacy DB) that I leave out of that decision. When dest goes, I hand that
-# file to the nudge-import dir first; when dest stays, the file stays with
-# it, because the retained 1.0.x scripts still read it there.
+# A non-empty fifth argument marks the Nudge skill dir: I leave its alert
+# stores (NUDGE_STORE_RELS) out of that decision. When dest goes, I hand
+# them to the nudge-import dir first; when dest stays, they stay with it,
+# because the retained 1.0.x scripts still read them there.
 uninstall_item() {
     local dest="$1" src="$2" label="$3" rel="$4" ignore="${5:-}"
 
@@ -386,8 +430,8 @@ uninstall_item() {
         return
     fi
 
-    if [[ "$ignore" == "$LEGACY_DB_IN_SKILL" ]]; then
-        stash_legacy_nudge_db "$dest"
+    if [[ -n "$ignore" ]]; then
+        stash_nudge_stores "$dest" || true
     fi
     if [[ $DRY_RUN -eq 0 ]]; then
         rm -rf "$dest"
@@ -418,7 +462,7 @@ run_uninstall() {
     while IFS= read -r name; do
         [[ -z "$name" ]] && continue
         ignore=""
-        [[ "$name" == "clayworks-lite-nudge" ]] && ignore="$LEGACY_DB_IN_SKILL"
+        [[ "$name" == "clayworks-lite-nudge" ]] && ignore="nudge-stores"
         uninstall_item "${skills_dest}/${name}" "${skills_src}/${name}" "skill: ${name}" "skills/${name}" "$ignore"
     done < <(
         {
@@ -457,13 +501,14 @@ To purge the backup folder and your Nudge alerts:
 EOF
     # I list only paths LITE owns. An override's DB may sit in a shared dir,
     # so I name the DB file and the nudge-import dir, never their parent.
+    # %q quotes each path so a name like O'Brien pastes back safely.
     local lite_dir="${CLAUDE_DIR}/clayworks-lite"
-    printf "  rm -rf '%s'\n" "$BACKUP_ROOT" "$lite_dir"
+    printf '  rm -rf %q\n' "$BACKUP_ROOT" "$lite_dir"
     if ! path_within "$NUDGE_DB" "$lite_dir"; then
-        printf "  rm -f '%s'\n" "$NUDGE_DB"
+        printf '  rm -f %q\n' "$NUDGE_DB"
     fi
     if ! path_within "$NUDGE_IMPORT_DIR" "$lite_dir"; then
-        printf "  rm -rf '%s'\n" "$NUDGE_IMPORT_DIR"
+        printf '  rm -rf %q\n' "$NUDGE_IMPORT_DIR"
     fi
     echo
     if [[ $DRY_RUN -eq 1 ]]; then
@@ -638,10 +683,8 @@ else
     make_private_dir "$NUDGE_MARKER_DIR"
     added "created ${NUDGE_MARKER_DIR}"
 fi
-# Hand a pre-1.1.0 DB to the runtime before I replace the skill dir.
-if [[ -f "${NUDGE_SKILL_DIR}/${LEGACY_DB_IN_SKILL}" ]]; then
-    stash_legacy_nudge_db "$NUDGE_SKILL_DIR"
-else
+# Hand every alert store in the skill dir to the runtime before I replace it.
+if ! stash_nudge_stores "$NUDGE_SKILL_DIR"; then
     skip "nothing to migrate (alerts live in ${NUDGE_DB})"
 fi
 
