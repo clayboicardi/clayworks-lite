@@ -23,6 +23,7 @@ sees the alerts alongside the user's next prompt. Prints nothing when no
 alert is due.
 """
 
+import shlex
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -65,7 +66,11 @@ def main() -> None:
         # Route the dismiss command through the bundled launcher: on Windows
         # machines with only `python` or `py -3`, a bare `python3` fails and
         # the alert would repeat on every prompt.
-        print(f'(Dismiss with: bash "{LAUNCHER.as_posix()}" "{ACK_SCRIPT.as_posix()}" <id>)')
+        # shlex.quote: Claude may run this line, so an install path with
+        # quotes, `$`, or backticks must not break out of the arguments.
+        launcher = shlex.quote(LAUNCHER.as_posix())
+        ack = shlex.quote(ACK_SCRIPT.as_posix())
+        print(f"(Dismiss with: bash {launcher} {ack} <id>)")
 
 
 if __name__ == "__main__":

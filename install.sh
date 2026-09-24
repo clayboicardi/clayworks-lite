@@ -94,7 +94,12 @@ path_within() {
 # run, so I hand a legacy DB over by dropping it there; I never merge myself.
 # NUDGE_MARKER_DIR is always under CLAUDE_DIR, even with an override: the
 # runtime uses it to recognize a script-install root.
-NUDGE_DB="${CLAYWORKS_NUDGE_DB:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
+# I trim the override the way the runtime's .strip() does, so a whitespace-only
+# value counts as unset in both places.
+NUDGE_DB_OVERRIDE="${CLAYWORKS_NUDGE_DB:-}"
+NUDGE_DB_OVERRIDE="${NUDGE_DB_OVERRIDE#"${NUDGE_DB_OVERRIDE%%[![:space:]]*}"}"
+NUDGE_DB_OVERRIDE="${NUDGE_DB_OVERRIDE%"${NUDGE_DB_OVERRIDE##*[![:space:]]}"}"
+NUDGE_DB="${NUDGE_DB_OVERRIDE:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
 if [[ $NUDGE_DB == \~ || $NUDGE_DB == \~/* ]]; then
     NUDGE_DB="${HOME}${NUDGE_DB:1}"
 fi

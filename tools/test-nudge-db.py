@@ -160,4 +160,33 @@ with tempfile.TemporaryDirectory() as td:
     run(s8, "--list", home=home)
     assert rows(db8) == [(C[0], C[1], 0)] and src8.with_name(src8.name + ".merged").exists()
     print("8 read-only destination retries without blaming the source: ok")
+
+    # 9. An acknowledgment made later in a retained legacy store (root4 from
+    #    scenario 4, never renamed) reaches the copy I fire from.
+    legacy4 = root4 / "skills/clayworks-lite-nudge/scripts/alerts.db"
+    c = sqlite3.connect(legacy4); c.execute("UPDATE alerts SET acknowledged = 1"); c.commit(); c.close()
+    run(s4, "--list", home=home)
+    assert rows(root4 / "clayworks-lite/nudge/alerts.db") == [(A[0], A[1], 1)]
+    print("9 legacy acknowledgment carried to the stable copy: ok")
+
+    # 10. The dismiss hint shell-quotes its paths: an install root holding `$(...)`
+    #     and backticks must come back as exactly the launcher + script arguments.
+    import shlex
+    root10 = td / "odd $(echo INJECTED) `x` root"
+    shutil.copytree(SRC, root10 / "skills/clayworks-lite-nudge")
+    (root10 / "clayworks-lite/nudge").mkdir(parents=True)
+    s10 = root10 / "skills/clayworks-lite-nudge/scripts"
+    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CONFIG_DIR", "CLAYWORKS_NUDGE_DB")}
+    env.update(HOME=str(home), USERPROFILE=str(home), PYTHONDONTWRITEBYTECODE="1")
+    subprocess.run([sys.executable, "-B", str(s10 / "add_alert.py"), "+0m", "quote check"],
+                   capture_output=True, text=True, env=env, check=True)
+    out = subprocess.run([sys.executable, "-B", str(s10 / "check_alerts.py")],
+                         capture_output=True, text=True, env=env, check=True).stdout
+    hint = next(line for line in out.splitlines() if "Dismiss with:" in line)
+    cmd = hint.split("Dismiss with: ", 1)[1].rsplit(" <id>)", 1)[0]
+    argv = shlex.split(cmd)
+    assert argv[0] == "bash" and len(argv) == 3, argv
+    assert Path(argv[1]).name == "run-python.sh" and Path(argv[2]).name == "ack_alert.py", argv
+    assert "INJECTED" in argv[1] and "$(" in argv[1], argv   # stayed literal inside one argument
+    print("10 dismiss hint quoted safely: ok")
 print("ALL OK")

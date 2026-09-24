@@ -25,10 +25,10 @@ Human-facing reminder system for managing focus and pacing. Nudges live in a loc
 ## Adding a nudge
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/add_alert.py" "<time>" "<message>"
+bash "${CLAUDE_SKILL_DIR}/scripts/run-python.sh" "${CLAUDE_SKILL_DIR}/scripts/add_alert.py" "<time>" "<message>"
 ```
 
-If `python3` isn't on PATH (common on Windows), use `python` or `py -3` instead, or run the bundled launcher, which picks whichever works: `bash "${CLAUDE_SKILL_DIR}/scripts/run-python.sh" "${CLAUDE_SKILL_DIR}/scripts/add_alert.py" "<time>" "<message>"`.
+I run every Nudge script through the bundled launcher, `run-python.sh`, which tries `python3`, then `python`, then `py -3`, so the same command works on macOS, Linux, and Windows (where `python3` is often missing). Each script prints a confirmation line; if a command prints nothing at all, the launcher found no Python 3.10+, so tell the user.
 
 **Time formats:**
 
@@ -44,13 +44,13 @@ If `python3` isn't on PATH (common on Windows), use `python` or `py -3` instead,
 When a nudge has fired and the user has dealt with it, dismiss it so it doesn't repeat:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/ack_alert.py" <id>
+bash "${CLAUDE_SKILL_DIR}/scripts/run-python.sh" "${CLAUDE_SKILL_DIR}/scripts/ack_alert.py" <id>
 ```
 
 ## Viewing pending nudges
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/nudge_db.py" --list
+bash "${CLAUDE_SKILL_DIR}/scripts/run-python.sh" "${CLAUDE_SKILL_DIR}/scripts/nudge_db.py" --list
 ```
 
 `--list` resolves the DB the same way the other scripts do (`CLAYWORKS_NUDGE_DB`, a custom `--claude-dir` install root, `CLAUDE_CONFIG_DIR`, then `~/.claude`), so it always reads the store the hook reads. `--path` prints that location if the user wants to open it in another tool.
@@ -105,7 +105,7 @@ How you wire the hook depends on how you installed LITE:
 }
 ```
 
-`run-python.sh` finds a working Python (`python3`, then `python`, then `py -3`) and exits silently if none exists, so a missing interpreter never turns into a hook error on every prompt. Claude Code watches `settings.json` and picks up the new hook in a running session, no restart needed.
+`run-python.sh` finds a working Python (`python3`, then `python`, then `py -3`) and exits silently if none exists, so a missing interpreter never turns into a hook error on every prompt. Claude Code watches `settings.json` and picks up the new hook in a running session, so you don't need to restart it.
 
 Don't wire the settings snippet on top of a plugin install. Claude Code deduplicates only identical handlers across settings files; a plugin's hook always stays separate, so you'd see every due alert twice.
 
@@ -117,9 +117,9 @@ If you already have UserPromptSubmit hooks, add this entry to the existing `hook
 
 ## Database
 
-The alerts DB lives at `~/.claude/clayworks-lite/nudge/alerts.db` (or under `$CLAUDE_CONFIG_DIR` if you set it). Set `CLAYWORKS_NUDGE_DB` to a full file path to put it somewhere else. The scripts create the directory on first use and tighten the file to owner-only permissions where the OS supports it.
+The alerts DB lives at `~/.claude/clayworks-lite/nudge/alerts.db` (or under `$CLAUDE_CONFIG_DIR` if you set it). Set `CLAYWORKS_NUDGE_DB` to a full file path to put it somewhere else. On first use, I create the directory and tighten the file to owner-only permissions where the OS supports it.
 
-I keep it outside the skill directory on purpose: plugin updates replace the skill directory, and both install paths share this one location, so your alerts survive updates and switching install methods. Before 1.1.0 the DB lived in `scripts/alerts.db`; the scripts move that file to the new location the first time they run. Your alert history never leaves your machine.
+I keep it outside the skill directory on purpose: plugin updates replace the skill directory, and both install paths share this one location, so your alerts survive updates and switching install methods. Before 1.1.0 I kept the DB in `scripts/alerts.db`; the first time the scripts run after an upgrade, I move that file to the new location for you. Your alert history never leaves your machine.
 
 ```sql
 CREATE TABLE alerts (

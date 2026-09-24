@@ -31,7 +31,7 @@ Use for: architecture decisions, project conventions, recurring procedures, tool
 
 Use for: project-specific knowledge that lives with the codebase.
 - Path: `~/.claude/projects/<project>/memory/MEMORY.md` (Claude Code derives `<project>` from the repo path, e.g. `-Users-sam-Projects-dashboard`)
-- First 200 lines / 25KB auto-loaded at session start for that project; keep MEMORY.md a short index
+- Claude Code auto-loads the first 200 lines / 25KB at session start for that project; keep MEMORY.md a short index
 - Best for: build commands, project quirks, recent decisions
 
 ### Routing rules

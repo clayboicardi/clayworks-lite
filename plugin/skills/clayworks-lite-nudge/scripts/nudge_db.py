@@ -58,12 +58,15 @@ SCHEMA = """
 
 # One row per legacy row I've copied. The key includes the row's content, not
 # just its id: an old plugin process can recreate its alerts.db after I merged
-# it, and the new file restarts ids at 1.
+# it, and the new file restarts ids at 1. dest_id points at the copy in
+# `alerts`, so an acknowledgment made later in a retained legacy store still
+# reaches the copy I fire from.
 LEDGER_SCHEMA = """
     CREATE TABLE IF NOT EXISTS merged_rows (
         source TEXT NOT NULL,
         src_id INTEGER NOT NULL,
         fingerprint TEXT NOT NULL,
+        dest_id INTEGER,
         PRIMARY KEY (source, src_id, fingerprint)
     )
 """
@@ -217,21 +220,30 @@ def _merge_legacy(conn: sqlite3.Connection, db_path: Path) -> None:
                 _set_aside(src, rename, str(exc))
             continue                     # "wait" and "retry" try again next run
         try:
-            done = {(sid, fp) for sid, fp in conn.execute(
-                "SELECT src_id, fingerprint FROM merged_rows WHERE source = ?", (source,))}
+            done = {(sid, fp): dest for sid, fp, dest in conn.execute(
+                "SELECT src_id, fingerprint, dest_id FROM merged_rows WHERE source = ?",
+                (source,))}
             with conn:
                 for sid, due_at, message, created_at, acknowledged in src_rows:
                     fingerprint = f"{due_at}\x1f{message}\x1f{created_at}"
-                    if (sid, fingerprint) in done:
+                    key = (sid, fingerprint)
+                    if key in done:
+                        # Already copied. Carry a later acknowledgment across;
+                        # I never un-acknowledge a copy.
+                        if acknowledged and done[key] is not None:
+                            conn.execute(
+                                "UPDATE alerts SET acknowledged = 1 "
+                                "WHERE id = ? AND acknowledged = 0", (done[key],))
                         continue
-                    conn.execute(
+                    cur = conn.execute(
                         "INSERT INTO alerts (due_at, message, created_at, acknowledged) "
                         "VALUES (?, ?, ?, ?)",
                         (due_at, message, created_at, acknowledged),
                     )
                     conn.execute(
-                        "INSERT INTO merged_rows (source, src_id, fingerprint) VALUES (?, ?, ?)",
-                        (source, sid, fingerprint),
+                        "INSERT INTO merged_rows (source, src_id, fingerprint, dest_id) "
+                        "VALUES (?, ?, ?, ?)",
+                        (source, sid, fingerprint, cur.lastrowid),
                     )
         except sqlite3.Error as exc:
             print(f"clayworks-lite-nudge: I couldn't write legacy alerts from {src} into "

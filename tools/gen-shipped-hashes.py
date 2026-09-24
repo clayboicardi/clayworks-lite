@@ -6,11 +6,14 @@ older LITE version installed, not only the ones the current checkout ships.
 Hashing whole directories ties that check to one installer's dir-hash
 algorithm, so I record per-file hashes instead: one
 "<installed-relpath>\\t<sha256>" line for every version of every file any
-commit on HEAD ever shipped, under the path the installers copy it to.
+main (or a release tag) ever shipped, under the path the installers copy it to.
 
-I also hash the working tree, so running this before a commit already covers
-the files you're about to commit. CI regenerates the file on a clean checkout
-and fails on any diff, so a stale manifest can't reach main.
+I walk main's history, not HEAD's: a feature branch's intermediate commits
+never reached users, and a squash merge drops them, so hashing them would make
+the file differ between the PR and main. The working tree covers what the
+branch is about to ship, so the result is the same set on the PR and on main
+after the merge. CI regenerates the file on a full-history checkout and fails
+on any diff, so a stale manifest can't reach main.
 
 Usage (from anywhere inside the repo):
     python3 tools/gen-shipped-hashes.py
@@ -143,6 +146,15 @@ class BlobReader:
         self.proc.wait()
 
 
+def shipped_ref() -> str:
+    """The ref whose history users actually received: origin/main, else main."""
+    for ref in ("refs/remotes/origin/main", "refs/heads/main"):
+        if subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "--verify", "--quiet", ref],
+                          capture_output=True).returncode == 0:
+            return ref
+    sys.exit("gen-shipped-hashes: no origin/main or main ref; fetch main first")
+
+
 def main() -> int:
     entries: set[tuple[str, str]] = set()
 
@@ -151,7 +163,7 @@ def main() -> int:
             entries.add((rel, hashlib.sha256(blob).hexdigest()))
 
     reader = BlobReader()
-    commits = git("rev-list", "HEAD", "--", *PATHSPECS).decode().split()
+    commits = git("rev-list", shipped_ref(), "--tags", "--", *PATHSPECS).decode().split()
     for commit in commits:
         attrs_blob = reader.read(f"{commit}:.gitattributes")
         rules = parse_gitattributes(attrs_blob.decode("utf-8", "replace") if attrs_blob else "")

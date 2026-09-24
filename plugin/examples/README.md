@@ -2,7 +2,7 @@
 
 This directory ships **two complete LITE configurations**, ready to adapt. They show what the kit looks like assembled, not just as parts.
 
-Both examples assume the script install (`./install.sh` or `.\install.ps1` from the repo root), which puts the skills in `~/.claude/skills/`. Examples here are *configurations*, the artifacts a user lands in `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and `~/.claude/hooks/` after they decide what they want.
+Both examples assume the script install (`./install.sh` or `.\install.ps1` from the repo root), which puts the skills in `~/.claude/skills/`. Examples here are *configurations*, the artifacts you land in `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and `~/.claude/hooks/` after you decide what you want.
 
 If you installed LITE as a plugin instead, the plugin already registers the Nudge hook. Skip the `minimal/` example and drop the UserPromptSubmit block from `full/settings.json`, or every due alert shows up twice.
 

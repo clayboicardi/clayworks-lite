@@ -63,7 +63,7 @@ claude plugin validate --strict ./plugin/skills
 
 To try the plugin itself without installing it, run `claude --plugin-dir ./plugin` and check `/hooks` for the Nudge entry. Point `CLAYWORKS_NUDGE_DB` at a scratch file first so test alerts stay out of your real DB.
 
-Before opening a PR, the [PR template](.github/PULL_REQUEST_TEMPLATE.md) lists the checklist (`shellcheck` on shell files, `PSScriptAnalyzer` on `install.ps1`, `claude plugin validate --strict`, CHANGELOG entry under `[Unreleased]`, `.gitattributes`-respecting line endings). CI runs these automatically on push, plus a Nudge add → check → ack round trip on ubuntu and windows.
+Before you open a PR, work through the checklist in the [PR template](.github/PULL_REQUEST_TEMPLATE.md) (`shellcheck` on shell files, `PSScriptAnalyzer` on `install.ps1`, `claude plugin validate --strict`, CHANGELOG entry under `[Unreleased]`, `.gitattributes`-respecting line endings). CI runs these automatically on push, plus a Nudge add → check → ack round trip on ubuntu and windows.
 
 ## Commit conventions
 
@@ -71,7 +71,7 @@ The repo's commit history uses **imperative subject + em-dash + brief rationale*
 
 ## Style & review conventions
 
-These are the conventions the reviewer applies. I ported them from the old Gemini style guide (removed after the Gemini Code Assist sunset) so they feed Codex directly.
+These are the conventions the reviewer applies. I ported them from the old Gemini style guide (which I removed after the Gemini Code Assist sunset) so they feed Codex directly.
 
 **Voice**
 

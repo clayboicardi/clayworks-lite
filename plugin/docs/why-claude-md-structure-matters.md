@@ -55,7 +55,7 @@ The template ships with HTML-comment guidance:
 > - Re-read this file monthly. If a rule hasn't fired in 90 days, consider removing it. CLAUDE.md drift is the #1 cause of "CC stopped behaving how I configured it."
 > - When you add a new rule, write WHY in a comment next to it. Future-you will not remember the reasoning.
 
-This is part of the design, not an afterthought. The ordering is load-bearing *and the file degrades over time without active maintenance*. Both are real, both need addressing. The `claude-md-management` plugin (`/claude-md-management:revise-claude-md`, `/claude-md-management:claude-md-improver`) is the suggested maintenance tool — not because it's the only option, but because it's the option that exists.
+This is part of the design, not an afterthought. The ordering is load-bearing *and the file degrades over time without active maintenance*. Both are real, both need addressing. I suggest the `claude-md-management` plugin (`/claude-md-management:revise-claude-md`, `/claude-md-management:claude-md-improver`) as the maintenance tool — not because it's the only option, but because it's the option that exists.
 
 ## What this doc is NOT
 

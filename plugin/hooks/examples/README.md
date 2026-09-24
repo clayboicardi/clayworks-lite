@@ -69,7 +69,7 @@ Claude Code watches `settings.json` and applies hook edits to a running session,
 - All examples start with `#!/usr/bin/env bash` + `set -u` for safety
 - I use `set -u` (error on undefined variables) but **not** `set -e` (exit on any error). Hooks must keep running even when a single branch fails — `set -e` would turn a `mkdir -p` permission warning into a session-affecting hook failure. Errors go to stderr; the hook moves on.
 - All examples are **silent unless something fires** — no constant chatter to logs
-- JSON parsing uses `python3 -c "import json, sys; ..."` (no `jq` dependency). On Windows, where `python3` is often missing, swap in `python` or `py -3`, or route through the Nudge skill's `run-python.sh` launcher.
+- JSON parsing uses `python3 -c "import json, sys; ..."` (no `jq` dependency). On Windows, where `python3` is often missing, fall back to the Nudge skill's bundled launcher: replace `python3 -c "..."` with `bash /path/to/run-python.sh -c "..."`, and it tries `python3`, then `python`, then `py -3`. If it finds no Python, it prints nothing, and the example sees empty fields instead of crashing.
 - I strip control characters from payload string fields before they reach a log file, so a crafted payload can't forge log lines
 - Log files default to `~/agent/logs/` (override with env var if you prefer elsewhere)
 - Errors go to stderr; stdout is reserved for content Claude should see

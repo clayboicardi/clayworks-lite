@@ -112,8 +112,11 @@ function ConvertTo-PSLiteral {
 # run, so I hand a legacy DB over by dropping it there; I never merge myself.
 # NudgeMarkerDir is always under ClaudeDir, even with an override: the
 # runtime uses it to recognize a script-install root.
-if ($env:CLAYWORKS_NUDGE_DB) {
-    $NudgeDb = $env:CLAYWORKS_NUDGE_DB
+# I trim the override the way the runtime's .strip() does, so a whitespace-only
+# value counts as unset in both places.
+$NudgeDbOverride = if ($env:CLAYWORKS_NUDGE_DB) { $env:CLAYWORKS_NUDGE_DB.Trim() } else { '' }
+if ($NudgeDbOverride) {
+    $NudgeDb = $NudgeDbOverride
 } else {
     $NudgeDb = Join-Path $ClaudeDir "clayworks-lite/nudge/alerts.db"
 }
