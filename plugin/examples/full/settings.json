@@ -1,5 +1,5 @@
 {
-  "_comment": "Clayworks LITE — full example. Three hooks wired: UserPromptSubmit (Nudge), SessionStart (primer + git warn), Stop (turn log). Companion files in examples/full/hooks/ should be copied to ~/.claude/hooks/. Merge into ~/.claude/settings.json; append, do not replace existing hooks arrays.",
+  "_comment": "Clayworks LITE — full example (script install). Three hooks wired: UserPromptSubmit (Nudge), SessionStart (primer + git warn), Stop (turn log). I copy the companion files in examples/full/hooks/ to ~/.claude/hooks/ first. I merge this into ~/.claude/settings.json, appending to existing hooks arrays rather than replacing them. On a plugin install, I drop the UserPromptSubmit block, since I already register it through the plugin.",
 
   "hooks": {
     "UserPromptSubmit": [
@@ -7,9 +7,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
-            "timeout": 5,
-            "_comment": "Nudge: surfaces due alerts as system-reminders"
+            "command": "bash ~/.claude/skills/clayworks-lite-nudge/scripts/run-python.sh ~/.claude/skills/clayworks-lite-nudge/scripts/check_alerts.py",
+            "timeout": 10,
+            "_comment": "Nudge: I add due alerts to Claude's context next to your prompt"
           }
         ]
       }
@@ -21,7 +21,7 @@
             "type": "command",
             "command": "bash ~/.claude/hooks/sessionstart.sh",
             "timeout": 10,
-            "_comment": "Primer surface + uncommitted-git warning. See examples/full/hooks/sessionstart.sh."
+            "_comment": "Primer surface + uncommitted-git warning; I branch on how the session started. I document it in examples/full/hooks/sessionstart.sh."
           }
         ]
       }
@@ -33,12 +33,12 @@
             "type": "command",
             "command": "bash ~/.claude/hooks/stop.sh",
             "timeout": 5,
-            "_comment": "Per-turn end-time logging. Extend with a 24h-gated background trigger for dream-style consolidation if you want; see hooks/examples/stop.sh in the LITE repo for the gating skeleton."
+            "_comment": "Per-turn end-time logging (I run it after every response). I'd extend it with a 24h-gated background trigger for dream-style consolidation; I keep the gating skeleton in hooks/examples/stop.sh in the LITE repo."
           }
         ]
       }
     ]
   },
 
-  "_comment_extension": "Permissions and env blocks omitted from this example; add at the top level alongside `hooks`. See https://docs.claude.com/en/docs/claude-code/settings for the schema."
+  "_comment_extension": "I left permissions and env blocks out of this example; I'd add them at the top level alongside `hooks`. I follow https://code.claude.com/docs/en/settings for the schema."
 }

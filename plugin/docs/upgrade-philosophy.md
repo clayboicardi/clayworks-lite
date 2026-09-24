@@ -65,7 +65,7 @@ The three questions don't always agree. When they conflict, **Question 1 is the 
 
 **Telegram notification integration** (proactive pings + remote control of CC instance from phone). Q1: implementation. Q2: requires Telegram bot credentials, specific allowlist files, specific notification routing. Q3: not needed for minimum competent baseline. → **Bundle.**
 
-**Hook scaffolding examples** (one `.sh` per CC hook event). Q1: pattern (the shape of a hook script). Q2: no setup. Q3: LITE definitely feels gimped without these — users would have to write hooks from scratch. → **LITE.** Shipped.
+**Hook scaffolding examples** (one `.sh` for each of the eight hook events I use most). Q1: pattern (the shape of a hook script). Q2: no setup. Q3: I'd consider LITE gimped without these, since I'd leave users writing hooks from scratch. → **LITE.** Shipped.
 
 **Inbox watcher pattern** (drop a markdown file in a folder; agent picks it up on next session start). Q1: implementation (specific filesystem path, specific hook integration). Q2: yes user-specific setup. Q3: not needed for baseline. → **Bundle.**
 

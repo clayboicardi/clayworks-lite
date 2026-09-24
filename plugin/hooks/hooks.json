@@ -1,0 +1,16 @@
+{
+  "description": "Clayworks LITE: I surface due Nudge reminders to Claude on each prompt you submit.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/clayworks-lite-nudge/scripts/run-python.sh\" \"${CLAUDE_PLUGIN_ROOT}/skills/clayworks-lite-nudge/scripts/check_alerts.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

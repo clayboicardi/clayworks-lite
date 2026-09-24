@@ -4,19 +4,18 @@
 Usage:
     python3 ack_alert.py <alert_id>
 
-Exits 1 if the alert isn't found.
+I exit 1 if I can't find the alert or the ID isn't a number.
 """
 
-import sqlite3
 import sys
-from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "alerts.db"
+sys.dont_write_bytecode = True  # I keep __pycache__ out of the skill dir
+from nudge_db import open_db  # noqa: E402
 
 
 def ack_alert(alert_id: int) -> bool:
     """Mark the alert as acknowledged. Returns True if the row existed."""
-    with sqlite3.connect(DB_PATH) as conn:
+    with open_db() as conn:
         cursor = conn.execute(
             "UPDATE alerts SET acknowledged = 1 WHERE id = ?",
             (alert_id,),
@@ -29,7 +28,12 @@ def main() -> None:
         print("Usage: ack_alert.py <alert_id>")
         sys.exit(1)
 
-    alert_id = int(sys.argv[1])
+    try:
+        alert_id = int(sys.argv[1])
+    except ValueError:
+        print(f"I need a numeric alert ID, not {sys.argv[1]!r}")
+        sys.exit(1)
+
     if ack_alert(alert_id):
         print(f"Alert {alert_id} acknowledged")
     else:

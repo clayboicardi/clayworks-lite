@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add a new alert to the alerts.db SQLite store.
+"""I add a new alert to the Nudge SQLite store.
 
 Usage:
     python3 add_alert.py <time> <message>
@@ -10,35 +10,15 @@ Time formats:
     +Nm               -- N minutes from now (e.g., +30m)
     +Nh               -- N hours from now (e.g., +2h)
 
-The database (alerts.db) is created in this script's directory on first run.
+I keep the database at ~/.claude/clayworks-lite/nudge/alerts.db (I honor the
+CLAYWORKS_NUDGE_DB environment variable as an override). I resolve it in nudge_db.py.
 """
 
-import sqlite3
 import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "alerts.db"
-
-
-def init_db() -> None:
-    """Create the alerts table if it doesn't exist, and tighten file perms."""
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS alerts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                due_at TEXT NOT NULL,
-                message TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                acknowledged INTEGER NOT NULL DEFAULT 0
-            )
-        """)
-    # Best-effort tighten perms so alert content isn't world-readable on
-    # shared multi-user systems. No-op semantics on Windows.
-    try:
-        DB_PATH.chmod(0o600)
-    except OSError:
-        pass
+sys.dont_write_bytecode = True  # I keep __pycache__ out of the skill dir
+from nudge_db import open_db  # noqa: E402
 
 
 def parse_time(time_str: str) -> str:
@@ -72,16 +52,15 @@ def parse_time(time_str: str) -> str:
 
 def add_alert(due_at: str, message: str) -> int:
     """Insert the alert and return its row ID."""
-    with sqlite3.connect(DB_PATH) as conn:
+    with open_db() as conn:
         cursor = conn.execute(
             "INSERT INTO alerts (due_at, message) VALUES (?, ?)",
             (due_at, message),
         )
-        return cursor.lastrowid
+        return int(cursor.lastrowid or 0)
 
 
 def main() -> None:
-    init_db()
     if len(sys.argv) < 3:
         print("Usage: add_alert.py <time> <message>")
         print("  Time formats: HH:MM, YYYY-MM-DD HH:MM, +30m, +2h")

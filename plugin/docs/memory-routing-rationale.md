@@ -16,6 +16,8 @@ Putting all three in one store works *badly*: project-scoped facts pollute globa
 
 LITE's routing skill treats this as a real distinction and provides a decision tree.
 
+A note on the native layer's shape, because I've seen it trip people up: I rely on Claude Code keeping it at `~/.claude/projects/<project>/memory/MEMORY.md` and deriving `<project>` from the repo's path on disk (e.g. `C--Users-me-Projects-app`), not from a name you choose. I know it loads only the first 200 lines or 25KB of `MEMORY.md` at session start, so I use the file as an index, with detail in topic files beside it.
+
 ## Why three layers, not one
 
 **One-layer alternative (Engram only).** Save everything to Engram. Namespace via topic keys: `project-x/build`, `user-profile/style`, `decisions/...`. Workable. Loses auto-load (Engram doesn't auto-load on session start by default; you have to `mem_search`). Loses Honcho's dialectical refinement of user model over time. Acceptable for users who only want one tool; LITE supports this in the "If you only have one layer" section of the skill.
@@ -55,7 +57,7 @@ Each question is binary, terminating, and answers from the user's natural langua
 
 ## The "your user-modeling layer of choice" framing
 
-Honcho is named in the skill, but the skill explicitly says (line 57):
+I name Honcho in the skill, but I explicitly say there:
 
 > Honcho is one user-modeling layer; not the only one. If you use a different system (a hand-maintained `USER.md`, a separate vector store, a custom service), the routing principles still apply. Honcho's slot in the decision tree is just "your user-modeling layer of choice."
 

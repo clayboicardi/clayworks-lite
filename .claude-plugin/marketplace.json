@@ -1,20 +1,17 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "clayworks-lite",
-  "description": "Operator scaffolding for Claude Code, built without writing the code. The free MIT foundation of the Clayworks operator system, for builders without a coding background.",
+  "description": "Operator scaffolding for Claude Code that I built without writing the code. I share it as the free MIT foundation of the Clayworks operator system, for builders without a coding background.",
+  "version": "1.1.0",
   "owner": {
     "name": "Clay Haworth",
     "url": "https://github.com/clayboicardi"
-  },
-  "metadata": {
-    "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "clayworks-lite",
       "source": "./plugin",
-      "description": "Operator scaffolding for Claude Code: three skills (Nudge SQLite reminders, multi-memory routing decision tree, heartbeat-pattern concept) auto-load on install. Hook scaffolding examples for all 8 CC hook events, CLAUDE.md starter template, composed settings.example.json, worked configuration examples, and design-rationale docs ship to disk for users to reference, copy, and customize when they decide to.",
-      "version": "1.0.1",
+      "description": "Operator scaffolding for Claude Code. I load three skills on install (Nudge SQLite reminders, a multi-memory routing decision tree, a heartbeat-pattern concept) and wire a UserPromptSubmit hook that surfaces your due Nudge reminders automatically. I also put annotated hook examples for the eight hook events I reach for most, a CLAUDE.md starter template, a composed settings.example.json, worked configurations, and design-rationale docs on disk for you to reference, copy, and customize.",
       "author": {
         "name": "Clay Haworth",
         "url": "https://github.com/clayboicardi"
