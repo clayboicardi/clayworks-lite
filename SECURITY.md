@@ -24,8 +24,8 @@ LITE installs into `~/.claude/`, a directory that may contain Claude Code conver
 - **Supply-chain tampering** — malicious modifications to the source tree that the installer would then write into `~/.claude/`
 - Hook examples that, when copied verbatim into a user's `~/.claude/hooks/`, enable arbitrary code execution (e.g. `git status` in an untrusted cwd, `eval`-style processing of user input)
 - Python scripts in `plugin/skills/clayworks-lite-nudge/scripts/` — SQL injection, argv handling, path traversal (including the `CLAYWORKS_NUDGE_DB` override and the one-time move of a legacy `alerts.db`)
-- The plugin's own hook (`plugin/hooks/hooks.json` + `run-python.sh`), which runs on every prompt once you install the plugin
-- Local prompt-injection vectors via hook stdout that Claude Code adds to Claude's context
+- The plugin's own hook (`plugin/hooks/hooks.json` + `run-python.sh`), which I run on every prompt once you install the plugin
+- Local prompt-injection vectors via hook stdout, which I rely on Claude Code adding to Claude's context
 - Installer behavior that escapes the configured `~/.claude/` root (or `--claude-dir` override)
 
 **Out of scope:**
@@ -46,5 +46,5 @@ LITE installs into `~/.claude/`, a directory that may contain Claude Code conver
 ## Known non-issues
 
 - `~/.claude/.clayworks-lite-backup/` accumulates over many installs. Safe to delete manually; not a vulnerability.
-- The Nudge SQLite database (`~/.claude/clayworks-lite/nudge/alerts.db` by default) stays local, outside the repo and the plugin cache.
+- I keep the Nudge SQLite database (`~/.claude/clayworks-lite/nudge/alerts.db` by default) local, outside the repo and the plugin cache.
 - LITE does not telemeter, phone home, or make any network calls in shipped scripts.

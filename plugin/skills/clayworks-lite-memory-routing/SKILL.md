@@ -35,7 +35,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 
 **Install:** built into Claude Code. No plugin needed.
 
-**Path:** `~/.claude/projects/<project>/memory/MEMORY.md`. Claude Code derives `<project>` from the repository's path on disk (for example `-home-me-Projects-app` on Linux or `C--Users-me-Projects-app` on Windows), not from a friendly project name, and every worktree and subdirectory of one repo shares it. You can move it elsewhere with the `autoMemoryDirectory` setting.
+**Path:** `~/.claude/projects/<project>/memory/MEMORY.md`. I rely on Claude Code deriving `<project>` from the repository's path on disk (for example `-home-me-Projects-app` on Linux or `C--Users-me-Projects-app` on Windows), not from a friendly project name, and on every worktree and subdirectory of one repo sharing it. I move it elsewhere with the `autoMemoryDirectory` setting when I need to.
 
 **Use for:**
 
@@ -44,7 +44,7 @@ The point is the *decision*, not the *destination*. Even if you only have one la
 - Recent decisions affecting current work in that project
 - Anything the auto-loader should surface at session start for the matching project
 
-**Key trait:** Claude Code loads it into context automatically at session start when you run CC inside that project. It loads only the first 200 lines or 25KB of `MEMORY.md`, so keep it a one-line-per-entry index and move detail into topic files beside it. On by default; `autoMemoryEnabled: false` turns it off. Free, and you don't need a plugin. Plain markdown — edit directly with your favorite editor.
+**Key trait:** I rely on Claude Code loading it into context automatically at session start when I run CC inside that project. I know it loads only the first 200 lines or 25KB of `MEMORY.md`, so I keep it a one-line-per-entry index and move detail into topic files beside it. On by default; I turn it off with `autoMemoryEnabled: false`. Free, with no plugin needed. Plain markdown — I edit it directly with my favorite editor.
 
 ### Honcho: user modeling
 

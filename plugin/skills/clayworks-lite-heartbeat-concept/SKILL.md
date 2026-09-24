@@ -60,7 +60,7 @@ Different problems need different beats. Use what fits the work:
 - Drift checks: did the agent honor explicit rules from CLAUDE.md / memory?
 - Structural integrity checks: do referenced files still exist? Have hooks been parsing cleanly?
 
-**LITE scaffolding:** `hooks/examples/stop.sh` is the contract reference. Covers payload shape, the gated 24h trigger pattern, and how to spawn background work so the hook returns immediately. Stop fires after every response, not at session exit, so keep it fast.
+**LITE scaffolding:** I use `hooks/examples/stop.sh` as the contract reference. I cover payload shape, the gated 24h trigger pattern, and how to spawn background work so the hook returns immediately. I know Stop fires after every response, not at session exit, so I keep it fast.
 
 **Good for:** catching regressions and silent failures before they accumulate.
 

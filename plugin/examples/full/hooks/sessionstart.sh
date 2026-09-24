@@ -3,13 +3,13 @@
 # SessionStart hook — customized example (from hooks/examples/sessionstart.sh)
 # =============================================================================
 # Two effects when a session opens:
-#   1. If ~/agent/session-primer.md exists and is < 7 days old, print it so it
+#   1. If ~/agent/session-primer.md exists and is < 7 days old, I print it so it
 #      lands in Claude's context (startup, /clear, and forked sessions only).
-#   2. If the cwd is a git repo, print a one-line warning when there's
+#   2. If the cwd is a git repo, I print a one-line warning when there's
 #      uncommitted state (every source except resume).
 #
-# Plain stdout reaches Claude's context; Claude Code wraps it itself, so this
-# prints plain text rather than hand-rolled <system-reminder> tags.
+# I get plain stdout into Claude's context; I rely on Claude Code wrapping it
+# itself, so I print plain text rather than hand-rolled <system-reminder> tags.
 #
 # Notes:
 #   - Primer file is a confused-deputy injection channel — chmod 600 it
@@ -23,7 +23,7 @@
 set -u
 
 PAYLOAD=$(cat)
-# source + cwd, joined by the ASCII unit separator (0x1f) so an empty field
+# I join source + cwd with the ASCII unit separator (0x1f) so an empty field
 # doesn't shift the other one.
 FIELDS=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
@@ -31,13 +31,13 @@ try:
     d = json.load(sys.stdin)
     print(d.get('source', ''), d.get('cwd', ''), sep='\x1f', end='')
 except Exception as exc:
-    print(f'sessionstart.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'sessionstart.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('', '', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SOURCE CWD <<< "$FIELDS"
 
-# resume: the conversation already holds last time's primer. compact: the
-# conversation continues, so skip the primer but keep the git warning.
+# resume: I already have last time's primer in the conversation. compact: I
+# keep the conversation going, so I skip the primer but keep the git warning.
 case "$SOURCE" in
     resume)  SHOW_PRIMER=0; SHOW_GIT=0 ;;
     compact) SHOW_PRIMER=0; SHOW_GIT=1 ;;
@@ -45,8 +45,8 @@ case "$SOURCE" in
 esac
 
 # --- Primer file injection ---------------------------------------------------
-# SECURITY: anything printed here lands in Claude's context as trusted hook
-# output. Treat $PRIMER's path as security-sensitive — chmod 600.
+# SECURITY: I land anything printed here in Claude's context as trusted hook
+# output, so I treat $PRIMER's path as security-sensitive — chmod 600.
 
 PRIMER="$HOME/agent/session-primer.md"
 
@@ -68,7 +68,7 @@ if [[ "$SHOW_GIT" -eq 1 && -n "$CWD" && -d "$CWD/.git" ]]; then
         -c core.hooksPath=/dev/null \
         status --porcelain 2>/dev/null | wc -l)
     if [[ "$UNCOMMITTED" -gt 0 ]]; then
-        printf 'Git state: %s has %d uncommitted change(s).\n' "$CWD" "$UNCOMMITTED"
+        printf 'Git state: in %s I see %d uncommitted change(s).\n' "$CWD" "$UNCOMMITTED"
     fi
 fi
 

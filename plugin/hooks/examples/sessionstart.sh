@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SessionStart hook — fires when a Claude Code session starts or resumes
+# SessionStart hook — when a Claude Code session starts or resumes
 # =============================================================================
 # Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
@@ -11,9 +11,9 @@
 #     "source": "startup",
 #     "model": "claude-opus-5-5"
 #   }
-# source is one of: startup | resume | clear | compact | fork
-# model is optional (Claude Code omits it after /clear, for example); check
-# before reading it. agent_type and session_title can also appear.
+# I get source as one of: startup | resume | clear | compact | fork
+# I treat model as optional (Claude Code omits it after /clear, for example) and
+# check for it before reading it. I can also get agent_type and session_title.
 #
 # Common uses:
 #   - Surface a primer file ("here's what you were working on last time")
@@ -21,38 +21,39 @@
 #   - Warn about uncommitted state, stale branches, etc.
 #   - Log session-start telemetry
 #
-# Exit behavior: plain-text stdout reaches Claude's context at the start of
-# the conversation. Claude Code wraps it itself; print plain text, don't
-# hand-wrap it in <system-reminder> tags. SessionStart can't block the session:
-# a non-zero exit only shows a hook-error notice to the user.
+# Exit behavior: I get plain-text stdout into Claude's context at the start of
+# the conversation. I rely on Claude Code wrapping it itself, so I print plain
+# text, never hand-wrapped in <system-reminder> tags. I can't block the session
+# from SessionStart: with a non-zero exit I only show the user a hook-error notice.
 #
-# Register in ~/.claude/settings.json under hooks.SessionStart. To run only on
-# some sources, use a matcher such as "startup|clear" instead of the in-script
-# branch below.
+# I register it in ~/.claude/settings.json under hooks.SessionStart. To run only
+# on some sources, I'd use a matcher such as "startup|clear" instead of the
+# in-script branch below.
 # =============================================================================
 
 set -u
 
 PAYLOAD=$(cat)
-# One Python call extracts both fields, joined by the ASCII unit separator
-# (0x1f). Unlike a tab, it doesn't collapse when a field is empty.
+# I extract both fields in one Python call, joined by the ASCII unit separator
+# (0x1f). I picked it over a tab because it doesn't collapse when a field is
+# empty.
 FIELDS=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
     print(d.get('source', ''), d.get('cwd', ''), sep='\x1f', end='')
 except Exception as exc:
-    print(f'sessionstart.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'sessionstart.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('', '', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SOURCE CWD <<< "$FIELDS"
 
-# --- Branch on how the session started ---------------------------------------
-# startup / clear / fork : fresh context, so surface the primer + git state.
-# resume                 : the conversation already holds last time's primer;
-#                          re-injecting it just duplicates context.
-# compact                : compaction keeps the conversation going; skip the
-#                          primer, but the git warning is still useful.
+# --- Branching on how the session started ------------------------------------
+# startup / clear / fork : fresh context, so I surface the primer + git state.
+# resume                 : I already have last time's primer in the conversation;
+#                          I'd just duplicate context by re-injecting it.
+# compact                : I keep the conversation going through compaction, so
+#                          I skip the primer but still show the useful git warning.
 case "$SOURCE" in
     resume)  SHOW_PRIMER=0; SHOW_GIT=0 ;;
     compact) SHOW_PRIMER=0; SHOW_GIT=1 ;;
@@ -63,10 +64,10 @@ esac
 # Convention: ~/agent/session-primer.md contains "what's most urgent right now"
 # Maintained by your evening consolidation, weekly review, or written ad-hoc.
 #
-# SECURITY: anything printed here lands in Claude's context as trusted hook
-# output. Treat $PRIMER as security-sensitive — any process that can write to
-# that path can inject instructions into your next CC session (confused-deputy
-# channel). Recommended hardening:
+# SECURITY: I land anything printed here in Claude's context as trusted hook
+# output, so I treat $PRIMER as security-sensitive — any process that can write
+# to that path can inject instructions into my next CC session (confused-deputy
+# channel). The hardening I recommend:
 #   - chmod 600 "$PRIMER" so only your user can write it
 #   - keep it on a filesystem only your account can access
 #   - if you sync your home dir across machines, audit who has write access
@@ -100,7 +101,7 @@ if [[ "$SHOW_GIT" -eq 1 && -n "$CWD" && -d "$CWD/.git" ]]; then
         -c core.hooksPath=/dev/null \
         status --porcelain 2>/dev/null | wc -l)
     if [[ "$UNCOMMITTED" -gt 0 ]]; then
-        printf 'Git state: %s has %d uncommitted change(s) at session start.\n' "$CWD" "$UNCOMMITTED"
+        printf 'Git state: in %s I see %d uncommitted change(s) at session start.\n' "$CWD" "$UNCOMMITTED"
     fi
 fi
 

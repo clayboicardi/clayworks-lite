@@ -116,6 +116,41 @@ def resolve_db_path() -> Path:
     return base / "clayworks-lite" / "nudge" / "alerts.db"
 
 
+_FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+
+
+def _is_link(path: Path) -> bool:
+    """True for a symlink, and on Windows for any reparse point (an NTFS
+    junction too, which Path.is_symlink() doesn't report)."""
+    try:
+        if path.is_symlink():
+            return True
+        isjunction = getattr(os.path, "isjunction", None)      # Python 3.12+
+        if isjunction is not None and isjunction(path):
+            return True
+        attrs = getattr(os.lstat(path), "st_file_attributes", 0)
+        return bool(attrs & _FILE_ATTRIBUTE_REPARSE_POINT)
+    except OSError:
+        return False
+
+
+def _linked_component(path: Path, stop: Path) -> Path | None:
+    """The first linked path from `path` up to (not including) `stop`, if any.
+
+    For a path outside `stop` (an import dir next to a CLAYWORKS_NUDGE_DB you
+    chose), I check only the file and its folder: the folders above are your
+    layout, and some are links by design (macOS /tmp and /var are).
+    """
+    inside = stop in path.parents
+    candidates = [path, *path.parents] if inside else [path, path.parent]
+    for candidate in candidates:
+        if candidate == stop or candidate in stop.parents:
+            return None
+        if _is_link(candidate):
+            return candidate
+    return None
+
+
 def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
     """(path, rename_after_merge) for every legacy store that exists.
 
@@ -132,10 +167,22 @@ def _legacy_sources(db_path: Path) -> list[tuple[Path, bool]]:
     unique: dict[str, tuple[Path, bool]] = {}
     for path, rename in found:
         try:
-            if path.is_file() and path.resolve() != db_path.resolve():
-                unique.setdefault(str(path.resolve()), (path, rename))
+            if not path.is_file() or path.resolve() == db_path.resolve():
+                continue
         except OSError:
             continue
+        # A linked store (or a linked folder on the way to it) could point at
+        # an unrelated database outside the Claude folder; I never import from
+        # one, and I say so once on stderr.
+        linked = _linked_component(path, root) or next(
+            (s for s in (path.with_name(path.name + side) for side in SIDECARS) if _is_link(s)),
+            None)
+        if linked is not None:
+            print(f"clayworks-lite-nudge: I skipped legacy alerts at {path} because {linked} "
+                  f"is a symlink or junction; I only import from real files inside your "
+                  f"Claude folder.", file=sys.stderr)
+            continue
+        unique.setdefault(str(path.resolve()), (path, rename))
     return list(unique.values())
 
 
@@ -359,8 +406,8 @@ def _refuse_linked_default(db_path: Path) -> None:
     candidates = [db_path.parent.parent, db_path.parent, db_path]
     candidates += [db_path.with_name(db_path.name + side) for side in SIDECARS]
     for candidate in candidates:
-        if candidate.is_symlink():
-            raise OSError(f"I won't use {candidate}: it's a symlink, and it could point "
+        if _is_link(candidate):
+            raise OSError(f"I won't use {candidate}: it's a symlink or junction, and it could point "
                           f"outside your Claude folder. Replace it with a real file or folder.")
 
 

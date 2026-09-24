@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SubagentStart hook — fires when Claude spawns (or resumes) a subagent
+# SubagentStart hook — when Claude spawns (or resumes) a subagent
 # =============================================================================
 # Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
@@ -11,21 +11,22 @@
 #     "agent_id": "agent-abc123",
 #     "agent_type": "Explore"
 #   }
-# agent_type is what a matcher filters on: built-in names like
+# I filter on agent_type with a matcher: built-in names like
 # "general-purpose", "Explore", "Plan", a custom agent's frontmatter name, or a
-# plugin-scoped name like "my-plugin:reviewer". The payload doesn't carry the
-# task description.
+# plugin-scoped name like "my-plugin:reviewer". I don't get the task
+# description in the payload.
 #
 # Common uses:
-#   - Track parallel work (counter, dashboard, telemetry)
-#   - Log delegated work for later auditing
-#   - Inject context into the subagent (JSON hookSpecificOutput.additionalContext)
+#   - Tracking parallel work (counter, dashboard, telemetry)
+#   - Logging delegated work for later auditing
+#   - Injecting context into the subagent (JSON hookSpecificOutput.additionalContext)
 #
-# Exit behavior: SubagentStart can't block the subagent. Plain stdout goes to
-# the debug log; to give the subagent context, print JSON additionalContext.
-# A non-zero exit shows a hook-error notice in the subagent's transcript.
+# Exit behavior: I can't block the subagent from SubagentStart. I know plain
+# stdout goes to the debug log; to give the subagent context, I print JSON
+# additionalContext. With a non-zero exit I show a hook-error notice in the
+# subagent's transcript.
 #
-# Register in ~/.claude/settings.json under hooks.SubagentStart, optionally
+# I register it in ~/.claude/settings.json under hooks.SubagentStart, optionally
 # with a matcher on agent type (e.g. "Explore|Plan").
 # =============================================================================
 
@@ -38,7 +39,7 @@ try:
     d = json.load(sys.stdin)
     print(d.get('agent_type', '<unknown>'), d.get('agent_id', '<unknown>'), sep='\x1f', end='')
 except Exception as exc:
-    print(f'subagentstart.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'subagentstart.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', '<unknown>', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r AGENT_TYPE AGENT_ID <<< "$FIELDS"

@@ -16,7 +16,7 @@ Putting all three in one store works *badly*: project-scoped facts pollute globa
 
 LITE's routing skill treats this as a real distinction and provides a decision tree.
 
-A note on the native layer's shape, because it trips people up: Claude Code keeps it at `~/.claude/projects/<project>/memory/MEMORY.md`, where `<project>` comes from the repo's path on disk (e.g. `C--Users-me-Projects-app`), not a name you choose. It loads only the first 200 lines or 25KB of `MEMORY.md` at session start, so the file works as an index, with detail in topic files beside it.
+A note on the native layer's shape, because I've seen it trip people up: I rely on Claude Code keeping it at `~/.claude/projects/<project>/memory/MEMORY.md` and deriving `<project>` from the repo's path on disk (e.g. `C--Users-me-Projects-app`), not from a name you choose. I know it loads only the first 200 lines or 25KB of `MEMORY.md` at session start, so I use the file as an index, with detail in topic files beside it.
 
 ## Why three layers, not one
 
@@ -57,7 +57,7 @@ Each question is binary, terminating, and answers from the user's natural langua
 
 ## The "your user-modeling layer of choice" framing
 
-I name Honcho in the skill, but the skill explicitly says:
+I name Honcho in the skill, but I explicitly say there:
 
 > Honcho is one user-modeling layer; not the only one. If you use a different system (a hand-maintained `USER.md`, a separate vector store, a custom service), the routing principles still apply. Honcho's slot in the decision tree is just "your user-modeling layer of choice."
 

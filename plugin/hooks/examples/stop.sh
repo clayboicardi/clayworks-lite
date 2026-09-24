@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Stop hook — fires each time Claude finishes responding
+# Stop hook — each time Claude finishes responding
 # =============================================================================
-# Stop fires after EVERY response, not when the session exits (that's
-# SessionEnd). It skips responses you interrupt, and API-error endings fire
-# StopFailure instead.
+# I get Stop after EVERY response, not when the session exits (for that I use
+# SessionEnd). I don't get it for responses you interrupt, and I get
+# StopFailure instead for API-error endings.
 #
 # Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
@@ -18,8 +18,8 @@
 #     "background_tasks": [],
 #     "session_crons": []
 #   }
-# stop_hook_active is true when Claude is already continuing because a Stop
-# hook blocked it earlier. Check it before blocking again, or you can loop.
+# I see stop_hook_active set to true when Claude is already continuing because
+# a Stop hook blocked it earlier. I check it before blocking again, or I can loop.
 #
 # Common uses:
 #   - End-of-turn cleanup (temp files, half-open handles)
@@ -27,15 +27,15 @@
 #   - Memory consolidation triggers (e.g., 24h-gated dream-style processes)
 #   - Completion pings (desktop notification, chat message)
 #
-# Exit behavior: stdout goes to the debug log, not to Claude or the user.
-# Exit 2 (or JSON {"decision": "block", "reason": "..."}) BLOCKS the stop:
-# Claude keeps working with your reason as its next instruction. Don't do that
-# by accident. Other non-zero exits are non-blocking errors.
+# Exit behavior: I know stdout goes to the debug log, not to Claude or the user.
+# With exit 2 (or JSON {"decision": "block", "reason": "..."}) I BLOCK the stop
+# and keep Claude working with my reason as its next instruction. I never do
+# that by accident. I get only non-blocking errors from other non-zero exits.
 #
-# Keep Stop hooks FAST (<1s ideal): they run after every response. Long work
-# belongs in a background subprocess that the hook spawns and returns from.
+# I keep Stop hooks FAST (<1s ideal), since they run after every response. I put
+# long work in a background subprocess that the hook spawns and returns from.
 #
-# Register in ~/.claude/settings.json under hooks.Stop (no matcher support).
+# I register it in ~/.claude/settings.json under hooks.Stop (no matcher support).
 # =============================================================================
 
 set -u
@@ -49,14 +49,14 @@ try:
           str(bool(d.get('stop_hook_active', False))).lower(),
           sep='\x1f', end='')
 except Exception as exc:
-    print(f'stop.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'stop.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', 'false', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SESSION_ID STOP_HOOK_ACTIVE <<< "$FIELDS"
 
-# --- Example: append a turn-end timestamp to a per-day log -------------------
-# Useful for spotting long turns (timestamps vs. transcript size), and for
-# seeing how often a Stop hook forced Claude to continue.
+# --- Example: turn-end timestamp in a per-day log ----------------------------
+# I use it to spot long turns (timestamps vs. transcript size), and to see
+# how often a Stop hook forced Claude to continue.
 
 LOG_DIR="$HOME/agent/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null
@@ -82,7 +82,7 @@ printf '[%s] %s stop_hook_active=%s\n' "$TIMESTAMP" "$SESSION_ID_SAFE" "$STOP_HO
 # SENTINEL_MTIME=$(python3 -c "import os,sys; print(int(os.path.getmtime(sys.argv[1])))" "$SENTINEL" 2>/dev/null || echo 0)
 # if [[ ! -f "$SENTINEL" ]] || [[ $(( $(date +%s) - SENTINEL_MTIME )) -gt 86400 ]]; then
 #     date +%s > "$SENTINEL"
-#     # Fire the gated work in the background so this hook returns immediately.
+#     # I fire the gated work in the background so this hook returns immediately.
 #     ( nohup bash ~/.claude/scripts/your-daily-job.sh >/dev/null 2>&1 & )
 # fi
 

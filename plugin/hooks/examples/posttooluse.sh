@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PostToolUse hook — fires AFTER a tool call succeeds
+# PostToolUse hook — after a tool call succeeds
 # =============================================================================
 # Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
@@ -16,38 +16,39 @@
 #     "tool_use_id": "toolu_01ABC123...",
 #     "duration_ms": 1234
 #   }
-# tool_response's shape depends on the tool. Bash reports stdout, stderr, and
-# interrupted; it does NOT report an exit code. duration_ms is optional.
-# Failed tool calls fire PostToolUseFailure instead, not this event.
+# I see tool_response's shape vary by tool. From Bash I get stdout, stderr, and
+# interrupted, but NO exit code. I treat duration_ms as optional. For failed
+# tool calls I get PostToolUseFailure instead, not this event.
 #
 # Common uses:
-#   - Log tool outcomes and timing
-#   - Add context for Claude after specific tools (JSON additionalContext)
-#   - Trigger downstream automation (e.g., lint after Write/Edit)
-#   - Capture diff metrics (files changed per Write/Edit batch)
+#   - Logging tool outcomes and timing
+#   - Adding context for Claude after specific tools (JSON additionalContext)
+#   - Triggering downstream automation (e.g., lint after Write/Edit)
+#   - Capturing diff metrics (files changed per Write/Edit batch)
 #
-# Exit behavior: stdout goes to the debug log, not to Claude, unless you print
-# JSON output (e.g. hookSpecificOutput.additionalContext). Exit 2 shows your
-# stderr to Claude; the tool already ran, so nothing gets undone. Other
-# non-zero exits are non-blocking errors.
+# Exit behavior: I know stdout goes to the debug log, not to Claude, unless I
+# print JSON output (e.g. hookSpecificOutput.additionalContext). With exit 2 I
+# show my stderr to Claude, but the tool already ran, so I undo nothing. I get
+# only non-blocking errors from other non-zero exits.
 #
-# Register in ~/.claude/settings.json under hooks.PostToolUse with a matcher
-# (e.g. "Bash", or "Write|Edit").
+# I register it in ~/.claude/settings.json under hooks.PostToolUse with a
+# matcher (e.g. "Bash", or "Write|Edit").
 # =============================================================================
 
 set -u
 
 PAYLOAD=$(cat)
 
-# --- Example: log Bash duration + interrupted flag for observability ---------
-# Useful for spotting slow or frequently interrupted commands across sessions.
+# --- Example: Bash duration + interrupted-flag log for observability ---------
+# I use it to spot slow or frequently interrupted commands across sessions.
 
 LOG_DIR="$HOME/agent/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null
 LOG_FILE="$LOG_DIR/bash-outcomes.log"
 
-# One Python call extracts all three fields, joined by the ASCII unit
-# separator (0x1f). Unlike a tab, it doesn't collapse when a field is empty.
+# I extract all three fields in one Python call, joined by the ASCII unit
+# separator (0x1f). I picked it over a tab because it doesn't collapse when a
+# field is empty.
 FIELDS=$(printf '%s' "$PAYLOAD" | python3 -c "
 import json, sys
 try:
@@ -58,13 +59,13 @@ try:
           'n/a' if interrupted is None else str(bool(interrupted)).lower(),
           sep='\x1f', end='')
 except Exception as exc:
-    print(f'posttooluse.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'posttooluse.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('', 'n/a', 'n/a', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r TOOL_NAME DURATION_MS INTERRUPTED <<< "$FIELDS"
 
 if [[ "$TOOL_NAME" == "Bash" ]]; then
-    # Sanitize: the values come from the payload; strip control chars.
+    # Sanitize: I take the values from the payload, so I strip control chars.
     DURATION_SAFE=$(printf '%s' "$DURATION_MS" | tr -d '\000-\037\177' | cut -c1-20)
     INTERRUPTED_SAFE=$(printf '%s' "$INTERRUPTED" | tr -d '\000-\037\177' | cut -c1-10)
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")

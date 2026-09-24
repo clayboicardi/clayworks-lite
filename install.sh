@@ -43,10 +43,10 @@ Installs:
   templates/CLAUDE.md.*         -> \$CLAUDE_DIR/CLAUDE.md.clayworks-template
   templates/settings.example.json -> \$CLAUDE_DIR/settings.example.json
 
-Your live \$CLAUDE_DIR/CLAUDE.md, \$CLAUDE_DIR/settings.json, and
-\$CLAUDE_DIR/hooks/ are never touched. Nudge alerts live in
-\$CLAUDE_DIR/clayworks-lite/nudge/ and survive reinstall and uninstall.
-Anything overwritten is first copied to \$CLAUDE_DIR/.clayworks-lite-backup/.
+I never touch your live \$CLAUDE_DIR/CLAUDE.md, \$CLAUDE_DIR/settings.json,
+or \$CLAUDE_DIR/hooks/. I keep Nudge alerts in
+\$CLAUDE_DIR/clayworks-lite/nudge/, where they survive reinstall and uninstall.
+I first copy anything I overwrite to \$CLAUDE_DIR/.clayworks-lite-backup/.
 EOF
             exit 0
             ;;
@@ -106,7 +106,7 @@ elif [[ $NUDGE_DB == \~* ]]; then
     # ~alice/... means another user's home. Python expands it one way, and I
     # can't match that reliably on every platform, so I refuse it rather than
     # hand your alerts to a folder the runtime never scans.
-    echo "ERROR: CLAYWORKS_NUDGE_DB (${NUDGE_DB}) uses a ~user path. Set it to a full path instead." >&2
+    echo "ERROR: I won't use CLAYWORKS_NUDGE_DB (${NUDGE_DB}) because it's a ~user path; I'd set it to a full path instead." >&2
     exit 2
 fi
 # Git Bash passes a Windows-style override through verbatim (C:\Users\me\alerts.db),
@@ -156,9 +156,9 @@ is_nudge_store_rel() {
 
 warn_nudge_db_in_skill() {
     [[ $NUDGE_DB_IN_SKILL -eq 1 ]] || return 0
-    echo "  ${C_YELLOW}WARNING: CLAYWORKS_NUDGE_DB (${NUDGE_DB}) points inside ${NUDGE_SKILL_DIR},${C_RESET}"
-    echo "  ${C_YELLOW}which install replaces and uninstall removes. I hand its alerts to${C_RESET}"
-    echo "  ${C_YELLOW}${NUDGE_IMPORT_DIR} instead. Point CLAYWORKS_NUDGE_DB somewhere else.${C_RESET}"
+    echo "  ${C_YELLOW}WARNING: CLAYWORKS_NUDGE_DB (${NUDGE_DB}): I found it inside ${NUDGE_SKILL_DIR},${C_RESET}"
+    echo "  ${C_YELLOW}which I replace on install and remove on uninstall, so I hand its alerts to${C_RESET}"
+    echo "  ${C_YELLOW}${NUDGE_IMPORT_DIR} instead. I'd point CLAYWORKS_NUDGE_DB somewhere else.${C_RESET}"
 }
 
 # .installer/shipped-hashes.txt lists "<installed-relpath><TAB><sha256>" for
@@ -354,8 +354,8 @@ refuse_symlink_under_root() {
         [[ -n "$part" ]] || continue
         p="${p}/${part}"
         if [[ -L "$p" ]]; then
-            echo "ERROR: ${p} is a symlink or junction. I won't read, move, or write LITE" >&2
-            echo "files through it, because it can point outside ${CLAUDE_DIR}. Replace" >&2
+            echo "ERROR: I found that ${p} is a symlink or junction. I won't read, move, or write LITE" >&2
+            echo "files through it, because it can point outside ${CLAUDE_DIR}. I'd replace" >&2
             echo "it with a real directory or file, then re-run." >&2
             exit 5
         fi
@@ -387,8 +387,8 @@ refuse_db_in_managed_item() {
     items+=("${CLAUDE_DIR}/hooks/examples" "${CLAUDE_DIR}/CLAUDE.md.clayworks-template" "${CLAUDE_DIR}/settings.example.json")
     for item in "${items[@]}"; do
         if path_within "$NUDGE_DB" "$item"; then
-            echo "ERROR: CLAYWORKS_NUDGE_DB points inside ${item}, which I replace or" >&2
-            echo "remove; point it outside LITE's installed folders, then re-run." >&2
+            echo "ERROR: I won't continue while CLAYWORKS_NUDGE_DB points inside ${item}, because I replace or" >&2
+            echo "remove that item; I'd point it outside LITE's installed folders, then re-run." >&2
             exit 2
         fi
     done
@@ -456,7 +456,7 @@ stash_nudge_store() {
         n=$((n+1))
     done
     if [[ $DRY_RUN -eq 1 ]]; then
-        upd "would move ${label} -> ${target} (Nudge merges it on its next run)"
+        upd "would move ${label} -> ${target} (I merge it into Nudge on its next run)"
         return 0
     fi
     make_private_dir "$NUDGE_IMPORT_DIR"
@@ -466,7 +466,7 @@ stash_nudge_store() {
             mv "${src}${ext}" "${target}${ext}"
         fi
     done
-    upd "moved ${label} -> ${target} (Nudge merges it on its next run)"
+    upd "moved ${label} -> ${target} (I merge it into Nudge on its next run)"
 }
 
 # Hand every alert store inside skill dir $1 to nudge-import/. Returns 1 if
@@ -537,7 +537,7 @@ uninstall_item() {
     # unchanged dir would slip past the fast path. Any symlink (or, on Git
     # Bash, junction) in dest makes it yours.
     if [[ -d "$dest" && -n "$(find "$dest" -type l -print -quit)" ]]; then
-        upd "${label}: customized (holds a symlink you added) — SKIPPING; remove manually if you want"
+        upd "${label}: customized (holds a symlink you added) — SKIPPING; I leave any manual removal to you"
         KEPT=$((KEPT+1))
         return
     fi
@@ -546,7 +546,7 @@ uninstall_item() {
     elif matches_shipped_version "$dest" "$rel" "$ignore"; then
         how="removed (matches a shipped LITE version)"
     else
-        upd "${label}: customized (differs from every shipped version) — SKIPPING; remove manually if you want"
+        upd "${label}: customized (differs from every shipped version) — SKIPPING; I leave any manual removal to you"
         KEPT=$((KEPT+1))
         return
     fi
@@ -601,18 +601,18 @@ run_uninstall() {
     info "  ${CLAUDE_DIR}/CLAUDE.md (your live config)"
     info "  ${CLAUDE_DIR}/settings.json (your live config)"
     info "  ${CLAUDE_DIR}/hooks/  (excluding examples/ subdir handled above)"
-    info "  ${NUDGE_DB} and ${NUDGE_IMPORT_DIR}/ (your Nudge alerts — remove manually if desired)"
-    info "  ${BACKUP_ROOT}/ (your backups — remove manually if desired)"
+    info "  ${NUDGE_DB} and ${NUDGE_IMPORT_DIR}/ (your Nudge alerts — I leave any manual removal to you)"
+    info "  ${BACKUP_ROOT}/ (your backups — I leave any manual removal to you)"
 
     section "Next steps"
     cat <<EOF
 If you wired Nudge or other LITE hooks into ${CLAUDE_DIR}/settings.json,
-remove those entries manually. The uninstaller can't safely edit
-your settings.json — JSON parsing of an arbitrary user file would
-be too fragile. A leftover Nudge hook entry points at a launcher
-that no longer exists, so it shows a hook error on every prompt.
+I leave removing those entries manually to you. I can't safely edit
+your settings.json — I'd find JSON parsing of an arbitrary user file
+too fragile. I'd remove a leftover Nudge hook entry, since it points at a
+launcher that no longer exists and shows a hook error on every prompt.
 
-To purge the backup folder and your Nudge alerts:
+To purge the backup folder and your Nudge alerts, I'd run:
 EOF
     # I list only paths LITE owns. An override's DB may sit in a shared dir,
     # so I name the DB file and the nudge-import dir, never their parent.
@@ -630,7 +630,7 @@ EOF
         echo "${C_CYAN}DRY RUN - nothing removed.${C_RESET}"
     fi
     if [[ $KEPT -gt 0 ]]; then
-        echo "${C_YELLOW}Uninstall finished; ${KEPT} item(s) kept because they differ from any shipped version.${C_RESET}"
+        echo "${C_YELLOW}Uninstall finished; I kept ${KEPT} item(s) because they differ from any shipped version.${C_RESET}"
     else
         echo "${C_GREEN}Uninstall complete.${C_RESET}"
     fi
@@ -659,15 +659,15 @@ run_verify() {
     if find_python; then
         verify_check "python (${PYTHON_CMD[*]})" pass "$("${PYTHON_CMD[@]}" --version 2>&1)"
         if [[ "${PYTHON_CMD[0]}" != "python3" ]]; then
-            verify_check "python3 name" warn "not on PATH; the Nudge hook launcher falls back to '${PYTHON_CMD[*]}', but the hook examples call python3 by name"
+            verify_check "python3 name" warn "not on PATH; I fall back to '${PYTHON_CMD[*]}' in the Nudge hook launcher, but I call python3 by name in the hook examples"
         fi
         if "${PYTHON_CMD[@]}" -c "import sqlite3" 2>/dev/null; then
             verify_check "python sqlite3 import" pass "ok"
         else
-            verify_check "python sqlite3 import" fail "cannot import — Nudge skill will not work"
+            verify_check "python sqlite3 import" fail "cannot import — I can't run the Nudge skill without it"
         fi
     else
-        verify_check "python" warn "no Python 3.10+ found (tried python3, python, py -3) — Nudge skill + hook examples will not work until you install one"
+        verify_check "python" warn "no Python 3.10+ found (I tried python3, python, py -3) — I can't run the Nudge skill + hook examples until you install one"
     fi
     if command -v claude >/dev/null 2>&1; then
         verify_check "claude" pass "$(claude --version 2>&1 | head -1)"
@@ -728,7 +728,7 @@ run_verify() {
         # Pipe via stdin to dodge Git-Bash/Windows-Python path-space mismatch
         # (bash's POSIX-style /tmp/... isn't visible to Windows Python).
         if [[ ${#PYTHON_CMD[@]} -eq 0 ]]; then
-            verify_check "settings.example.json" skip "present; JSON check skipped (no Python found)"
+            verify_check "settings.example.json" skip "present; I skipped the JSON check (no Python found)"
         elif "${PYTHON_CMD[@]}" -c "import json, sys; json.load(sys.stdin)" < "$setj" 2>/dev/null; then
             verify_check "settings.example.json" pass "present + valid JSON"
         else
@@ -806,7 +806,7 @@ else
 fi
 # Hand every alert store in the skill dir to the runtime before I replace it.
 if ! stash_nudge_stores "$NUDGE_SKILL_DIR"; then
-    skip "nothing to migrate (alerts live in ${NUDGE_DB})"
+    skip "nothing to migrate (I keep alerts in ${NUDGE_DB})"
 fi
 
 # --- Install items -----------------------------------------------------------
@@ -887,28 +887,28 @@ section "Next steps"
 # even for a --claude-dir with spaces or quotes.
 R="$(printf '%q' "$CLAUDE_DIR")"
 cat <<EOF
-1. Claude Code picks up new skills in a running session. If
-     ${R}/skills/ didn't exist before this install, start a new
+1. I rely on Claude Code picking up new skills in a running session. If
+     ${R}/skills/ didn't exist before this install, I'd start a new
      session so Claude Code can watch the new directory.
 
 2. To use the CLAUDE.md starter template:
      cp ${R}/CLAUDE.md.clayworks-template ${R}/CLAUDE.md
-     (back up any existing ${R}/CLAUDE.md first)
+     (I back up any existing ${R}/CLAUDE.md first)
      then edit the <YOUR ...> placeholders.
 
 3. To use the nudge skill (if installed):
      the skill auto-triggers when you mention a time
      ("stop me at 5pm", "remind me about standup at 9:55").
-     For nudges to actually fire, add the UserPromptSubmit hook from
+     For nudges to actually fire, I add the UserPromptSubmit hook from
      ${R}/settings.example.json to ${R}/settings.json
-     (details in ${R}/skills/clayworks-lite-nudge/SKILL.md).
-     Claude Code applies settings.json edits without a restart.
-     Skip this if you also installed LITE as a plugin: the plugin
-     registers the same hook, and you'd see every alert twice.
+     (I cover the details in ${R}/skills/clayworks-lite-nudge/SKILL.md).
+     I rely on Claude Code applying settings.json edits without a restart.
+     I skip this if I also installed LITE as a plugin: I register the same
+     hook through the plugin, and I'd see every alert twice.
 
 4. To use a hook example:
      cp ${R}/hooks/examples/<event>.sh ${R}/hooks/<name>.sh
-     customize, then register it in ${R}/settings.json (see the README
+     I customize it, then register it in ${R}/settings.json (I cover this in the README
      inside the examples/ dir).
 
 Verify the install:

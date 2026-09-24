@@ -13,7 +13,7 @@
 #     "tool_input": { "file_path": "/abs/path/file.txt", "content": "..." },
 #     "tool_use_id": "toolu_01ABC123..."
 #   }
-# Inside a subagent the payload also carries agent_id and agent_type.
+# Inside a subagent I also get agent_id and agent_type in the payload.
 #
 # Common uses:
 #   - Sandbox enforcement (block Write/Edit outside a specific dir)
@@ -21,18 +21,18 @@
 #   - Resource guards (block expensive operations during low-budget time)
 #
 # Exit behavior:
-#   - Exit 0            → no decision; the normal permission flow applies
-#   - Exit 2            → the tool call is BLOCKED; stderr goes to Claude as
-#                         the reason. Exit 2 is the only code that blocks.
-#   - Any other non-zero → non-blocking error: the tool call still runs.
-#                         Never use `exit 1` for a guard.
-#   - For finer control (allow / deny / ask), exit 0 and print a JSON
+#   - Exit 0            → no decision; I leave it to the normal permission flow
+#   - Exit 2            → I BLOCK the tool call and send stderr to Claude as
+#                         the reason. I block only with exit 2.
+#   - Any other non-zero → non-blocking error: I still see the tool call run.
+#                         I never use `exit 1` for a guard.
+#   - For finer control (allow / deny / ask), I exit 0 and print a JSON
 #     hookSpecificOutput.permissionDecision object instead.
 #
-# IMPORTANT: PreToolUse hooks fire on EVERY matching tool call. Keep them FAST
-# (<100ms ideal). A slow hook adds latency to every interaction. A timed-out
-# command hook does NOT block the call, so don't treat a hook as a hard
-# security boundary; use permission rules for that.
+# IMPORTANT: I get PreToolUse hooks firing on EVERY matching tool call, so I
+# keep them FAST (<100ms ideal); I'd add latency to every interaction with a
+# slow one. I can't block the call with a timed-out command hook, so I never
+# treat a hook as a hard security boundary; I use permission rules for that.
 #
 # Register in ~/.claude/settings.json under hooks.PreToolUse with a matcher:
 #   { "matcher": "Write|Edit|NotebookEdit", "hooks": [{...}] }
@@ -47,11 +47,11 @@ try:
     d = json.load(sys.stdin)
     print(d.get('tool_name', ''), end='')
 except Exception as exc:
-    print(f'pretooluse.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'pretooluse.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     pass
 ")
 
-# --- Example: log every Write/Edit/NotebookEdit -------------------------------
+# --- Example: audit log of every Write/Edit/NotebookEdit ---------------------
 # Useful for auditing what Claude touched. Replace with your own logic.
 
 LOG_DIR="$HOME/agent/logs"
@@ -68,7 +68,7 @@ try:
     ti = d.get('tool_input', {})
     print(ti.get('file_path') or ti.get('notebook_path') or '<unknown>', end='')
 except Exception as exc:
-    print(f'pretooluse.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'pretooluse.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', end='')
 ")
         # Sanitize: strip control chars + cap length. A maliciously-crafted
@@ -80,9 +80,10 @@ except Exception as exc:
 esac
 
 # --- Example: block writes outside ~/Projects/ -------------------------------
-# Uncomment + customize if you want sandbox enforcement. Note `exit 2`: that's
-# the code that blocks. File paths arrive absolute, with the platform's native
-# separators (backslashes on Windows), so adjust the pattern there.
+# I'd uncomment + customize this for sandbox enforcement. I use `exit 2` here
+# because it's the code that blocks. I get file paths absolute, with the
+# platform's native separators (backslashes on Windows), so I adjust the
+# pattern there.
 #
 # case "$TOOL_NAME" in
 #     Write|Edit)
@@ -91,7 +92,7 @@ esac
 #             "$HOME/Projects/"*)
 #                 ;;  # allowed
 #             *)
-#                 echo "Blocked by PreToolUse hook: writes outside ~/Projects/ are not allowed ($FILE_PATH)" >&2
+#                 echo "PreToolUse hook: I blocked this write because I allow writes only inside ~/Projects/ ($FILE_PATH)" >&2
 #                 exit 2
 #                 ;;
 #         esac

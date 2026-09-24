@@ -328,4 +328,42 @@ with tempfile.TemporaryDirectory() as td:
         assert r15.returncode != 0 and "symlink" in r15.stderr, (r15.returncode, r15.stderr)
         assert outside.read_bytes() == b"not yours"
         print("15 linked default DB refused, target untouched: ok")
+
+    # 16. A plugin install next to a retained script install whose legacy
+    #     scripts/alerts.db is a symlink: I must not import the external DB.
+    root16 = td / "r16"
+    c16 = root16 / "plugins/cache/clayworks-lite/clayworks-lite/1.1.0/skills"
+    c16.mkdir(parents=True)
+    shutil.copytree(SRC, c16 / "clayworks-lite-nudge")
+    ext16 = td / "external16.db"
+    mkdb(ext16, [C])
+    (root16 / "skills/clayworks-lite-nudge/scripts").mkdir(parents=True)
+    try:
+        os.symlink(ext16, root16 / "skills/clayworks-lite-nudge/scripts/alerts.db")
+    except (OSError, NotImplementedError):
+        print("16 linked legacy source skipped: skipped (no symlink rights here)")
+    else:
+        _, err16 = run(c16 / "clayworks-lite-nudge/scripts", "--list", home=home)
+        assert rows(root16 / "clayworks-lite/nudge/alerts.db") == [], "imported through a link"
+        assert "symlink or junction" in err16, err16
+        print("16 linked legacy source skipped, nothing imported: ok")
+
+    # 17. Windows: an NTFS junction at the default nudge/ folder is refused like a
+    #     symlink (Path.is_symlink() doesn't see junctions).
+    if os.name == "nt":
+        root17 = td / "r17"
+        c17 = root17 / "plugins/cache/clayworks-lite/clayworks-lite/1.1.0/skills"
+        c17.mkdir(parents=True)
+        shutil.copytree(SRC, c17 / "clayworks-lite-nudge")
+        (root17 / "clayworks-lite").mkdir()
+        ext17 = td / "external17"; ext17.mkdir()
+        subprocess.run(["cmd", "/c", "mklink", "/J", str(root17 / "clayworks-lite" / "nudge"), str(ext17)],
+                       check=True, capture_output=True)
+        env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CONFIG_DIR", "CLAYWORKS_NUDGE_DB")}
+        env.update(HOME=str(home), USERPROFILE=str(home), PYTHONDONTWRITEBYTECODE="1")
+        r17 = subprocess.run([sys.executable, "-B", str(c17 / "clayworks-lite-nudge/scripts/nudge_db.py"), "--list"],
+                             capture_output=True, text=True, env=env)
+        assert r17.returncode != 0 and "junction" in r17.stderr, (r17.returncode, r17.stderr)
+        assert not any(ext17.iterdir()), "wrote through the junction"
+        print("17 junctioned default folder refused: ok")
 print("ALL OK")

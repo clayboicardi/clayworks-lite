@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SubagentStop hook — fires when a subagent finishes responding
+# SubagentStop hook — when a subagent finishes responding
 # =============================================================================
 # Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
@@ -17,22 +17,22 @@
 #     "background_tasks": [],
 #     "session_crons": []
 #   }
-# There is no duration or exit-status field. Claude Code also fires this event
-# for some of its own internal agents; for those, agent_type can be "".
+# I get no duration or exit-status field. I also see Claude Code fire this event
+# for some of its own internal agents; for those, I can get an empty agent_type ("").
 #
 # Common uses:
-#   - Close the loop on tracked subagent dispatches (pair with SubagentStart
-#     via agent_id to compute duration yourself)
-#   - Keep a short record of what each subagent reported
+#   - Closing the loop on tracked subagent dispatches (I pair it with
+#     SubagentStart via agent_id to compute duration myself)
+#   - Keeping a short record of what each subagent reported
 #   - Completion pings for long-running subagents
 #
-# Exit behavior: stdout goes to the debug log. Exit 2 (or JSON
-# {"decision": "block", ...}) keeps the SUBAGENT running with your reason as
+# Exit behavior: I know stdout goes to the debug log. With exit 2 (or JSON
+# {"decision": "block", ...}) I keep the SUBAGENT running with my reason as
 # its next instruction. To add context to the parent session after a subagent
-# returns, use a PostToolUse hook on the Agent tool instead.
+# returns, I use a PostToolUse hook on the Agent tool instead.
 #
-# Register in ~/.claude/settings.json under hooks.SubagentStop, optionally with
-# a matcher on agent type.
+# I register it in ~/.claude/settings.json under hooks.SubagentStop, optionally
+# with a matcher on agent type.
 # =============================================================================
 
 set -u
@@ -46,12 +46,12 @@ try:
     print(d.get('agent_type', '') or '<internal>', d.get('agent_id', '<unknown>'),
           msg, sep='\x1f', end='')
 except Exception as exc:
-    print(f'subagentstop.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'subagentstop.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', '<unknown>', '', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r AGENT_TYPE AGENT_ID LAST_MESSAGE <<< "$FIELDS"
 
-# --- Example: log subagent completion ----------------------------------------
+# --- Example: subagent completion log ----------------------------------------
 
 LOG_DIR="$HOME/agent/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null

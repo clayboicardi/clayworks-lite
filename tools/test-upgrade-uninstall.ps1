@@ -145,7 +145,7 @@ try {
     if ((Get-ImportedContent (Join-Path $a "clayworks-lite/nudge/nudge-import")) -ne "legacy-db-bytes") {
         Add-Failure "(a) legacy DB did not land in nudge-import/"
     }
-    if ($outA -notmatch "Uninstall finished; 1 item\(s\) kept") { Add-Failure "(a) wrong closing line" }
+    if ($outA -notmatch "Uninstall finished; I kept 1 item\(s\)") { Add-Failure "(a) wrong closing line" }
     if (-not (Test-PurgeTarget $outA (Join-Path $a '.clayworks-lite-backup'))) {
         Add-Failure "(e) purge text lacks this root's backup dir"
     }
@@ -171,7 +171,7 @@ try {
     Assert-Gone (Join-Path $b "clayworks-lite/nudge/nudge-import")
     Assert-Gone (Join-Path $b "skills/clayworks-lite-heartbeat-concept")
     Assert-Gone (Join-Path $b "hooks/examples")
-    if ($outB -notmatch "Uninstall finished; 2 item\(s\) kept") { Add-Failure "(b) wrong closing line" }
+    if ($outB -notmatch "Uninstall finished; I kept 2 item\(s\)") { Add-Failure "(b) wrong closing line" }
 
     # A custom.pyc beside a skill's SKILL.md is yours, so that skill stays; a
     # .pyc inside __pycache__\ is Python's, so it doesn't hold its skill back.

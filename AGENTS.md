@@ -8,6 +8,6 @@ Write in first person, active voice on public surfaces. Speak as the maintainer.
 
 ## Review
 
-Codex is the sole bot reviewer. Google's consumer Gemini Code Assist app ended all review activity on 2026-07-17, so Gemini no longer reviews PRs here, and I removed its `.gemini/` config. Codex reviews on PR-open and on `@codex review`, and it reaches my review host over Tailscale. A missing Codex review is review-absent, not review-clean: if none appears, enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`.
+I use Codex as the sole bot reviewer. I lost Gemini reviews when Google's consumer Gemini Code Assist app ended all review activity on 2026-07-17, so I removed its `.gemini/` config. I get Codex reviews on PR-open and on `@codex review`, and I have Codex reach my review host over Tailscale. I treat a missing Codex review as review-absent, not review-clean: if none appears, I enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`.
 
 For the full style, installer-security, hook, skill, README-accuracy, brand-separation, and language-discipline rules, read [CONTRIBUTING.md](CONTRIBUTING.md#style--review-conventions).

@@ -30,8 +30,8 @@ Use for: architecture decisions, project conventions, recurring procedures, tool
 ### Native CC memory (project-scoped facts)
 
 Use for: project-specific knowledge that lives with the codebase.
-- Path: `~/.claude/projects/<project>/memory/MEMORY.md` (Claude Code derives `<project>` from the repo path, e.g. `-Users-sam-Projects-dashboard`)
-- Claude Code auto-loads the first 200 lines / 25KB at session start for that project; keep MEMORY.md a short index
+- Path: `~/.claude/projects/<project>/memory/MEMORY.md` (I rely on Claude Code deriving `<project>` from the repo path, e.g. `-Users-sam-Projects-dashboard`)
+- I rely on Claude Code auto-loading the first 200 lines / 25KB at session start for that project, so I keep MEMORY.md a short index
 - Best for: build commands, project quirks, recent decisions
 
 ### Routing rules
@@ -45,10 +45,10 @@ Use for: project-specific knowledge that lives with the codebase.
 
 Reach for models by role:
 - **Code workhorse (primary):** `~/.claude/scripts/ask-codex.sh "prompt"` for review, debugging, and refactors
-- **Web-grounded research:** Claude Code's built-in web search and fetch tools for current-facts questions (Sam dropped the Gemini CLI bridge when Google retired consumer access on 2026-06-18)
+- **Web-grounded research:** Claude Code's built-in web search and fetch tools for current-facts questions (I dropped the Gemini CLI bridge when Google retired consumer access on 2026-06-18)
 - **Local floor (Ollama):** `localhost:11434` for offline work and anything that must not leave the machine
 
-The `ask-codex.sh` bridge above is illustrative. LITE ships no bridge scripts; this setup wires its own. Substitute yours, or drop the roles you do not use.
+I include the `ask-codex.sh` bridge above for illustration. I ship no bridge scripts in LITE; I wire this setup's own. I recommend substituting your own, or dropping the roles you do not use.
 
 **Sovereignty rule:** never send real credentials, API keys, or customer data to a cloud model. Sensitive content goes to the local model only.
 
@@ -125,7 +125,7 @@ When concurrent CC sessions need to coordinate (e.g., one running tests while an
     I configured it."
   - When you add a new rule, write WHY in a comment next to it. Future-you
     will not remember the reasoning.
-  - Use the `claude-md-management` plugin
+  - I use the `claude-md-management` plugin
     (`/claude-md-management:revise-claude-md`,
     `/claude-md-management:claude-md-improver`) for structured maintenance
     passes.

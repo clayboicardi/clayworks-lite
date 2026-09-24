@@ -68,23 +68,23 @@ The structure encodes a specific philosophy: identity rules first, behavioral ru
 
 - **Engram** for procedural decisions, conventions, cross-model retrievability
 - **Honcho** (or your user-modeling layer of choice) for *who you are* — preferences, style, role
-- **Native auto memory** (`~/.claude/projects/<project>/memory/MEMORY.md`, where Claude Code derives `<project>` from the repo's path) for project-specific facts
+- **Native auto memory** (`~/.claude/projects/<project>/memory/MEMORY.md`; I let Claude Code derive `<project>` from the repo's path) for project-specific facts
 
 If you don't have all three, the skill still works. It'll route everything to whichever layer you have. The point is that "where does this belong?" is a decision, not a hunch.
 
 ### 3. Nudge install pattern
 
-[`plugin/skills/clayworks-lite-nudge/`](plugin/skills/clayworks-lite-nudge/SKILL.md) — a SQLite-backed reminder system that surfaces time-based pings via a UserPromptSubmit hook. The plugin install registers that hook for you. Use cases:
+[`plugin/skills/clayworks-lite-nudge/`](plugin/skills/clayworks-lite-nudge/SKILL.md) — a SQLite-backed reminder system I built to surface time-based pings via a UserPromptSubmit hook. With the plugin install, I register that hook for you. Use cases:
 
 - "Stop me at 5pm" — model gets the nudge when due
 - "Remind me about the standup at 9:55" — surfaces at submit time
 - "Wrap up debugging if you're still on it in 30 minutes"
 
-Three small Python scripts (`add_alert.py`, `ack_alert.py`, `check_alerts.py`), a shared DB helper, a tiny launcher that finds a working Python on every OS, and the skill that drives them. Not flashy, genuinely useful.
+I ship three small Python scripts (`add_alert.py`, `ack_alert.py`, `check_alerts.py`), a shared DB helper, a tiny launcher I wrote to find a working Python on every OS, and the skill I use to drive them. Not flashy, genuinely useful.
 
 ### 4. Hook scaffolding examples
 
-[`plugin/hooks/examples/`](plugin/hooks/examples/README.md) — a minimal `.sh` example for each of the eight Claude Code hook events I reach for most (UserPromptSubmit, PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStart, SubagentStop). Claude Code documents many more; these cover the everyday ones. I annotate each example with the event's contract, the real JSON payload shape, the exit-code behavior, and one common pattern. You'll modify these heavily; they exist so you don't start from a blank file.
+[`plugin/hooks/examples/`](plugin/hooks/examples/README.md) — I wrote a minimal `.sh` example for each of the eight Claude Code hook events I reach for most (UserPromptSubmit, PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop, SubagentStart, SubagentStop). I know Claude Code documents many more; I cover only the everyday ones here. I annotate each example with the event's contract, the real JSON payload shape, the exit-code behavior, and one common pattern. I expect you to modify these heavily; I wrote them so you never start from a blank file.
 
 ### 5. Heartbeat framework concept doc
 
@@ -124,11 +124,11 @@ If your reaction to the LITE contents is *"I want the rest of this"*, that's the
 
 ## Prerequisites
 
-- **Claude Code 2.1.x or newer** — earlier versions are missing hook events LITE depends on. I test this release against Claude Code 2.1.280.
+- **Claude Code 2.1.x or newer** — I rely on hook events that earlier versions lack. I test this release against Claude Code 2.1.280.
 - **A shell** — Bash on macOS/Linux, PowerShell 5.1+ or Git Bash on Windows
 - **Git** — for cloning the repo (`git clone https://...`)
 - **A `~/.claude/` directory** — created by Claude Code on first run; if you've never run CC, install it first
-- **(Optional) Python 3.10+** — you need it only for the Nudge skill and for the hook examples that parse JSON payloads. I call `python3` by name in the docs and hook examples. On Windows, where Python often installs as `python` or the `py` launcher instead, the fallback is the bundled launcher, `plugin/skills/clayworks-lite-nudge/scripts/run-python.sh`: it tries `python3`, then `python`, then `py -3`. The Nudge hook and commands already go through it, and a hook example can route its JSON parsing through it too (see [`plugin/hooks/examples/`](plugin/hooks/examples/README.md#pattern-conventions-used)).
+- **(Optional) Python 3.10+** — I need it only for the Nudge skill and for the hook examples that parse JSON payloads. I call `python3` by name in the docs and hook examples. On Windows, where I often see Python installed as `python` or the `py` launcher instead, I fall back to the bundled launcher, `plugin/skills/clayworks-lite-nudge/scripts/run-python.sh`: I have it try `python3`, then `python`, then `py -3`. I already route the Nudge hook and commands through it, and I'd route a hook example's JSON parsing through it too (see [`plugin/hooks/examples/`](plugin/hooks/examples/README.md#pattern-conventions-used)).
 - **(Optional) [Engram plugin](https://github.com/Gentleman-Programming/engram)** — if you want the multi-memory routing skill to actually route to a memory layer rather than just describing what it would route to. Engram is free and installs in CC via:
 
   ```text
@@ -146,7 +146,7 @@ LITE itself is shell scripts + markdown. No build, no compile, no Docker.
 
 **On billing:** Clayworks runs on your existing Claude Pro or Max plan. Pro and Max share their usage limits across claude.ai and Claude Code. No API key needed unless you explicitly set one. If you don't have a Pro or Max subscription yet, get one before installing.
 
-LITE ships **two install paths**. Pick one based on preference. Don't run both: you'd get two copies of every skill (`clayworks-lite-nudge` and `clayworks-lite:clayworks-lite-nudge`), and if you also wire the Nudge hook into `settings.json`, every due alert shows up twice. Claude Code deduplicates only identical hook handlers across settings files; a plugin's hook always runs separately. Option A is the simpler path if anything below feels foreign; you can always switch to Option B later.
+I ship LITE with **two install paths**. I'd pick one based on preference and never run both: I'd end up with two copies of every skill (`clayworks-lite-nudge` and `clayworks-lite:clayworks-lite-nudge`), and if I also wired the Nudge hook into `settings.json`, I'd see every due alert twice. I rely on Claude Code deduplicating only identical hook handlers across settings files; I know it always runs a plugin's hook separately. I recommend Option A as the simpler path if anything below feels foreign; I keep Option B open as a later switch.
 
 ### Option A: Claude Code plugin marketplace (in-CC, no clone)
 
@@ -157,19 +157,19 @@ Inside any Claude Code session:
 /plugin install clayworks-lite@clayworks-lite
 ```
 
-Or in one step: `/plugin install clayworks-lite --marketplace clayboicardi/clayworks-lite` offers to add the marketplace for you, then installs.
+Or in one step: I run `/plugin install clayworks-lite --marketplace clayboicardi/clayworks-lite`, which offers to add the marketplace for me, then installs.
 
-Claude Code clones the marketplace to `~/.claude/plugins/marketplaces/clayworks-lite/` and copies the plugin into its cache at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/`. You can use the plugin right away; you don't need to restart Claude Code. What you get:
+I rely on Claude Code cloning the marketplace to `~/.claude/plugins/marketplaces/clayworks-lite/` and copying the plugin into its cache at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/`. I use the plugin right away, with no Claude Code restart. What I ship in it:
 
-- **The three LITE skills.** I expose them under the plugin's namespace: `clayworks-lite:clayworks-lite-nudge`, `clayworks-lite:clayworks-lite-memory-routing`, `clayworks-lite:clayworks-lite-heartbeat-concept`. They trigger on their own when relevant, and you can also call them as slash commands (e.g. `/clayworks-lite:clayworks-lite-nudge`).
-- **I wire the Nudge hook for you.** I register the UserPromptSubmit hook in the plugin's own `hooks/hooks.json`, so due reminders fire without you adding anything to `settings.json`.
-- **Reference material on disk.** I leave the hook scaffolding examples, the CLAUDE.md template, `settings.example.json`, worked configurations (`examples/`), and design rationale (`docs/`) in that cache folder for you (and Claude in a session) to reference, copy, and customize. I don't auto-deploy templates to standard `~/.claude/` paths under this option; you copy them yourself when ready.
+- **The three LITE skills.** I expose them under the plugin's namespace: `clayworks-lite:clayworks-lite-nudge`, `clayworks-lite:clayworks-lite-memory-routing`, `clayworks-lite:clayworks-lite-heartbeat-concept`. I let them trigger on their own when relevant, and I also call them as slash commands (e.g. `/clayworks-lite:clayworks-lite-nudge`).
+- **I wire the Nudge hook for you.** I register the UserPromptSubmit hook in the plugin's own `hooks/hooks.json`, so I get due reminders without adding anything to `settings.json`.
+- **Reference material on disk.** I leave the hook scaffolding examples, the CLAUDE.md template, `settings.example.json`, worked configurations (`examples/`), and design rationale (`docs/`) in that cache folder for you (and Claude in a session) to reference, copy, and customize. I don't auto-deploy templates to standard `~/.claude/` paths under this option; I leave copying them to you, whenever you're ready.
 
 I keep Nudge's alerts at `~/.claude/clayworks-lite/nudge/alerts.db`, outside the plugin folder, so plugin updates never wipe them.
 
 ### Option B: Git clone + install script (deployed to `~/.claude/`)
 
-Before running, paste `install.sh` (or `install.ps1`) into a Claude Code session and ask it to summarize what the script does. If anything reads as surprising or doesn't match the description below, don't run it. Each installer is a single, commented script of a few hundred lines, and it does what the comments say. `--dry-run` shows exactly what would change without writing anything.
+Before running either installer, I paste `install.sh` (or `install.ps1`) into a Claude Code session and ask it to summarize what the script does. If anything reads as surprising or doesn't match the description below, I don't run it. I wrote each installer as a single, commented script of a few hundred lines, and I make it do what the comments say. I use `--dry-run` to see exactly what would change without writing anything.
 
 ```bash
 # Clone the repo somewhere out of the way
@@ -182,14 +182,14 @@ cd ~/clayworks-lite
 .\install.ps1       # Windows PowerShell 5.1+ (pwsh or powershell.exe)
 ```
 
-The installer:
+Installer steps:
 
-1. **Backs up** anything it's about to overwrite to `~/.claude/.clayworks-lite-backup/<timestamp>/`
-2. Copies the LITE skills into `~/.claude/skills/` (first moving a pre-1.1.0 Nudge `alerts.db` out of the skill folder to `~/.claude/clayworks-lite/nudge/`, so updates never strand your alerts)
-3. Copies the hook scaffolding examples into `~/.claude/hooks/examples/` (NOT into the live hooks dir; you opt-in by referencing them in `settings.json`)
-4. Copies the CLAUDE.md template to `~/.claude/CLAUDE.md.clayworks-template` (NOT `CLAUDE.md`; your existing file is sacred)
-5. Copies a `settings.example.json` to `~/.claude/settings.example.json` (NOT `settings.json`; same reason) showing the LITE-recommended hook composition
-6. Prints a summary of what changed and what to do next
+1. I **back up** anything I'm about to overwrite to `~/.claude/.clayworks-lite-backup/<timestamp>/`
+2. I copy the LITE skills into `~/.claude/skills/` (first moving a pre-1.1.0 Nudge `alerts.db` out of the skill folder to `~/.claude/clayworks-lite/nudge/`, so I never strand your alerts on an update)
+3. I copy the hook scaffolding examples into `~/.claude/hooks/examples/` (NOT into the live hooks dir; I leave opting in to you, by referencing them in `settings.json`)
+4. I copy the CLAUDE.md template to `~/.claude/CLAUDE.md.clayworks-template` (NOT `CLAUDE.md`; I treat your existing file as sacred)
+5. I copy a `settings.example.json` to `~/.claude/settings.example.json` (NOT `settings.json`; same reason) showing the LITE-recommended hook composition
+6. I print a summary of what changed and what to do next
 
 The installer is idempotent. Re-running it picks up new versions without re-clobbering your edits, as long as you've moved files out of the `clayworks-lite/` source dir (e.g., your customized `CLAUDE.md` lives at `~/.claude/CLAUDE.md`, not in the source).
 
@@ -197,11 +197,11 @@ The installer is idempotent. Re-running it picks up new versions without re-clob
 
 | If you want... | Pick |
 |---|---|
-| Quickest start; let CC manage updates; skills and the Nudge hook active immediately | **Option A** (plugin marketplace) |
+| Quickest start; CC-managed updates; skills and the Nudge hook active immediately | **Option A** (plugin marketplace) |
 | Templates + hook examples deployed to standard `~/.claude/` paths (`~/.claude/CLAUDE.md.clayworks-template`, `~/.claude/hooks/examples/`, etc.) | **Option B** (clone + script) |
 | Full uninstall via `--uninstall` flag + automatic backup of any file LITE would overwrite | **Option B** |
-| Don't want any LITE files outside `~/.claude/plugins/` (apart from the Nudge alerts DB) | **Option A** |
-| Auditing the install before running (read every script first) | **Option B** (the source is local; for **A**, audit at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/` after install) |
+| No LITE files outside `~/.claude/plugins/` (apart from the Nudge alerts DB) | **Option A** |
+| Auditing the install before running (read every script first) | **Option B** (the source is local; for **A**, I audit at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/` after install) |
 
 ### Updating LITE
 
@@ -223,7 +223,7 @@ Sanity-check that the install is healthy:
 .\install.ps1 -Verify        # Windows PowerShell 5.1+
 ```
 
-Checks: skills present + frontmatter parses, the Nudge launcher and scripts present, hook examples present + shebangs intact, a usable Python 3.10+ (`python3`, `python`, or `py -3`) with `sqlite3` (the Nudge skill needs both), CLAUDE.md template + `settings.example.json` present and well-formed, best-effort `claude` CLI version detection. A missing Python is a warning, not a failure, since Python is optional; the bash installer then skips its JSON check rather than failing it. Exits 0 on all-pass, 1 on any failure, with per-check detail.
+Checks: skills present + frontmatter parses, the Nudge launcher and scripts present, hook examples present + shebangs intact, a usable Python 3.10+ (`python3`, `python`, or `py -3`) with `sqlite3` (I need both for the Nudge skill), CLAUDE.md template + `settings.example.json` present and well-formed, best-effort `claude` CLI version detection. I treat a missing Python as a warning, not a failure, since Python is optional; in the bash installer I then skip the JSON check rather than fail it. I exit 0 on all-pass, 1 on any failure, with per-check detail.
 
 ### Uninstalling LITE
 
@@ -235,13 +235,13 @@ To remove what LITE installed:
 .\install.ps1 -Uninstall     # Windows PowerShell 5.1+
 ```
 
-The uninstaller removes only files that match what LITE shipped (it compares SHA-256 hashes). It leaves any file you've customized in place, so you never silently lose your edits. It never touches your live `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, or `~/.claude/hooks/` directory. It also keeps the backup folder (`~/.claude/.clayworks-lite-backup/`) and your Nudge alerts (`~/.claude/clayworks-lite/`); remove those manually if you want a clean slate. For a plugin install, use `/plugin uninstall clayworks-lite@clayworks-lite` instead.
+I have the uninstaller remove only files that match what LITE shipped (I compare SHA-256 hashes). I leave any file you've customized in place, so I never silently discard your edits. I never touch your live `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, or `~/.claude/hooks/` directory. I also keep the backup folder (`~/.claude/.clayworks-lite-backup/`) and your Nudge alerts (`~/.claude/clayworks-lite/`); I'd remove those manually for a clean slate. For a plugin install, I use `/plugin uninstall clayworks-lite@clayworks-lite` instead.
 
 If you wired Nudge or other LITE hooks into `~/.claude/settings.json`, you'll need to remove those entries yourself. The uninstaller doesn't edit your settings file.
 
 ### No telemetry
 
-LITE is shell scripts + markdown + a handful of small Python scripts. No analytics, no phone-home, no usage tracking. The installer touches only paths under `~/.claude/` (you can change that root with `--claude-dir`), with one exception you opt into: if you set `CLAYWORKS_NUDGE_DB` to a file outside that directory, the installer creates a `nudge-import/` folder next to that file to hand over any pre-1.1 alerts. The Nudge SQLite database stays on your machine, at `~/.claude/clayworks-lite/nudge/alerts.db` by default.
+I built LITE from shell scripts + markdown + a handful of small Python scripts. No analytics, no phone-home, no usage tracking. I have the installer touch only paths under `~/.claude/` (I let you change that root with `--claude-dir`), with one exception you opt into: if you set `CLAYWORKS_NUDGE_DB` to a file outside that directory, I create a `nudge-import/` folder next to that file to hand over any pre-1.1 alerts. I keep the Nudge SQLite database on your machine, at `~/.claude/clayworks-lite/nudge/alerts.db` by default.
 
 ### Verify the install
 
@@ -249,7 +249,7 @@ LITE is shell scripts + markdown + a handful of small Python scripts. No analyti
 ls ~/.claude/skills/clayworks-lite-*/
 ```
 
-You don't need to restart Claude Code: it picks up new skills in a running session. (If `~/.claude/skills/` didn't exist before the install, start a new session once so Claude Code can watch the new folder.) You should see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. I use the `clayworks-lite-` prefix on purpose: it keeps these distinguishable from your own skills.
+I skip the Claude Code restart: I rely on it picking up new skills in a running session. (If `~/.claude/skills/` didn't exist before the install, I start a new session once so Claude Code can watch the new folder.) I expect to see three skill directories: `clayworks-lite-nudge`, `clayworks-lite-memory-routing`, `clayworks-lite-heartbeat-concept`. I use the `clayworks-lite-` prefix on purpose, to keep these distinguishable from your own skills.
 
 The installer also dropped a starter `CLAUDE.md` template at `~/.claude/CLAUDE.md.clayworks-template`. To adopt it as your live `CLAUDE.md`, back up any existing one first and copy:
 
@@ -259,7 +259,7 @@ cp ~/.claude/CLAUDE.md.clayworks-template ~/.claude/CLAUDE.md
 # Then edit ~/.claude/CLAUDE.md and replace <YOUR ...> placeholders
 ```
 
-In a CC session, try the Nudge skill in plain English. It auto-triggers on time references, so you don't need a slash command:
+In a CC session, I try the Nudge skill in plain English. I made it auto-trigger on time references, so I skip the slash command:
 
 > stop me at 5pm to wrap up
 
@@ -267,10 +267,10 @@ Claude picks up the trigger, runs the Nudge skill, and stores the alert in a loc
 
 ### Make the Nudge skill actually fire (script install only)
 
-The skill *registers* alerts; for them to actually *fire* at the due time, the included `check_alerts.py` needs to run on each prompt submission.
+I have the skill *register* alerts; for them to actually *fire* at the due time, I run the included `check_alerts.py` on each prompt submission.
 
-- **Plugin install (Option A):** skip this step. The plugin registers this hook for you, and if you add it as well, you'll see every alert twice.
-- **Script install (Option B):** wire it once in `~/.claude/settings.json`:
+- **Plugin install (Option A):** I skip this step. I already register this hook in the plugin, and if I added it again, I'd see every alert twice.
+- **Script install (Option B):** I wire it once in `~/.claude/settings.json`:
 
 ```json
 {
@@ -290,7 +290,7 @@ The skill *registers* alerts; for them to actually *fire* at the due time, the i
 }
 ```
 
-`run-python.sh` runs the script with `python3`, `python`, or `py -3`, whichever works, and stays silent if you have no Python at all. On Windows it runs under Git Bash, which Claude Code also uses to run hooks. Claude Code watches `settings.json`, so the hook takes effect in your running session.
+I have `run-python.sh` run the script with `python3`, `python`, or `py -3`, whichever works, and stay silent if you have no Python at all. On Windows I run it under Git Bash, which Claude Code also uses to run hooks. I rely on Claude Code watching `settings.json`, so I see the hook take effect in the running session.
 
 If you already have `UserPromptSubmit` hooks, append this command to the existing `hooks` array. Don't replace the block. See [`plugin/skills/clayworks-lite-nudge/SKILL.md`](plugin/skills/clayworks-lite-nudge/SKILL.md) for the full Nudge surface (time formats, message format, dismissal, schema).
 

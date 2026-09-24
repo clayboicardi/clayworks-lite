@@ -1,5 +1,5 @@
 {
-  "description": "Clayworks LITE: surface due Nudge reminders to Claude on each prompt you submit.",
+  "description": "Clayworks LITE: I surface due Nudge reminders to Claude on each prompt you submit.",
   "hooks": {
     "UserPromptSubmit": [
       {

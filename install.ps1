@@ -17,18 +17,18 @@
       - templates/settings.example.json
                                        -> ~/.claude/settings.example.json
 
-    Your live ~/.claude/CLAUDE.md, ~/.claude/settings.json, and ~/.claude/hooks/
-    contents are never touched. Nudge alerts live in
-    ~/.claude/clayworks-lite/nudge/ and survive reinstall and uninstall.
+    I never touch your live ~/.claude/CLAUDE.md, ~/.claude/settings.json, or
+    ~/.claude/hooks/ contents. I keep Nudge alerts in
+    ~/.claude/clayworks-lite/nudge/, where they survive reinstall and uninstall.
 
 .PARAMETER DryRun
     Show what would change without writing anything.
 
 .PARAMETER Uninstall
-    Remove LITE-shipped files, skipping any you've customized.
+    I remove LITE-shipped files, skipping any you've customized.
 
 .PARAMETER Verify
-    Check the install: file presence, Python + sqlite3, template JSON.
+    I check the install: file presence, Python + sqlite3, template JSON.
 
 .PARAMETER ClaudeDir
     Install root. Defaults to ~/.claude. Override for testing.
@@ -126,7 +126,7 @@ if ($NudgeDb -eq '~' -or $NudgeDb -match '^~[\\/]') {
     # ~alice\... means another user's home. Python expands it one way, and I
     # can't match that reliably on every platform, so I refuse it rather than
     # hand your alerts to a folder the runtime never scans.
-    Write-Host "ERROR: CLAYWORKS_NUDGE_DB ($NudgeDb) uses a ~user path. Set it to a full path instead." -ForegroundColor Red
+    Write-Host "ERROR: I won't use CLAYWORKS_NUDGE_DB ($NudgeDb) because it's a ~user path; I'd set it to a full path instead." -ForegroundColor Red
     exit 2
 }
 $NudgeDbDir = Split-Path -Parent $NudgeDb
@@ -156,9 +156,9 @@ if ($NudgeDbInSkill) {
 
 function Write-NudgeDbWarning {
     if (-not $NudgeDbInSkill) { return }
-    Write-Host "  WARNING: CLAYWORKS_NUDGE_DB ($NudgeDb) points inside $NudgeSkillDir," -ForegroundColor Yellow
-    Write-Host "  which install replaces and uninstall removes. I hand its alerts to" -ForegroundColor Yellow
-    Write-Host "  $NudgeImportDir instead. Point CLAYWORKS_NUDGE_DB somewhere else." -ForegroundColor Yellow
+    Write-Host "  WARNING: CLAYWORKS_NUDGE_DB ($NudgeDb): I found it inside $NudgeSkillDir," -ForegroundColor Yellow
+    Write-Host "  which I replace on install and remove on uninstall, so I hand its alerts to" -ForegroundColor Yellow
+    Write-Host "  $NudgeImportDir instead. I'd point CLAYWORKS_NUDGE_DB somewhere else." -ForegroundColor Yellow
 }
 
 # .installer/shipped-hashes.txt lists "<installed-relpath><TAB><sha256>" for
@@ -363,8 +363,8 @@ function Confirm-NoReparsePoint {
         $p = Join-Path $p $part
         $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
         if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
-            Write-Host "ERROR: $p is a symlink or junction. I won't read, move, or write LITE" -ForegroundColor Red
-            Write-Host "files through it, because it can point outside $ClaudeDir. Replace" -ForegroundColor Red
+            Write-Host "ERROR: I found that $p is a symlink or junction. I won't read, move, or write LITE" -ForegroundColor Red
+            Write-Host "files through it, because it can point outside $ClaudeDir. I'd replace" -ForegroundColor Red
             Write-Host "it with a real directory or file, then re-run." -ForegroundColor Red
             exit 5
         }
@@ -403,8 +403,8 @@ function Confirm-NudgeDbOutsideManagedItem {
     $items.Add((Join-Path $ClaudeDir "settings.example.json"))
     foreach ($item in $items) {
         if (Test-PathWithin $NudgeDb $item) {
-            Write-Host "ERROR: CLAYWORKS_NUDGE_DB points inside $item, which I replace or" -ForegroundColor Red
-            Write-Host "remove; point it outside LITE's installed folders, then re-run." -ForegroundColor Red
+            Write-Host "ERROR: I won't continue while CLAYWORKS_NUDGE_DB points inside $item, because I replace or" -ForegroundColor Red
+            Write-Host "remove that item; I'd point it outside LITE's installed folders, then re-run." -ForegroundColor Red
             exit 2
         }
     }
@@ -453,7 +453,7 @@ function Move-NudgeStore {
         $n++
     }
     if ($DryRun) {
-        Write-Updated "would move $Label -> $target (Nudge merges it on its next run)"
+        Write-Updated "would move $Label -> $target (I merge it into Nudge on its next run)"
         return
     }
     Confirm-NoReparsePoint $NudgeImportDir
@@ -466,7 +466,7 @@ function Move-NudgeStore {
             Move-Item -LiteralPath "$StorePath$ext" -Destination "$target$ext"
         }
     }
-    Write-Updated "moved $Label -> $target (Nudge merges it on its next run)"
+    Write-Updated "moved $Label -> $target (I merge it into Nudge on its next run)"
 }
 
 function Move-NudgeStoreSet {
@@ -550,7 +550,7 @@ function Uninstall-LiteItem {
     # otherwise unchanged dir would slip past the fast path. Any link in
     # DestPath makes it yours.
     if ((Test-Path -LiteralPath $DestPath -PathType Container) -and (Test-HasReparsePoint $DestPath)) {
-        Write-Updated "${Label}: customized (holds a symlink or junction you added) -- SKIPPING; remove manually if you want"
+        Write-Updated "${Label}: customized (holds a symlink or junction you added) -- SKIPPING; I leave any manual removal to you"
         $script:Kept++
         return
     }
@@ -562,7 +562,7 @@ function Uninstall-LiteItem {
     } elseif (Test-ShippedVersion -DestPath $DestPath -InstalledRel $InstalledRel -SkipNudgeStores:$SkipNudgeStores) {
         $how = "removed (matches a shipped LITE version)"
     } else {
-        Write-Updated "${Label}: customized (differs from every shipped version) -- SKIPPING; remove manually if you want"
+        Write-Updated "${Label}: customized (differs from every shipped version) -- SKIPPING; I leave any manual removal to you"
         $script:Kept++
         return
     }
@@ -626,18 +626,18 @@ function Invoke-Uninstall {
     Write-Info "  $(Join-Path $ClaudeDir 'CLAUDE.md') (your live config)"
     Write-Info "  $(Join-Path $ClaudeDir 'settings.json') (your live config)"
     Write-Info "  $(Join-Path $ClaudeDir 'hooks/')  (excluding examples/ subdir)"
-    Write-Info "  $NudgeDb and $NudgeImportDir (your Nudge alerts -- remove manually if desired)"
-    Write-Info "  $BackupRoot (your backups -- remove manually)"
+    Write-Info "  $NudgeDb and $NudgeImportDir (your Nudge alerts -- I leave any manual removal to you)"
+    Write-Info "  $BackupRoot (your backups -- I leave any manual removal to you)"
 
     Write-Section "Next steps"
     @"
 If you wired Nudge or other LITE hooks into $(Join-Path $ClaudeDir 'settings.json'),
-remove those entries manually. The uninstaller can't safely edit
-your settings.json -- JSON parsing of an arbitrary user file would
-be too fragile. A leftover Nudge hook entry points at a launcher
-that no longer exists, so it shows a hook error on every prompt.
+I leave removing those entries manually to you. I can't safely edit
+your settings.json -- I'd find JSON parsing of an arbitrary user file
+too fragile. I'd remove a leftover Nudge hook entry, since it points at a
+launcher that no longer exists and shows a hook error on every prompt.
 
-To purge the backup folder and your Nudge alerts:
+To purge the backup folder and your Nudge alerts, I'd run:
 "@ | Write-Host
     # I list only paths LITE owns. An override's DB may sit in a shared dir,
     # so I name the DB file and the nudge-import dir, never their parent.
@@ -655,7 +655,7 @@ To purge the backup folder and your Nudge alerts:
     Write-Host ""
     if ($DryRun) { Write-Host "DRY RUN - nothing removed." -ForegroundColor Cyan }
     if ($script:Kept -gt 0) {
-        Write-Host "Uninstall finished; $($script:Kept) item(s) kept because they differ from any shipped version." -ForegroundColor Yellow
+        Write-Host "Uninstall finished; I kept $($script:Kept) item(s) because they differ from any shipped version." -ForegroundColor Yellow
     } else {
         Write-Host "Uninstall complete." -ForegroundColor Green
     }
@@ -690,16 +690,16 @@ function Invoke-Verify {
         $ver = & $py.Exe @pyExtra --version 2>&1
         Test-Check "python ($($py.Label))" "pass" "$ver"
         if ($py.Label -ne 'python3') {
-            Test-Check "python3 name" "warn" "not on PATH; the Nudge hook launcher falls back to '$($py.Label)', but the hook examples call python3 by name"
+            Test-Check "python3 name" "warn" "not on PATH; I fall back to '$($py.Label)' in the Nudge hook launcher, but I call python3 by name in the hook examples"
         }
         try { & $py.Exe @pyExtra -c "import sqlite3" 2>$null | Out-Null } catch { $null = $_ }
         if ($LASTEXITCODE -eq 0) {
             Test-Check "python sqlite3 import" "pass" "ok"
         } else {
-            Test-Check "python sqlite3 import" "fail" "cannot import -- Nudge skill will not work"
+            Test-Check "python sqlite3 import" "fail" "cannot import -- I can't run the Nudge skill without it"
         }
     } else {
-        Test-Check "python" "warn" "no Python 3.10+ found (tried python3, python, py -3) -- Nudge skill + hook examples will not work until you install one"
+        Test-Check "python" "warn" "no Python 3.10+ found (I tried python3, python, py -3) -- I can't run the Nudge skill + hook examples until you install one"
     }
     $cc = Get-Command claude -ErrorAction SilentlyContinue
     if ($cc) {
@@ -826,7 +826,7 @@ if (Test-Path -LiteralPath $NudgeMarkerDir -PathType Container) {
 }
 # Hand every alert store in the skill dir to the runtime before I replace it.
 if (-not (Move-NudgeStoreSet -SkillDir $NudgeSkillDir)) {
-    Write-SkippedM "nothing to migrate (alerts live in $NudgeDb)"
+    Write-SkippedM "nothing to migrate (I keep alerts in $NudgeDb)"
 }
 
 # --- Install items -----------------------------------------------------------
@@ -905,30 +905,30 @@ Write-Section "Next steps"
 # pastes back as-is even for a -ClaudeDir with spaces or apostrophes.
 function Get-RootLiteral { param([string]$Child) ConvertTo-PSLiteral (Join-Path $ClaudeDir $Child) }
 @"
-1. Claude Code picks up new skills in a running session. If
-     $(Get-RootLiteral 'skills') didn't exist before this install, start a new
+1. I rely on Claude Code picking up new skills in a running session. If
+     $(Get-RootLiteral 'skills') didn't exist before this install, I'd start a new
      session so Claude Code can watch the new directory.
 
 2. To use the CLAUDE.md starter template:
      Copy-Item -LiteralPath $(Get-RootLiteral 'CLAUDE.md.clayworks-template') -Destination $(Get-RootLiteral 'CLAUDE.md')
-     (back up any existing $(Get-RootLiteral 'CLAUDE.md') first)
+     (I back up any existing $(Get-RootLiteral 'CLAUDE.md') first)
      then edit the <YOUR ...> placeholders.
 
 3. To use the nudge skill (if installed):
      the skill auto-triggers when you mention a time
      ("stop me at 5pm", "remind me about standup at 9:55").
-     For nudges to actually fire, add the UserPromptSubmit hook from
+     For nudges to actually fire, I add the UserPromptSubmit hook from
      $(Get-RootLiteral 'settings.example.json') to $(Get-RootLiteral 'settings.json')
-     (details in $(Get-RootLiteral 'skills/clayworks-lite-nudge/SKILL.md')).
-     The hook needs bash, which Git for Windows provides; Claude Code
-     uses the same Git Bash to run hooks. Claude Code applies
-     settings.json edits without a restart. Skip this if you also
-     installed LITE as a plugin: the plugin registers the same hook,
-     and you'd see every alert twice.
+     (I cover the details in $(Get-RootLiteral 'skills/clayworks-lite-nudge/SKILL.md')).
+     I need bash for the hook; I get it from Git for Windows, the same Git
+     Bash that Claude Code uses to run hooks. I rely on Claude Code applying
+     settings.json edits without a restart. I skip this if I also
+     installed LITE as a plugin: I register the same hook through the plugin,
+     and I'd see every alert twice.
 
 4. To use a hook example:
-     copy <event>.sh from $(Get-RootLiteral 'hooks/examples') into $(Get-RootLiteral 'hooks') as <name>.sh,
-     customize, then register it in $(Get-RootLiteral 'settings.json') (see the README
+     I copy <event>.sh from $(Get-RootLiteral 'hooks/examples') into $(Get-RootLiteral 'hooks') as <name>.sh,
+     customize it, then register it in $(Get-RootLiteral 'settings.json') (I cover this in the README
      inside the examples/ dir).
 
 Verify the install:

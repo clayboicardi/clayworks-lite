@@ -11,7 +11,7 @@
 #     "hook_event_name": "UserPromptSubmit",
 #     "prompt": "Write a function to calculate the factorial of a number"
 #   }
-# (Newer versions also send prompt_id. There is no model field on this event.)
+# (I see newer versions also send prompt_id. I get no model field on this event.)
 #
 # Common uses:
 #   - Inject reminders that should reach Claude this turn (e.g., due nudges)
@@ -20,17 +20,19 @@
 #   - Surface time-sensitive state (active hours, pending PRs, etc.)
 #
 # Exit behavior:
-#   - Exit 0 + plain-text stdout: Claude Code adds the text to Claude's context
-#     next to the prompt. Claude Code wraps it itself (as a system reminder
-#     that names the hook), so print plain text; don't hand-wrap it in tags.
-#   - Stdout that starts with "{" must be valid JSON output, or Claude Code
-#     drops it and shows a hook error. Plain stdout caps at 10,000 characters.
-#   - Exit 2 BLOCKS the prompt: Claude Code erases it and shows your stderr
-#     to the user. Any other non-zero exit is a non-blocking error notice.
-#   - Default timeout on this event is 30s; keep it far under that.
+#   - Exit 0 + plain-text stdout: I rely on Claude Code adding the text to
+#     Claude's context next to the prompt and wrapping it itself (as a system
+#     reminder that names the hook), so I print plain text, never tag-wrapped.
+#   - I make sure stdout that starts with "{" is valid JSON output, or Claude
+#     Code drops it and shows a hook error. I keep plain stdout within its
+#     10,000-character cap.
+#   - With exit 2 I BLOCK the prompt: Claude Code erases it and shows my stderr
+#     to the user. I get only a non-blocking error notice from any other
+#     non-zero exit.
+#   - I know the default timeout on this event is 30s; I keep it far under that.
 #
-# Register in ~/.claude/settings.json under hooks.UserPromptSubmit (no matcher;
-# this event fires on every prompt).
+# I register it in ~/.claude/settings.json under hooks.UserPromptSubmit (no
+# matcher; I get this event on every prompt).
 # =============================================================================
 
 set -u
@@ -43,23 +45,23 @@ try:
     d = json.load(sys.stdin)
     print(d.get('prompt', ''), end='')
 except Exception as exc:
-    print(f'userpromptsubmit.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'userpromptsubmit.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     pass
 ")
 
 # --- Example: surface keyword-triggered context -----------------------------
 # Replace the keyword check + injected text with whatever you actually want.
-# Phrase injected text as plain facts or reminders. Text styled as an
-# out-of-band system command can trip Claude's prompt-injection defenses.
+# I phrase injected text as plain facts or reminders. I've seen text styled as
+# an out-of-band system command trip Claude's prompt-injection defenses.
 
 PROMPT_LOWER=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 
 case "$PROMPT_LOWER" in
     *"deploy"*|*"release"*|*"production"*)
         cat <<'EOF'
-Deployment-adjacent keyword detected in the prompt. Checklist for this kind of
-work: CI is green, the target environment is the intended one, and a staged
-rollout beats a big-bang release. If the mention is incidental, ignore this.
+I detected a deployment-adjacent keyword in the prompt. My checklist for this
+kind of work: green CI, the intended target environment, and a staged rollout
+over a big-bang release. If the mention is incidental, I'd ignore this.
 EOF
         ;;
     *)

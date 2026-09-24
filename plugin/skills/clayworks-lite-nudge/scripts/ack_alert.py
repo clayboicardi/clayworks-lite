@@ -4,12 +4,12 @@
 Usage:
     python3 ack_alert.py <alert_id>
 
-Exits 1 if the alert isn't found or the ID isn't a number.
+I exit 1 if I can't find the alert or the ID isn't a number.
 """
 
 import sys
 
-sys.dont_write_bytecode = True  # keep __pycache__ out of the skill dir
+sys.dont_write_bytecode = True  # I keep __pycache__ out of the skill dir
 from nudge_db import open_db  # noqa: E402
 
 
@@ -31,7 +31,7 @@ def main() -> None:
     try:
         alert_id = int(sys.argv[1])
     except ValueError:
-        print(f"Not an alert ID: {sys.argv[1]!r}")
+        print(f"I need a numeric alert ID, not {sys.argv[1]!r}")
         sys.exit(1)
 
     if ack_alert(alert_id):

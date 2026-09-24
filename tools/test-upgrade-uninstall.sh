@@ -77,7 +77,7 @@ want_present "${A}/hooks/examples/stop.sh"
 grep -q '^# my edit$' "${A}/hooks/examples/stop.sh" || fail "user edit to stop.sh lost"
 [[ "$(imported_content "${A}/clayworks-lite/nudge/nudge-import")" == "legacy-db-bytes" ]] \
     || fail "(a) legacy DB did not land in ${A}/clayworks-lite/nudge/nudge-import"
-grep -q "Uninstall finished; 1 item(s) kept" <<< "$out_a" || fail "(a) wrong closing line"
+grep -q "Uninstall finished; I kept 1 item(s)" <<< "$out_a" || fail "(a) wrong closing line"
 grep -qxF "  rm -rf $(q "${A}/.clayworks-lite-backup")" <<< "$out_a" || fail "(e) purge text lacks this root's backup dir"
 grep -qxF "  rm -rf $(q "${A}/clayworks-lite")" <<< "$out_a" || fail "(e) purge text lacks this root's clayworks-lite dir"
 if grep -q '[~]/[.]claude' <<< "$out_a"; then fail "(e) uninstall output still names ~/.claude"; fi
@@ -98,7 +98,7 @@ want_present "${B}/skills/clayworks-lite-memory-routing/my-notes.md"
 want_gone "${B}/clayworks-lite/nudge/nudge-import"
 want_gone "${B}/skills/clayworks-lite-heartbeat-concept"
 want_gone "${B}/hooks/examples"
-grep -q "Uninstall finished; 2 item(s) kept" <<< "$out_b" || fail "(b) wrong closing line"
+grep -q "Uninstall finished; I kept 2 item(s)" <<< "$out_b" || fail "(b) wrong closing line"
 
 # A custom.pyc beside a skill's SKILL.md is yours, so that skill stays; a
 # .pyc inside __pycache__/ is Python's, so it doesn't hold its skill back.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add a new alert to the Nudge SQLite store.
+"""I add a new alert to the Nudge SQLite store.
 
 Usage:
     python3 add_alert.py <time> <message>
@@ -10,14 +10,14 @@ Time formats:
     +Nm               -- N minutes from now (e.g., +30m)
     +Nh               -- N hours from now (e.g., +2h)
 
-The database lives at ~/.claude/clayworks-lite/nudge/alerts.db (override with
-the CLAYWORKS_NUDGE_DB environment variable). See nudge_db.py.
+I keep the database at ~/.claude/clayworks-lite/nudge/alerts.db (I honor the
+CLAYWORKS_NUDGE_DB environment variable as an override). I resolve it in nudge_db.py.
 """
 
 import sys
 from datetime import datetime, timedelta
 
-sys.dont_write_bytecode = True  # keep __pycache__ out of the skill dir
+sys.dont_write_bytecode = True  # I keep __pycache__ out of the skill dir
 from nudge_db import open_db  # noqa: E402
 
 

@@ -2,12 +2,12 @@
 # =============================================================================
 # Stop hook — customized example (from hooks/examples/stop.sh)
 # =============================================================================
-# Fires each time Claude finishes responding (every turn, not at session
-# exit). Logs a one-line turn-end timestamp per session per day. Useful for
-# spotting unusually long turns (timestamps vs. transcript size).
+# I get this each time Claude finishes responding (every turn, not at session
+# exit). I log a one-line turn-end timestamp per session per day, which I use
+# to spot unusually long turns (timestamps vs. transcript size).
 #
-# This hook never blocks: it always exits 0 and prints nothing, so Claude
-# stops normally. Exit 2 here would force Claude to keep working.
+# I never block from this hook: I always exit 0 and print nothing, so Claude
+# stops normally. With exit 2 here I'd force Claude to keep working.
 #
 # The 24h-gated background-trigger pattern (e.g. dream-style consolidation)
 # is commented out below — uncomment and pin a real script path when you
@@ -23,7 +23,7 @@ try:
     d = json.load(sys.stdin)
     print(d.get('session_id', '<unknown>'), end='')
 except Exception as exc:
-    print(f'stop.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'stop.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', end='')
 ")
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SessionEnd hook — fires when a Claude Code session ends
+# SessionEnd hook — when a Claude Code session ends
 # =============================================================================
 # Payload (stdin, JSON), abridged from the Claude Code hooks reference:
 #   {
@@ -10,24 +10,25 @@
 #     "hook_event_name": "SessionEnd",
 #     "reason": "prompt_input_exit"
 #   }
-# reason is one of: clear | resume | logout | prompt_input_exit | other
-# There is no duration or end-timestamp field; compute those yourself (e.g.
-# from the transcript file's timestamps) if you need them.
+# I get reason as one of: clear | resume | logout | prompt_input_exit | other
+# I get no duration or end-timestamp field; I compute those myself (e.g.
+# from the transcript file's timestamps) when I need them.
 #
 # Common uses:
-#   - Append a session summary line to a daily log
-#   - Persist final state (e.g., dump current TODO list)
-#   - Capture session-end telemetry
+#   - Appending a session summary line to a daily log
+#   - Persisting final state (e.g., dumping the current TODO list)
+#   - Capturing session-end telemetry
 #
-# Exit behavior: SessionEnd can't block the session from ending, and Claude
-# Code discards JSON output. A non-zero exit only shows stderr to the user.
+# Exit behavior: I can't block the session from ending with SessionEnd, and I
+# know Claude Code discards JSON output. With a non-zero exit I only show
+# stderr to the user.
 #
-# TIMEOUT: SessionEnd hooks share a short budget, 1.5 seconds by default. A
-# per-hook "timeout" in settings.json raises that budget (up to 60s), and so
-# does the CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS environment variable. Keep
+# TIMEOUT: I get a short shared budget for SessionEnd hooks, 1.5 seconds by
+# default. I raise it (up to 60s) with a per-hook "timeout" in settings.json or
+# with the CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS environment variable. I keep
 # the work tiny, or hand anything slow to a detached background process.
 #
-# Register in ~/.claude/settings.json under hooks.SessionEnd. Add a matcher
+# I register it in ~/.claude/settings.json under hooks.SessionEnd. I add a matcher
 # (e.g. "prompt_input_exit|logout") to skip /clear and /resume switches.
 # =============================================================================
 
@@ -40,18 +41,19 @@ try:
     d = json.load(sys.stdin)
     print(d.get('session_id', '<unknown>'), d.get('reason', 'unknown'), sep='\x1f', end='')
 except Exception as exc:
-    print(f'sessionend.sh: could not parse the hook payload ({exc})', file=sys.stderr)
+    print(f'sessionend.sh: I could not parse the hook payload ({exc})', file=sys.stderr)
     print('<unknown>', 'unknown', sep='\x1f', end='')
 ")
 IFS=$'\x1f' read -r SESSION_ID REASON <<< "$FIELDS"
 
-# --- Example: log session-end reason to a monthly log -------------------------
+# --- Example: session-end reason in a monthly log ----------------------------
 
 LOG_DIR="$HOME/agent/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null
 LOG_FILE="$LOG_DIR/sessions-$(date +%Y-%m).log"
 
-# Sanitize: payload strings can carry newlines/ANSI escapes that forge log lines.
+# Sanitize: I strip payload strings, since they can carry newlines/ANSI escapes
+# that forge log lines.
 SESSION_ID_SAFE=$(printf '%s' "$SESSION_ID" | tr -d '\000-\037\177' | cut -c1-100)
 REASON_SAFE=$(printf '%s' "$REASON" | tr -d '\000-\037\177' | cut -c1-50)
 
