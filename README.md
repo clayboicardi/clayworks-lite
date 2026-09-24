@@ -162,7 +162,7 @@ Or in one step: `/plugin install clayworks-lite --marketplace clayboicardi/clayw
 Claude Code clones the marketplace to `~/.claude/plugins/marketplaces/clayworks-lite/` and copies the plugin into its cache at `~/.claude/plugins/cache/clayworks-lite/clayworks-lite/<version>/`. You can use the plugin right away; you don't need to restart Claude Code. What you get:
 
 - **The three LITE skills.** I expose them under the plugin's namespace: `clayworks-lite:clayworks-lite-nudge`, `clayworks-lite:clayworks-lite-memory-routing`, `clayworks-lite:clayworks-lite-heartbeat-concept`. They trigger on their own when relevant, and you can also call them as slash commands (e.g. `/clayworks-lite:clayworks-lite-nudge`).
-- **The Nudge hook, wired for you.** I register the UserPromptSubmit hook in the plugin's own `hooks/hooks.json`, so due reminders fire without you adding anything to `settings.json`.
+- **I wire the Nudge hook for you.** I register the UserPromptSubmit hook in the plugin's own `hooks/hooks.json`, so due reminders fire without you adding anything to `settings.json`.
 - **Reference material on disk.** I leave the hook scaffolding examples, the CLAUDE.md template, `settings.example.json`, worked configurations (`examples/`), and design rationale (`docs/`) in that cache folder for you (and Claude in a session) to reference, copy, and customize. I don't auto-deploy templates to standard `~/.claude/` paths under this option; you copy them yourself when ready.
 
 I keep Nudge's alerts at `~/.claude/clayworks-lite/nudge/alerts.db`, outside the plugin folder, so plugin updates never wipe them.

@@ -202,6 +202,28 @@ want_gone "${R}/skills/clayworks-lite-heartbeat-concept"
 grep -q "skill: clayworks-lite-memory-routing: customized" <<< "$out_r" \
     || fail "(inner symlink) the skill holding your link was not kept as customized"
 
+# CLAYWORKS_NUDGE_DB inside another LITE skill, which install replaces and
+# uninstall removes: both must refuse with exit 2, and the store must stay
+# put with its row.
+S="${WORK}/claude-s"
+new_install "$S" >/dev/null
+store_s="${S}/skills/clayworks-lite-memory-routing/custom.db"
+printf 'row-s\n' > "$store_s"
+for mode in install uninstall; do
+    rc=0
+    if [[ $mode == install ]]; then
+        out_s="$(CLAYWORKS_NUDGE_DB="$store_s" new_install "$S" 2>&1)" || rc=$?
+    else
+        out_s="$(CLAYWORKS_NUDGE_DB="$store_s" new_uninstall "$S" 2>&1)" || rc=$?
+    fi
+    [[ $rc -eq 2 ]] || fail "(db in managed skill) ${mode} did not refuse (exit ${rc})"
+    grep -q "CLAYWORKS_NUDGE_DB points inside" <<< "$out_s" || fail "(db in managed skill) ${mode} gave no error"
+done
+[[ "$(cat "$store_s" 2>/dev/null)" == "row-s" ]] || fail "(db in managed skill) the store moved or changed"
+if [[ -n "$(find "${S}/.clayworks-lite-backup" -name custom.db 2>/dev/null)" ]]; then
+    fail "(db in managed skill) the store was backed up, so install replaced its skill"
+fi
+
 # A symlinked install root itself is fine (dotfile setups): install and
 # uninstall through it work as usual.
 real_root="${WORK}/real-root"

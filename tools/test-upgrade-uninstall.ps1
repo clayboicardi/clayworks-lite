@@ -238,6 +238,27 @@ try {
         Add-Failure "(junctioned skill dir) the installer changed the external folder: $($extItems -join ',')"
     }
 
+    # CLAYWORKS_NUDGE_DB inside another LITE skill, which install replaces
+    # and uninstall removes: both must refuse with exit 2, and the store must
+    # stay put with its row.
+    $sRoot = Join-Path $Work "claude-s"
+    Invoke-Current $sRoot | Out-Null
+    $storeS = Join-Path $sRoot "skills/clayworks-lite-memory-routing/custom.db"
+    [System.IO.File]::WriteAllText($storeS, "row-s")
+    $env:CLAYWORKS_NUDGE_DB = $storeS
+    try {
+        foreach ($mode in @($false, $true)) {
+            $outS = (& $Current -Uninstall:$mode -ClaudeDir $sRoot *>&1 | ForEach-Object { "$_" }) -join "`n"
+            $modeName = if ($mode) { 'uninstall' } else { 'install' }
+            if ($LASTEXITCODE -ne 2 -or $outS -notmatch "CLAYWORKS_NUDGE_DB points inside") {
+                Add-Failure "(db in managed skill) $modeName did not refuse"
+            }
+        }
+    } finally { Remove-Item Env:\CLAYWORKS_NUDGE_DB }
+    if ((Read-Text $storeS) -ne "row-s") { Add-Failure "(db in managed skill) the store moved or changed" }
+    $backedUpS = Get-ChildItem -LiteralPath (Join-Path $sRoot ".clayworks-lite-backup") -Recurse -Filter "custom.db" -ErrorAction SilentlyContinue
+    if ($backedUpS) { Add-Failure "(db in managed skill) the store was backed up, so install replaced its skill" }
+
     # A junctioned install root itself is fine (dotfile setups): install and
     # uninstall through it work as usual.
     $realRoot = Join-Path $Work "real-root"

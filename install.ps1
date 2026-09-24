@@ -387,6 +387,29 @@ function Get-LiteSkillName {
     return ,$names
 }
 
+function Confirm-NudgeDbOutsideManagedItem {
+    # Exit 2 before touching anything if the Nudge DB lies inside (or is) an
+    # item install replaces and uninstall removes: a LITE skill other than
+    # Nudge, hooks\examples, or a root template. Its alerts would end up only
+    # in the generic backup, and Nudge would start over with an empty DB. The
+    # Nudge skill dir is the exception: I hand stores in there to
+    # nudge-import\ and warn instead.
+    $items = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in (Get-LiteSkillName)) {
+        if ($name -ne "clayworks-lite-nudge") { $items.Add((Join-Path $ClaudeDir "skills/$name")) }
+    }
+    $items.Add((Join-Path $ClaudeDir "hooks/examples"))
+    $items.Add((Join-Path $ClaudeDir "CLAUDE.md.clayworks-template"))
+    $items.Add((Join-Path $ClaudeDir "settings.example.json"))
+    foreach ($item in $items) {
+        if (Test-PathWithin $NudgeDb $item) {
+            Write-Host "ERROR: CLAYWORKS_NUDGE_DB points inside $item, which I replace or" -ForegroundColor Red
+            Write-Host "remove; point it outside LITE's installed folders, then re-run." -ForegroundColor Red
+            exit 2
+        }
+    }
+}
+
 function Confirm-InstallPathSafety {
     # Check every path LITE installs to or removes under ClaudeDir up front,
     # before I read, write, move, or remove anything. That covers skills\ and
@@ -759,6 +782,9 @@ function Invoke-Verify {
 # --- Dispatch ---------------------------------------------------------------
 
 if ($Verify)    { Invoke-Verify }
+# Install and uninstall both replace or remove these, so they must not hold
+# the live Nudge DB.
+Confirm-NudgeDbOutsideManagedItem
 if ($Uninstall) { Invoke-Uninstall; exit 0 }
 
 # --- Pre-flight --------------------------------------------------------------

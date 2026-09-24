@@ -373,6 +373,27 @@ lite_skill_names() {
     } | LC_ALL=C sort -u
 }
 
+# Exit 2 before touching anything if the Nudge DB lies inside (or is) an item
+# install replaces and uninstall removes: a LITE skill other than Nudge,
+# hooks/examples, or a root template. Its alerts would end up only in the
+# generic backup, and Nudge would start over with an empty DB. The Nudge
+# skill dir is the exception: I hand stores in there to nudge-import/ and
+# warn instead.
+refuse_db_in_managed_item() {
+    local name item items=()
+    while IFS= read -r name; do
+        [[ -n "$name" && "$name" != "clayworks-lite-nudge" ]] && items+=("${CLAUDE_DIR}/skills/${name}")
+    done < <(lite_skill_names)
+    items+=("${CLAUDE_DIR}/hooks/examples" "${CLAUDE_DIR}/CLAUDE.md.clayworks-template" "${CLAUDE_DIR}/settings.example.json")
+    for item in "${items[@]}"; do
+        if path_within "$NUDGE_DB" "$item"; then
+            echo "ERROR: CLAYWORKS_NUDGE_DB points inside ${item}, which I replace or" >&2
+            echo "remove; point it outside LITE's installed folders, then re-run." >&2
+            exit 2
+        fi
+    done
+}
+
 # Check every path LITE installs to or removes under CLAUDE_DIR up front,
 # before I read, write, move, or remove anything. That covers skills/ and
 # each LITE skill, hooks/ and hooks/examples, the two root templates, the
@@ -734,6 +755,10 @@ run_verify() {
 if [[ $VERIFY -eq 1 ]]; then
     run_verify
 fi
+
+# Install and uninstall both replace or remove these, so they must not hold
+# the live Nudge DB.
+refuse_db_in_managed_item
 
 if [[ $UNINSTALL -eq 1 ]]; then
     run_uninstall
