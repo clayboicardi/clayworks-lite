@@ -103,6 +103,13 @@ NUDGE_DB="${NUDGE_DB_OVERRIDE:-${CLAUDE_DIR}/clayworks-lite/nudge/alerts.db}"
 if [[ $NUDGE_DB == \~ || $NUDGE_DB == \~/* ]]; then
     NUDGE_DB="${HOME}${NUDGE_DB:1}"
 fi
+# Git Bash passes a Windows-style override through verbatim (C:\Users\me\alerts.db),
+# and POSIX dirname can't split on backslashes, so it would put nudge-import/ in
+# the current directory while the runtime (Windows Python) looks next to the
+# real file. I convert it to the POSIX form first when cygpath is available.
+if [[ $NUDGE_DB =~ ^[A-Za-z]:[\\/] || $NUDGE_DB == *\\* ]] && command -v cygpath >/dev/null 2>&1; then
+    NUDGE_DB="$(cygpath -u "$NUDGE_DB")"
+fi
 NUDGE_MARKER_DIR="${CLAUDE_DIR}/clayworks-lite/nudge"
 NUDGE_SKILL_DIR="${CLAUDE_DIR}/skills/clayworks-lite-nudge"
 NUDGE_IMPORT_DIR="$(dirname "$NUDGE_DB")/nudge-import"

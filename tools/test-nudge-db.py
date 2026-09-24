@@ -204,4 +204,28 @@ with tempfile.TemporaryDirectory() as td:
     assert Path(argv[1]).name == "run-python.sh" and Path(argv[2]).name == "ack_alert.py", argv
     assert "INJECTED" in argv[1] and "$(" in argv[1], argv   # stayed literal inside one argument
     print("10 dismiss hint quoted safely: ok")
+
+    # 11. A legacy store that crashed mid-write carries a hot rollback journal.
+    #     SQLite has to roll it back before reading, so the merge must recover
+    #     the committed alerts, not set the store aside.
+    root11 = td / "r11"
+    shutil.copytree(SRC, root11 / "skills/clayworks-lite-nudge")
+    imp11 = root11 / "clayworks-lite/nudge/nudge-import"
+    hot = imp11 / "legacy-hot.db"
+    mkdb(hot, [A])
+    crash = (
+        "import os, sqlite3, sys\n"
+        "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+        "c.execute('PRAGMA journal_mode=DELETE'); c.execute('PRAGMA cache_size=1')\n"
+        "c.execute('BEGIN')\n"
+        "for i in range(3000):\n"
+        "    c.execute('INSERT INTO alerts (due_at, message) VALUES (?, ?)', ('2026-02-01 09:00', 'x' * 200))\n"
+        "os._exit(0)\n"                                  # die mid-transaction, journal left behind
+    )
+    subprocess.run([sys.executable, "-c", crash, str(hot)], check=True)
+    assert hot.with_name(hot.name + "-journal").exists(), "test setup: no hot journal"
+    _, err11 = run(root11 / "skills/clayworks-lite-nudge/scripts", "--list", home=home)
+    assert rows(root11 / "clayworks-lite/nudge/alerts.db") == [(A[0], A[1], 0)], err11
+    assert not (imp11 / "legacy-hot.db.unmergeable").exists(), err11
+    print("11 hot rollback journal recovered before merge: ok")
 print("ALL OK")

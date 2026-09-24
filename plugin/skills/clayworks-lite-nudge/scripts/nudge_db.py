@@ -142,16 +142,17 @@ def _classify(exc: sqlite3.Error) -> str:
     """How to treat a failed legacy read.
 
     "wait": a lock or busy error that clears on its own; retry silently.
-    "retry": SQLite couldn't open the file (permissions, I/O). It may be
-        persistent, so I say so on stderr, but I keep the file where it is
-        and retry, since fixing the permissions is enough to recover.
+    "retry": SQLite couldn't open the file (permissions, I/O), or couldn't
+        roll back its hot journal because the file or folder is read-only.
+        It may be persistent, so I say so on stderr, but I keep the file
+        where it is and retry, since fixing the permissions is enough.
     "permanent": corruption or a non-Nudge DB; set it aside.
     """
     text = str(exc).lower()
     if isinstance(exc, sqlite3.OperationalError):
         if "locked" in text or "busy" in text:
             return "wait"
-        if "unable to open" in text:
+        if "unable to open" in text or "readonly" in text or "read-only" in text:
             return "retry"
     return "permanent"
 
@@ -162,18 +163,32 @@ def _report_retry(src: Path, reason: str) -> None:
           file=sys.stderr)
 
 
+SIDECARS = ("-journal", "-wal", "-shm")
+
+
 def _rename_aside(src: Path, suffix: str) -> Path:
-    """Rename src to src<suffix>, or src<suffix>.1, .2, ... if that name is taken.
+    """Rename src to src<suffix>, or src<suffix>.1, .2, ... if that name is taken,
+    and carry its SQLite sidecars (-journal, -wal, -shm) to the matching name.
 
     POSIX rename silently replaces an existing file, so I never reuse a name:
-    an earlier set-aside or merged copy stays intact.
+    an earlier set-aside or merged copy stays intact. Moving the sidecars keeps
+    a set-aside store recoverable: SQLite looks for `<name>-journal` next to
+    the database it opens.
     """
+    def taken(candidate: Path) -> bool:
+        return candidate.exists() or any(
+            candidate.with_name(candidate.name + side).exists() for side in SIDECARS)
+
     target = src.with_name(src.name + suffix)
     n = 1
-    while target.exists():
+    while taken(target):
         target = src.with_name(f"{src.name}{suffix}.{n}")
         n += 1
     src.rename(target)
+    for side in SIDECARS:
+        sidecar = src.with_name(src.name + side)
+        if sidecar.exists():
+            sidecar.rename(target.with_name(target.name + side))
     return target
 
 
@@ -193,12 +208,15 @@ def _set_aside(src: Path, rename: bool, reason: str) -> None:
 
 
 def _read_source(src: Path) -> list[tuple]:
-    """Every alert row in a legacy store, read through its own read-only connection.
+    """Every alert row in a legacy store, read through its own connection.
 
     Errors raised here come from the source file, so the caller can blame it
-    safely; nothing here touches the stable DB.
+    safely; nothing here touches the stable DB. I open the source read-write
+    (I only ever SELECT from it) because a store that crashed mid-write has a
+    hot rollback journal, and SQLite must write to the file to roll that
+    transaction back before it can read the committed alerts.
     """
-    src_conn = sqlite3.connect(f"{src.resolve().as_uri()}?mode=ro", uri=True)
+    src_conn = sqlite3.connect(str(src))
     try:
         has_table = src_conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alerts'"
