@@ -214,7 +214,7 @@ jobs:
         # export the path from a step instead.
         run: echo "CLAYWORKS_NUDGE_DB=$RUNNER_TEMP/nudge-ci/alerts.db" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
