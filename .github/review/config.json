@@ -1,0 +1,92 @@
+{
+  "defaults": {
+    "model": "opus",
+    "effort": "high",
+    "focus": "general",
+    "scan": "on"
+  },
+  "models": {
+    "opus": {
+      "id": "claude-opus-5-5",
+      "input_per_mtok": 4.0,
+      "output_per_mtok": 20.0,
+      "task_budget": true
+    },
+    "sonnet": {
+      "id": "claude-sonnet-5-5",
+      "input_per_mtok": 2.0,
+      "output_per_mtok": 10.0,
+      "task_budget": true
+    },
+    "haiku": {
+      "id": "claude-haiku-5-5",
+      "input_per_mtok": 0.1,
+      "output_per_mtok": 0.5,
+      "long_prompt_threshold_tokens": 100000,
+      "long_input_per_mtok": 0.5,
+      "long_output_per_mtok": 2.5,
+      "task_budget": true
+    },
+    "fable": {
+      "id": "claude-fable-5-1",
+      "input_per_mtok": 10.0,
+      "output_per_mtok": 50.0,
+      "task_budget": true
+    }
+  },
+  "efforts": [
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max"
+  ],
+  "effort_budgets": {
+    "low": {
+      "max_tokens": 40000,
+      "task_budget": 20000
+    },
+    "medium": {
+      "max_tokens": 48000,
+      "task_budget": 24000
+    },
+    "high": {
+      "max_tokens": 64000,
+      "task_budget": 32000
+    },
+    "xhigh": {
+      "max_tokens": 96000,
+      "task_budget": 48000
+    },
+    "max": {
+      "max_tokens": 128000,
+      "task_budget": 64000
+    }
+  },
+  "limits": {
+    "max_tokens_cap": 128000,
+    "max_diff_chars": 400000,
+    "task_budget_min": 20000,
+    "deadline_seconds": 2100,
+    "retry_min_remaining_seconds": 900,
+    "custom_model_max_tokens": 32000,
+    "task_budget_headroom": 8000
+  },
+  "exclude_paths": [
+    "package-lock.json",
+    "*.lock",
+    "dist/*",
+    "*.min.js",
+    "*.min.css",
+    "*.svg",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.webp",
+    "*.avif",
+    "*.ico",
+    "*.pdf",
+    "*.woff",
+    "*.woff2"
+  ]
+}
