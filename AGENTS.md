@@ -1,6 +1,6 @@
 # clayworks-lite agent & reviewer guide
 
-Conventions for AI agents and the bot reviewer (Codex). The full, authoritative version lives in [CONTRIBUTING.md](CONTRIBUTING.md). This file carries the load-bearing rules so the reviewer applies them even on a PR that doesn't touch `CONTRIBUTING.md`, because Codex auto-loads `AGENTS.md`.
+Conventions for AI agents and the bot reviewers (Codex, plus my on-demand Claude `/review` bot). The full, authoritative version lives in [CONTRIBUTING.md](CONTRIBUTING.md). This file carries the load-bearing rules so the reviewer applies them even on a PR that doesn't touch `CONTRIBUTING.md`, because Codex auto-loads `AGENTS.md`.
 
 ## Voice (load-bearing)
 
@@ -8,6 +8,6 @@ Write in first person, active voice on public surfaces. Speak as the maintainer.
 
 ## Review
 
-I use Codex as the sole bot reviewer. I lost Gemini reviews when Google's consumer Gemini Code Assist app ended all review activity on 2026-07-17, so I removed its `.gemini/` config. I get Codex reviews on PR-open and on `@codex review`, and I have Codex reach my review host over Tailscale. I treat a missing Codex review as review-absent, not review-clean: if none appears, I enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`.
+I use Codex as my automatic bot reviewer, and I add my Claude `/review` bot on demand by commenting `/review` on a PR. I lost Gemini reviews when Google's consumer Gemini Code Assist app ended all review activity on 2026-07-17, so I removed its `.gemini/` config. I get Codex reviews on PR-open and on `@codex review`, and I have Codex reach my review host over Tailscale. I treat a missing Codex review as review-absent, not review-clean: if none appears, I enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`.
 
 For the full style, installer-security, hook, skill, README-accuracy, brand-separation, and language-discipline rules, read [CONTRIBUTING.md](CONTRIBUTING.md#style--review-conventions).

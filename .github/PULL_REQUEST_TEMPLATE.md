@@ -13,7 +13,7 @@
 
 ## Review
 
-I use Codex as the sole bot reviewer (I lost Gemini Code Assist when it ended its review activity on 2026-07-17). I cover the details in [CONTRIBUTING.md](../CONTRIBUTING.md#code-review).
+I use Codex as my automatic bot reviewer and add my Claude `/review` bot on demand (I lost Gemini Code Assist when it ended its review activity on 2026-07-17). I cover the details in [CONTRIBUTING.md](../CONTRIBUTING.md#code-review).
 
 - [ ] Codex reviewed this PR (auto-on-open or via `@codex review`) and I addressed the findings
 - [ ] A Codex review is actually present (a *missing* review is **not** a clean review; Codex reaches the review host over Tailscale, so if absent, enable accept-dns on that host with `tailscale set --accept-dns=true` and re-trigger with `@codex review`)
