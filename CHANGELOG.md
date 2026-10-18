@@ -7,6 +7,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Review config:** I added my on-demand Claude `/review` bot (`.github/workflows/claude-review.yml`, `.github/review/`) next to Codex, and I updated `AGENTS.md`, `CONTRIBUTING.md`, and the PR template so they call Codex my automatic bot reviewer instead of the sole one. The bot lives in `.github/` only, so nothing changes in what I ship.
+
 ## [1.1.0] — 2026-09-22
 
 Claude Code catch-up release. I watched Claude Code move from roughly 2.1.178 to 2.1.280 since my last substantive pass, and I found that a lot of what I'd said about hooks, plugins, and memory had drifted. I re-checked every claim against the current docs and a live 2.1.280 install. The headline change: I now wire the Nudge hook through the plugin install, so you get reminders with no `settings.json` editing.

@@ -24,9 +24,10 @@ Thanks for your interest. A few ground rules:
 
 ## Code review
 
-I use Codex as the sole bot reviewer. I used to get Gemini Code Assist auto-reviews here too, until Google sunset the consumer app, blocking new org installs from 2026-06-18 and ending all review activity on 2026-07-17. I removed the `.gemini/` config after the sunset.
+I use Codex as my automatic bot reviewer, and I add my Claude `/review` bot on demand. I used to get Gemini Code Assist auto-reviews here too, until Google sunset the consumer app, blocking new org installs from 2026-06-18 and ending all review activity on 2026-07-17. I removed the `.gemini/` config after the sunset.
 
 - **Codex** (`chatgpt-codex-connector`) reviews automatically when a PR opens, and on demand when you comment `@codex review`. It reaches the operator's review host over Tailscale.
+- **My Claude `/review` bot** reviews a PR only when I comment `/review` on it (options in `.github/review/config.json`). It runs from the default branch with the repo's `ANTHROPIC_API_KEY` secret, refuses to send a diff that looks like it holds credentials, and reads this repo's conventions from `.github/review/context.md`, so I keep that file in step with this one.
 - **The independent project-scoped Claude Code session is the second voice.** `/multi:diff-review` is an optional extra read.
 - **A *missing* Codex review is not a clean review.** Codex silently no-fires when it cannot reach the review host. The usual cause: the host's Tailscale `accept-dns` is off, so its MagicDNS name fails to resolve. If a PR opens and no Codex review appears, treat it as **review absent**, not "review clean." To fix, enable accept-dns on the review host (`tailscale set --accept-dns=true`), then re-trigger with `@codex review`. The PR template's review checklist exists so this cannot lapse silently.
 

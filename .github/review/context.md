@@ -1,0 +1,9 @@
+Repository context (appended to every review):
+
+- Clayworks LITE: a free, MIT-licensed, public Claude Code operator kit (memory, CLAUDE.md hygiene, docs-freshness hook, skills, notifications) shipped as a Claude Code plugin under `plugin/` plus `install.sh` / `install.ps1`. `CONTRIBUTING.md` ("Style & review conventions") is the authoritative rule set.
+- Voice is load-bearing: first person, active voice on public surfaces, speaking as the maintainer. Passive constructions ("is documented as…", "are designed to…") are the most-flagged issue. At most one em-dash per 150 words, no marketing-speak ("seamless", "robust", "powerful"...), no exclamation marks outside code, no "no-code" label.
+- Installer security: reject symlinks at install time, keep the fsmonitor mitigation, no `curl | bash` install paths, installed-file permissions match the expected umask. Installs must stay idempotent and uninstall must leave nothing behind (CI checks both).
+- Hooks follow the current Claude Code contract per event: real stdin field names, `exit 2` (never `exit 1`) to block, plain-text stdout where it becomes context, no hand-rolled `<system-reminder>` wrappers, and no silently swallowed errors (`run-python.sh` exiting 0 without Python is the one deliberate exception). Skills reference their own files via `${CLAUDE_SKILL_DIR}` and keep user data outside the skill directory.
+- README claims must match installed behaviour, and the README version badge must match `plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
+- Brand separation: no internal-only project terms, hook or daemon names, `C:\` paths, or paid-bundle internals in shipped files.
+- Shell targets bash (macOS/Linux/Git Bash) and stays ShellCheck-clean; `install.ps1` targets Windows PowerShell 5.1+ with no PS 7-only syntax and writes UTF-8 without a BOM. Docs say `python3`, never bare `python`. Don't nit whitespace, trailing newlines or README section order.
